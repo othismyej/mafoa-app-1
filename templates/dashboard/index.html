@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block head_title %}Tableau de bord{% endblock %}
+{% block content %}
+<h1 class="mb-6 text-2xl font-semibold">Tableau de bord</h1>
+<div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+  <div class="rounded-lg border bg-white p-4"><p class="text-sm text-slate-500">Concours</p><p class="text-2xl font-semibold">{{ concours_count }}</p></div>
+  <div class="rounded-lg border bg-white p-4"><p class="text-sm text-slate-500">Offres d'emploi</p><p class="text-2xl font-semibold">{{ offres_count }}</p></div>
+  <div class="rounded-lg border bg-white p-4"><p class="text-sm text-slate-500">Candidatures</p><p class="text-2xl font-semibold">{{ candidatures_count }}</p></div>
+  <div class="rounded-lg border bg-white p-4"><p class="text-sm text-slate-500">Dossiers à vérifier</p><p class="text-2xl font-semibold text-amber-700">{{ a_verifier_count }}</p></div>
+</div>
+<h2 class="mb-3 mt-10 text-lg font-semibold">Concours</h2>
+<table class="w-full overflow-hidden rounded-lg border bg-white text-sm">
+  <thead class="bg-slate-100 text-left"><tr><th class="p-3">Concours</th><th class="p-3">Organisation</th><th class="p-3">Date limite</th><th class="p-3">Statut</th></tr></thead>
+  <tbody>
+  {% for c in concours %}
+    <tr class="border-t"><td class="p-3">{{ c.intitule }}</td><td class="p-3">{{ c.organisation }}</td><td class="p-3">{{ c.date_limite|date:"d/m/Y" }}</td><td class="p-3">{{ c.get_statut_display }}</td></tr>
+  {% empty %}
+    <tr><td colspan="4" class="p-3 text-slate-500">Aucun concours. Lancez <code>python manage.py sync_site</code> pour charger les données fictives.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
