@@ -98,6 +98,33 @@ def test_specialite_ignoree_sur_diplome_de_niveau_insuffisant():
     assert by_critere(evaluate(p, CRITERES))["specialite"].verdict == Verdict.A_VERIFIER
 
 
+def test_specialite_sur_diplome_de_niveau_inconnu_reste_a_verifier():
+    # Bac+5 connu mais hors spécialité + diplôme de niveau inconnu dans la bonne spécialité :
+    # aucun diplôme n'est connu pour remplir les deux critères à la fois.
+    p = ProfilCandidat(
+        diplomes=[
+            Diplome(intitule="Master", niveau="Bac+5", specialite="Biologie"),
+            Diplome(intitule="Diplôme étranger XYZ", niveau=None, specialite="Génie civil"),
+        ],
+        experiences=[Periode(date(2015, 1, 1), None)],
+    )
+    r = evaluate(p, CRITERES)
+    assert by_critere(r)["specialite"].verdict == Verdict.A_VERIFIER
+    assert "pas reconnu" in by_critere(r)["specialite"].raison
+    assert r.verdict == Verdict.A_VERIFIER
+
+
+def test_diplome_connu_prioritaire_sur_diplome_inconnu():
+    p = ProfilCandidat(
+        diplomes=[
+            Diplome(intitule="Diplôme étranger XYZ", niveau=None, specialite="Génie civil"),
+            Diplome(intitule="Master", niveau="Bac+5", specialite="Génie civil"),
+        ],
+        experiences=[Periode(date(2015, 1, 1), None)],
+    )
+    assert evaluate(p, CRITERES).verdict == Verdict.ELIGIBLE
+
+
 def test_toute_specialite_acceptee_si_liste_vide():
     criteres = CriteresPoste(date_reference=REF, niveau_min=NiveauEtudes.BAC_2)
     r = evaluate(profil(niveau="Bac+2", specialite="Lettres"), criteres)

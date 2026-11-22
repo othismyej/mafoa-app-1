@@ -30,3 +30,15 @@ def test_candidature_vise_un_poste_ou_une_offre(synced):
     cand = Candidat.objects.create(nom="Test", prenom="Vide")
     with pytest.raises(IntegrityError), transaction.atomic():
         Candidature.objects.create(candidat=cand, date_candidature=NOW)
+
+
+def test_concours_derive_suit_le_poste_avec_update_or_create(synced):
+    nord = PosteConcours.objects.filter(concours__source_id="C-NORD-2026").first()
+    sud = PosteConcours.objects.filter(concours__source_id="C-SUD-2026").first()
+    cand = Candidat.objects.create(nom="Test", prenom="Resync")
+    Candidature.objects.create(
+        candidat=cand, poste_concours=nord, date_candidature=NOW, source_id="A-RESYNC"
+    )
+    # Comme la synchronisation : update_or_create enregistre avec update_fields.
+    Candidature.objects.update_or_create(source_id="A-RESYNC", defaults={"poste_concours": sud})
+    assert Candidature.objects.get(source_id="A-RESYNC").concours == sud.concours

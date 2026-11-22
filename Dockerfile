@@ -19,6 +19,11 @@ RUN uv sync ${UV_SYNC_ARGS} --no-install-project
 
 COPY . .
 
+# Fichiers statiques (manifeste WhiteNoise) générés à la construction de l'image.
+# Valeurs factices : aucune base ni aucun secret n'est utilisé par collectstatic.
+RUN DJANGO_SECRET_KEY=collectstatic-only DATABASE_URL=sqlite:///:memory: \
+    python manage.py collectstatic --noinput --settings=config.settings.prod
+
 RUN useradd --create-home --uid 1000 mafoa && chown -R mafoa /app
 USER mafoa
 

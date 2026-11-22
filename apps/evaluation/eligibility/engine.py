@@ -150,17 +150,35 @@ def check_specialite(profil: ProfilCandidat, criteres: CriteresPoste) -> Resulta
         or d.niveau_resolu() >= criteres.niveau_min
     ]
     constates = [d.specialite for d in diplomes if d.specialite]
+    # Un diplôme de niveau connu et suffisant l'emporte ; un diplôme de niveau inconnu
+    # dont la spécialité correspond ne permet pas de conclure (« à vérifier »).
+    a_verifier = None
     for d in diplomes:
         accepted, how = match_specialite(d.specialite, criteres.specialites)
-        if accepted:
-            return ResultatCritere(
-                "specialite",
-                libelle,
-                Verdict.ELIGIBLE,
-                f"« {d.specialite} » correspond à « {accepted} » ({how}).",
-                attendu,
-                d.specialite,
-            )
+        if not accepted:
+            continue
+        if criteres.niveau_min is not None and d.niveau_resolu() is None:
+            a_verifier = a_verifier or (d, accepted)
+            continue
+        return ResultatCritere(
+            "specialite",
+            libelle,
+            Verdict.ELIGIBLE,
+            f"« {d.specialite} » correspond à « {accepted} » ({how}).",
+            attendu,
+            d.specialite,
+        )
+    if a_verifier:
+        d, accepted = a_verifier
+        return ResultatCritere(
+            "specialite",
+            libelle,
+            Verdict.A_VERIFIER,
+            f"« {d.specialite} » correspond à « {accepted} », mais le niveau du diplôme "
+            f"« {d.intitule or d.niveau} » n'est pas reconnu.",
+            attendu,
+            d.specialite,
+        )
     raison = (
         "Aucune spécialité déclarée sur un diplôme du niveau exigé."
         if not constates

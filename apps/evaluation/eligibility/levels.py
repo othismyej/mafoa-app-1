@@ -52,6 +52,8 @@ def normalize_text(value: str) -> str:
 _BAC_PLUS = re.compile(r"\bbac ?\+ ?(\d)\b")
 _PATTERNS: list[tuple[re.Pattern[str], NiveauEtudes]] = [
     (re.compile(r"\b(doctorat|phd|docteur|these)\b"), NiveauEtudes.DOCTORAT),
+    # Première année de master = Bac+4 : à tester avant le motif générique « master ».
+    (re.compile(r"\b(master|mastere) ?(1|i|premiere annee)\b|\bm1\b"), NiveauEtudes.BAC_4),
     (
         re.compile(
             r"\b(master|mastere|msc|mba|ingenieur|ingenieur d etat|diplome d ingenieur"
@@ -59,7 +61,7 @@ _PATTERNS: list[tuple[re.Pattern[str], NiveauEtudes]] = [
         ),
         NiveauEtudes.BAC_5,
     ),
-    (re.compile(r"\b(maitrise|m1)\b"), NiveauEtudes.BAC_4),
+    (re.compile(r"\bmaitrise\b"), NiveauEtudes.BAC_4),
     (re.compile(r"\b(licence|bachelor|lp|licence professionnelle)\b"), NiveauEtudes.BAC_3),
     (re.compile(r"\b(dut|bts|deug|deust|technicien specialise|dts|ts)\b"), NiveauEtudes.BAC_2),
     (re.compile(r"\b(baccalaureat|bac)\b"), NiveauEtudes.BAC),

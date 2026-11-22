@@ -346,6 +346,10 @@ class Candidature(SourceRefMixin, TimeStampedModel):
 
     def save(self, *args, **kwargs):
         self.concours_id = self.poste_concours.concours_id if self.poste_concours_id else None
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            # Ex. update_or_create : le concours dérivé doit suivre le poste.
+            kwargs["update_fields"] = set(update_fields) | {"concours"}
         super().save(*args, **kwargs)
 
     @property
