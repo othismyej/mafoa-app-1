@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Django
+staticfiles/
+media/
+*.sqlite3
+
+# Secrets : ne jamais commiter
+.env
+.env.*
+!.env.example
+
+# Divers
+.DS_Store
+.idea/
+.vscode/
+apercu/

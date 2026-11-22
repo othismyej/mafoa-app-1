@@ -1,0 +1,55 @@
+[project]
+name = "mafoa-ai"
+version = "0.1.0"
+description = "Application interne Mafoa AI : traitement assisté des concours et recrutements."
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "django>=5.2,<5.3",
+    "django-environ>=0.11",
+    "django-allauth[mfa]>=65.3",
+    "django-csp>=4.0",
+    "psycopg[binary]>=3.2",
+    "celery[redis]>=5.4",
+    "redis>=5.0",
+    "pydantic>=2.9",
+    "anthropic>=0.40",
+    "pypdf>=5.0",
+    "reportlab>=4.2",
+    "boto3>=1.35",
+    "openpyxl>=3.1",
+    "gunicorn>=23.0",
+    "whitenoise>=6.7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.9",
+    "ruff>=0.8",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ", "S", "SIM"]
+ignore = ["S101", "S106", "E501"]  # longueur de ligne gérée par ruff format
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S107", "S311"]
+"integrations/site_source/fixture_source.py" = ["S311"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config", "integrations", "ai"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]
+testpaths = ["tests"]
+addopts = "-ra"
