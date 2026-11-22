@@ -108,12 +108,16 @@ class PieceInline(admin.TabularInline):
 
 @admin.register(Candidature)
 class CandidatureAdmin(admin.ModelAdmin):
-    list_display = ("candidat", "poste_concours", "offre", "date_candidature", "statut")
+    list_display = ("candidat", "cible_display", "date_candidature", "statut")
     list_filter = ("statut", "concours")
     search_fields = ("candidat__nom", "candidat__prenom", "candidat__email")
     raw_id_fields = ("candidat", "poste_concours", "offre")
     readonly_fields = ("concours", *SOURCE_FIELDS)
     inlines = [PieceInline]
+
+    @admin.display(description="Poste / offre")
+    def cible_display(self, obj):
+        return obj.cible
 
 
 @admin.register(Piece)

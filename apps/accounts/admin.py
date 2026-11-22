@@ -1,12 +1,18 @@
+from allauth.account.models import EmailAddress
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import Group
 from django.urls import reverse
 
 from apps.audit.models import AuditAction
 from apps.audit.services import log, snapshot
 
 from .models import ACTIVE_ROLES, Invitation, User
+
+# Inutiles ici : les droits découlent du rôle et l'email est porté par l'utilisateur.
+admin.site.unregister(Group)
+admin.site.unregister(EmailAddress)
 
 ROLE_CHOICES = [(r.value, r.label) for r in ACTIVE_ROLES]
 

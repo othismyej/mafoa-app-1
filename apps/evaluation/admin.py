@@ -30,6 +30,10 @@ class VerificationEligibiliteAdmin(admin.ModelAdmin):
     list_filter = ("resultat",)
     raw_id_fields = ("candidature",)
 
+    # Produites uniquement par le moteur d'éligibilité, jamais saisies à la main.
+    def has_add_permission(self, request):
+        return False
+
     def has_change_permission(self, request, obj=None):
         return False
 
