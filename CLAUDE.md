@@ -184,5 +184,5 @@ mafoa-ai/
 
 - Suivi dans Jira : https://othmane-smyej.atlassian.net, projet **Mafoa AI** (clé `KAN`). Epics E1 à E8.
 - Rôles, parcours d'un ticket (Idea → To Do → In Progress → In Review → Done), définitions de « Prêt » et de « Terminé », conventions de branches (`feat/KAN-12-...`) : voir `docs/organisation.md`.
-- Agents Claude Code dans `.claude/agents/` : `specificateur`, `testeur`, `relecteur-conformite`.
+- Agents Claude Code dans `.claude/agents/` : `specificateur`, `designer`, `testeur`, `relecteur-conformite`. Charte visuelle : `docs/design/charte.md`.
 - Une spécification validée par story dans `docs/specs/` (modèle : `docs/specs/_modele.md`) avant tout développement.
