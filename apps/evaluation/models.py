@@ -146,6 +146,7 @@ class Anomalie(models.Model):
         DOUBLON_PIECE = "doublon_piece", "Pièce en double"
         INCOHERENCE_DATES = "incoherence_dates", "Incohérence de dates"
         INCOHERENCE_NOM = "incoherence_nom", "Incohérence de nom"
+        EMPREINTE_DIFFERENTE = "empreinte_differente", "Empreinte de pièce différente"
         AUTRE = "autre", "Autre"
 
     class Gravite(models.TextChoices):
