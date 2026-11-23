@@ -6,4 +6,9 @@ app_name = "recruitment"
 
 urlpatterns = [
     path("concours/<int:pk>/", views.concours_detail, name="concours_detail"),
+    path(
+        "concours/<int:concours_pk>/postes/<int:poste_pk>/candidatures/",
+        views.poste_candidatures,
+        name="poste_candidatures",
+    ),
 ]

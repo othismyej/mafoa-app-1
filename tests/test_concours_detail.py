@@ -15,7 +15,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
-from django.urls import NoReverseMatch, reverse
+from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import Role
@@ -849,24 +849,48 @@ def test_aucune_donnee_personnelle_de_candidat(client, direction_user, reference
 # --------------------------------------------------------------------------------------
 
 
-def _kan10_livre() -> bool:
-    try:
-        reverse("recruitment:poste_candidatures", args=[1])
-    except NoReverseMatch:
-        return False
-    return True
+def liste_url(concours, poste) -> str:
+    return reverse("recruitment:poste_candidatures", args=[concours.pk, poste.pk])
+
+
+def links(node: Node) -> list[str]:
+    return [a.attrs.get("href", "") for a in node.find_all(lambda n: n.tag == "a")]
+
+
+def test_ligne_p01_liee_a_la_liste_de_ses_candidatures(client, direction_user, reference):
+    """CA18 — KAN-10 livré : la ligne P-01 contient un lien vers la liste des candidatures du
+    poste P-01."""
+    root = parse(get_page(client, direction_user, reference["concours"]).content.decode())
+    row = row_for(root, reference["p01"])
+    target = liste_url(reference["concours"], reference["p01"])
+    assert any(urlparse(href).path == target and not urlparse(href).query for href in links(row))
+
+
+def test_compteur_a_verifier_de_p01_pointe_vers_la_liste_filtree(client, direction_user, reference):
+    """CA18 — Le compteur « à vérifier » de P-01 pointe vers la liste de P-01 avec le filtre de
+    verdict « à vérifier » dans l'URL."""
+    root = parse(get_page(client, direction_user, reference["concours"]).content.decode())
+    node = cell(row_for(root, reference["p01"]), "a_verifier")
+    hrefs = links(node)
+    assert len(hrefs) == 1
+    parsed = urlparse(hrefs[0])
+    assert parsed.path == liste_url(reference["concours"], reference["p01"])
+    assert parse_qs(parsed.query).get("verdict") == ["a_verifier"]
 
 
 def test_compteur_nul_n_est_pas_un_lien(client, direction_user, reference):
-    """CA18 (partie applicable) — Un compteur nul n'est jamais un lien ; tant que KAN-10 n'est
-    pas livré, aucun compteur n'est un lien (règle 10)."""
+    """CA18 — Un compteur nul n'est jamais un lien ; un compteur non nul pointe vers la liste
+    du poste."""
     root = parse(get_page(client, direction_user, reference["concours"]).content.decode())
     for row in poste_rows(root):
         for col in COUNTER_COLS:
             node = cell(row, col)
-            has_link = bool(node.find_all(lambda n: n.tag == "a"))
-            if int(node.text()) == 0 or not _kan10_livre():
-                assert not has_link, (row.attrs["data-poste"], col)
+            hrefs = links(node)
+            if int(node.text()) == 0:
+                assert not hrefs, (row.attrs["data-poste"], col)
+            else:
+                assert len(hrefs) == 1, (row.attrs["data-poste"], col)
+                assert "/candidatures/" in urlparse(hrefs[0]).path
     # P-02 n'a aucune candidature : aucun lien sur ses compteurs.
     p02 = row_for(root, reference["p02"])
     for col in ("candidatures", *COUNTER_COLS):

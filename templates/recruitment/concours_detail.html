@@ -26,44 +26,44 @@
 <p class="mb-2 text-xs text-slate-500">{% translate "Répartition selon le dernier verdict du moteur d’éligibilité. Un verdict n’est pas une décision : toute décision reste humaine." %}</p>
 <div class="overflow-x-auto rounded-lg border bg-white">
 <table class="w-full text-sm">
-  <thead class="bg-slate-100 text-left">
+  <thead class="bg-slate-100 text-start">
     <tr>
       <th class="p-3">{% translate "Référence" %}</th>
       <th class="p-3">{% translate "Intitulé" %}</th>
-      <th class="p-3 text-right">{% translate "Postes" %}</th>
+      <th class="p-3 text-end">{% translate "Postes" %}</th>
       <th class="p-3">{% translate "Date limite" %}</th>
-      <th class="p-3 text-right">{% translate "Candidatures" %}</th>
-      <th class="p-3 text-right">{% translate "Éligibles" %}</th>
-      <th class="p-3 text-right">{% translate "Non éligibles" %}</th>
-      <th class="p-3 text-right">{% translate "À vérifier" %}</th>
-      <th class="p-3 text-right">{% translate "Non évaluées" %}</th>
+      <th class="p-3 text-end">{% translate "Candidatures" %}</th>
+      <th class="p-3 text-end">{% translate "Éligibles" %}</th>
+      <th class="p-3 text-end">{% translate "Non éligibles" %}</th>
+      <th class="p-3 text-end">{% translate "À vérifier" %}</th>
+      <th class="p-3 text-end">{% translate "Non évaluées" %}</th>
     </tr>
   </thead>
   <tbody>
   {% for p in stats.postes %}
     <tr class="border-t" data-poste="{{ p.poste.pk }}">
       <td class="p-3">{{ p.poste.reference|default:"—" }}</td>
-      <td class="p-3">{{ p.poste.intitule }}</td>
-      <td class="p-3 text-right">{{ p.poste.nombre_postes }}</td>
+      <td class="p-3"><a href="{% url 'recruitment:poste_candidatures' c.pk p.poste.pk %}" class="text-teal-700 hover:underline">{{ p.poste.intitule }}</a></td>
+      <td class="p-3 text-end">{{ p.poste.nombre_postes }}</td>
       <td class="p-3">{% if p.date_limite %}{{ p.date_limite|date:"d/m/Y" }}{% if p.date_limite_du_concours %} <span class="text-xs text-slate-500">{% translate "(date du concours)" %}</span>{% endif %}{% else %}—{% endif %}</td>
-      <td class="p-3 text-right" data-col="candidatures">{{ p.candidatures }}</td>
-      <td class="p-3 text-right" data-col="eligibles">{{ p.eligibles }}</td>
-      <td class="p-3 text-right" data-col="non_eligibles">{{ p.non_eligibles }}</td>
-      <td class="p-3 text-right {% if p.a_verifier %}font-semibold text-amber-700{% endif %}" data-col="a_verifier">{{ p.a_verifier }}</td>
-      <td class="p-3 text-right" data-col="non_evaluees">{{ p.non_evaluees }}</td>
+      <td class="p-3 text-end" data-col="candidatures">{{ p.candidatures }}</td>
+      <td class="p-3 text-end" data-col="eligibles">{% if p.eligibles %}<a href="{% url 'recruitment:poste_candidatures' c.pk p.poste.pk %}?verdict=eligible" class="hover:underline">{{ p.eligibles }}</a>{% else %}0{% endif %}</td>
+      <td class="p-3 text-end" data-col="non_eligibles">{% if p.non_eligibles %}<a href="{% url 'recruitment:poste_candidatures' c.pk p.poste.pk %}?verdict=non_eligible" class="hover:underline">{{ p.non_eligibles }}</a>{% else %}0{% endif %}</td>
+      <td class="p-3 text-end {% if p.a_verifier %}font-semibold text-amber-700{% endif %}" data-col="a_verifier">{% if p.a_verifier %}<a href="{% url 'recruitment:poste_candidatures' c.pk p.poste.pk %}?verdict=a_verifier" class="hover:underline">{{ p.a_verifier }}</a>{% else %}0{% endif %}</td>
+      <td class="p-3 text-end" data-col="non_evaluees">{% if p.non_evaluees %}<a href="{% url 'recruitment:poste_candidatures' c.pk p.poste.pk %}?verdict=non_evaluee" class="hover:underline">{{ p.non_evaluees }}</a>{% else %}0{% endif %}</td>
     </tr>
   {% endfor %}
   </tbody>
   <tfoot class="border-t-2 bg-slate-50 font-semibold">
     <tr data-row="totaux">
       <td class="p-3" colspan="2">{% translate "Total" %}</td>
-      <td class="p-3 text-right" data-col="postes">{{ stats.nombre_postes }}</td>
+      <td class="p-3 text-end" data-col="postes">{{ stats.nombre_postes }}</td>
       <td class="p-3"></td>
-      <td class="p-3 text-right" data-col="candidatures">{{ stats.candidatures }}</td>
-      <td class="p-3 text-right" data-col="eligibles">{{ stats.eligibles }}</td>
-      <td class="p-3 text-right" data-col="non_eligibles">{{ stats.non_eligibles }}</td>
-      <td class="p-3 text-right {% if stats.a_verifier %}text-amber-700{% endif %}" data-col="a_verifier">{{ stats.a_verifier }}</td>
-      <td class="p-3 text-right" data-col="non_evaluees">{{ stats.non_evaluees }}</td>
+      <td class="p-3 text-end" data-col="candidatures">{{ stats.candidatures }}</td>
+      <td class="p-3 text-end" data-col="eligibles">{{ stats.eligibles }}</td>
+      <td class="p-3 text-end" data-col="non_eligibles">{{ stats.non_eligibles }}</td>
+      <td class="p-3 text-end {% if stats.a_verifier %}text-amber-700{% endif %}" data-col="a_verifier">{{ stats.a_verifier }}</td>
+      <td class="p-3 text-end" data-col="non_evaluees">{{ stats.non_evaluees }}</td>
     </tr>
   </tfoot>
 </table>

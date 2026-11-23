@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block head_title %}{% if poste.reference %}{{ poste.reference }} — {% endif %}{{ poste.intitule }}{% endblock %}
+{% block content %}
+<nav class="mb-4 text-sm text-slate-500" aria-label="{% translate 'Fil d’Ariane' %}">
+  <a href="{% url 'dashboard' %}" class="hover:text-teal-700">{% translate "Tableau de bord" %}</a>
+  <span aria-hidden="true">›</span>
+  <a href="{% url 'recruitment:concours_detail' concours.pk %}" class="hover:text-teal-700">{{ concours.intitule }}</a>
+  <span aria-hidden="true">›</span>
+  <span class="text-slate-700">{% if poste.reference %}{{ poste.reference }} — {% endif %}{{ poste.intitule }}</span>
+</nav>
+
+<header class="mb-6">
+  <h1 class="text-2xl font-semibold">{% if poste.reference %}{{ poste.reference }} — {% endif %}{{ poste.intitule }}</h1>
+  <dl class="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+    <div><dt class="inline text-slate-500">{% translate "Postes à pourvoir" %} :</dt> <dd class="inline">{{ poste.nombre_postes }}</dd></div>
+    <div><dt class="inline text-slate-500">{% translate "Date limite" %} :</dt>
+      <dd class="inline">{% if poste.date_limite %}{{ poste.date_limite|date:"d/m/Y" }}{% elif concours.date_limite %}{{ concours.date_limite|date:"d/m/Y" }} <span class="text-xs text-slate-500">{% translate "(date du concours)" %}</span>{% else %}—{% endif %}</dd></div>
+  </dl>
+</header>
+
+{% if total %}
+<form method="get" action="{{ request.path }}" id="filtres"
+      class="mb-4 grid gap-4 rounded-lg border bg-white p-4 text-sm md:grid-cols-4"
+      hx-get="{{ request.path }}" hx-target="#resultats" hx-swap="innerHTML" hx-push-url="true"
+      hx-trigger="change, input changed delay:300ms from:#recherche, submit">
+  <div class="md:col-span-4">
+    <label for="recherche" class="mb-1 block font-medium">{% translate "Rechercher un candidat (nom, prénom)" %}</label>
+    <input type="search" id="recherche" name="q" value="{{ flt.q }}" maxlength="100" autocomplete="off"
+           class="w-full rounded border border-slate-300 px-3 py-2" placeholder="{% translate 'Au moins 2 caractères' %}">
+  </div>
+  <fieldset>
+    <legend class="mb-1 font-medium">{% translate "Statut" %}</legend>
+    {% for value, label in statut_choices %}
+    <label class="block"><input type="checkbox" name="statut" value="{{ value }}" {% if value in flt.statuts %}checked{% endif %}> {{ label }}</label>
+    {% endfor %}
+  </fieldset>
+  <fieldset>
+    <legend class="mb-1 font-medium">{% translate "Verdict d’éligibilité" %}</legend>
+    {% for value, label in verdict_choices %}
+    <label class="block"><input type="checkbox" name="verdict" value="{{ value }}" {% if value in flt.verdicts %}checked{% endif %}> {{ label }}</label>
+    {% endfor %}
+  </fieldset>
+  <fieldset>
+    <legend class="mb-1 font-medium">{% translate "Anomalies" %}</legend>
+    {% for value, label in anomalie_choices %}
+    <label class="block"><input type="radio" name="anomalies" value="{{ value }}" {% if value == flt.anomalies %}checked{% endif %}> {{ label }}</label>
+    {% endfor %}
+  </fieldset>
+  <div class="flex flex-col gap-3">
+    <label class="font-medium">{% translate "Lignes par page" %}
+      <select name="taille" class="ms-2 rounded border border-slate-300 px-2 py-1">
+        {% for size in page_sizes %}<option value="{{ size }}" {% if size == flt.taille %}selected{% endif %}>{{ size }}</option>{% endfor %}
+      </select>
+    </label>
+    <div class="flex gap-2">
+      <button type="submit" class="rounded bg-teal-700 px-3 py-2 text-white">{% translate "Filtrer" %}</button>
+      <a href="{{ request.path }}" class="rounded border border-slate-300 px-3 py-2">{% translate "Réinitialiser" %}</a>
+    </div>
+  </div>
+</form>
+{% endif %}
+
+<div id="resultats" hx-boost="true" hx-target="#resultats" hx-swap="innerHTML" hx-push-url="true">
+  {% include "recruitment/_candidatures_resultats.html" %}
+</div>
+{% endblock %}
