@@ -6,11 +6,14 @@ from datetime import date
 
 from django.db import transaction
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from apps.audit.models import AuditAction
-from apps.audit.services import log, snapshot
+from apps.audit.services import log
 from apps.recruitment.models import Candidature
 
+from . import decisions
+from .decisions import DecisionError
 from .eligibility.engine import CriteresPoste, Diplome, ProfilCandidat, evaluate
 from .eligibility.experience import Periode
 from .eligibility.levels import NiveauEtudes
@@ -93,39 +96,105 @@ def run_eligibility(candidature: Candidature) -> VerificationEligibilite:
         sources=[{"type": "donnees_declarees"}],
         moteur_version=resultat.version,
     )
-    if candidature.statut in AUTO_CLASSABLE and candidature.statut != resultat.verdict.value:
-        before = candidature.statut
-        candidature.statut = resultat.verdict.value
-        candidature.save(update_fields=["statut", "updated_at"])
+    # Verrou sur la ligne puis relecture : une décision humaine concurrente est soit déjà validée
+    # (visible ici), soit bloquée jusqu'à la fin de cette transaction (règle 9).
+    c = Candidature.objects.select_for_update().get(pk=candidature.pk)
+    if (
+        not c.decisions.exists()
+        and c.statut in AUTO_CLASSABLE
+        and c.statut != resultat.verdict.value
+    ):
+        before = c.statut
+        c.statut = resultat.verdict.value
+        c.save(update_fields=["statut", "updated_at"])
         log(
             AuditAction.UPDATE,
-            obj=candidature,
+            obj=c,
+            object_repr=f"Candidature #{c.pk}",
             before={"statut": before},
-            after={"statut": candidature.statut},
+            after={"statut": c.statut},
             actor_repr="moteur d'éligibilité",
             metadata={"verification_id": verification.pk, "moteur": resultat.version},
         )
+    candidature.statut = c.statut
     return verification
 
 
-@transaction.atomic
-def record_decision(candidature: Candidature, auteur, decision: str, motif: str, request=None):
-    """Enregistre une décision humaine et met à jour le statut de la candidature."""
+_INCONNUE = object()
+
+
+def record_decision(
+    candidature: Candidature,
+    auteur,
+    decision: str,
+    motif: str,
+    request=None,
+    *,
+    statut_attendu: str | None = None,
+    derniere_decision_attendue=_INCONNUE,
+    confirmer_revision: bool = False,
+    confirmer_avertissements: bool = False,
+) -> Decision:
+    """Enregistre une décision humaine (spec KAN-13). Seul chemin d'enregistrement.
+
+    Lève ``DecisionError`` (refus, rien n'est enregistré) ou ``ConfirmationRequise``
+    (révision ou avertissement à confirmer). Décision, statut et audit sont écrits dans une
+    seule transaction, sous verrou de la candidature.
+    """
     if not getattr(auteur, "is_authenticated", False):
-        raise ValueError("Une décision est toujours prise par un utilisateur identifié.")
-    before = snapshot(candidature)
-    obj = Decision.objects.create(
-        candidature=candidature, auteur=auteur, decision=decision, motif=motif
-    )
-    candidature.statut = decision
-    candidature.save(update_fields=["statut", "updated_at"])
-    log(
-        AuditAction.DECISION,
-        actor=auteur,
-        obj=candidature,
-        before=before,
-        after=snapshot(candidature),
-        request=request,
-        metadata={"decision_id": obj.pk, "motif": motif},
-    )
+        raise DecisionError(
+            _("Une décision est toujours prise par un utilisateur identifié."), "auteur_absent"
+        )
+    with transaction.atomic():
+        c = (
+            Candidature.objects.select_for_update(of=("self",))
+            .select_related("poste_concours__concours", "offre")
+            .get(pk=candidature.pk)
+        )
+        derniere = c.decisions.order_by("-created_at", "-id").first()
+        # Contrôle de concurrence (règle 7).
+        if (statut_attendu is not None and c.statut != statut_attendu) or (
+            derniere_decision_attendue is not _INCONNUE
+            and (derniere.pk if derniere else None) != derniere_decision_attendue
+        ):
+            raise DecisionError(
+                _("Une autre décision a été enregistrée entre-temps. La fiche a été actualisée."),
+                "concurrence",
+            )
+        if decisions.concours_termine(c):
+            raise DecisionError(
+                _("Le concours est terminé : aucune décision n'est possible."), "concours_termine"
+            )
+        decisions.verifier_transition(c.statut, decision)
+        motif = decisions.nettoyer_motif(motif)
+
+        revision = decisions.est_revision(c.statut, decision, derniere is not None)
+        alertes = decisions.avertissements(c, decision)
+        if (revision and not confirmer_revision) or (alertes and not confirmer_avertissements):
+            raise decisions.ConfirmationRequise(
+                revision=revision,
+                decision_remplacee_id=derniere.pk if derniere else None,
+                avertissements=alertes,
+            )
+
+        avant = c.statut
+        obj = Decision.objects.create(candidature=c, auteur=auteur, decision=decision, motif=motif)
+        c.statut = decision
+        c.save(update_fields=["statut", "updated_at"])
+        metadata = {"decision_id": obj.pk, "motif": motif, "revision": revision}
+        if revision:
+            metadata["decision_remplacee_id"] = derniere.pk if derniere else None
+        if alertes:
+            metadata["avertissements_confirmes"] = alertes
+        log(
+            AuditAction.DECISION,
+            actor=auteur,
+            obj=c,
+            object_repr=f"Candidature #{c.pk}",
+            before={"statut": avant},
+            after={"statut": c.statut},
+            request=request,
+            metadata=metadata,
+        )
+    candidature.statut = c.statut
     return obj

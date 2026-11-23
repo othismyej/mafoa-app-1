@@ -62,19 +62,17 @@ class AnomalieAdmin(admin.ModelAdmin):
 
 @admin.register(Decision)
 class DecisionAdmin(admin.ModelAdmin):
+    """Consultation seule : la fiche candidature est le seul point d'entrée des décisions."""
+
     list_display = ("candidature", "decision", "auteur", "created_at")
     list_filter = ("decision",)
     raw_id_fields = ("candidature",)
-    fields = ("candidature", "decision", "motif")
+
+    def has_add_permission(self, request):
+        return False
 
     def has_change_permission(self, request, obj=None):
         return False
 
     def has_delete_permission(self, request, obj=None):
         return False
-
-    def save_model(self, request, obj, form, change):
-        from .services import record_decision
-
-        saved = record_decision(obj.candidature, request.user, obj.decision, obj.motif, request)
-        obj.pk, obj.auteur, obj.created_at = saved.pk, saved.auteur, saved.created_at

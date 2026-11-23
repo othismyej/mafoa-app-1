@@ -12,4 +12,9 @@ urlpatterns = [
         name="poste_candidatures",
     ),
     path("candidatures/<int:pk>/", views.candidature_detail, name="candidature_detail"),
+    path(
+        "candidatures/<int:pk>/decision/",
+        views.decision_enregistrer,
+        name="decision_enregistrer",
+    ),
 ]

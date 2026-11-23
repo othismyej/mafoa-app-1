@@ -9,8 +9,11 @@
   <script src="https://cdn.tailwindcss.com/3.4.16"></script>
   {# Aucune copie des pages (données personnelles) dans le localStorage du navigateur : #}
   {# l'historique est toujours rechargé depuis le serveur (contrôle d'accès et audit). #}
+  {# Les réponses 400/409 (décision refusée) remplacent le formulaire pour afficher l'erreur. #}
   <meta name="htmx-config" content='{"historyCacheSize":0,"refreshOnHistoryMiss":true}'>
   <script src="{% static 'vendor/htmx-2.0.4.min.js' %}" defer></script>
+  <script src="{% static 'js/compteur.js' %}" defer></script>
+  <script src="{% static 'js/decision.js' %}" defer></script>
   {% block extra_head %}{% endblock %}
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800 antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>

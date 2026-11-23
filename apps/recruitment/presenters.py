@@ -110,7 +110,21 @@ STATUT_VERS_ELIGIBILITE = {
 }
 
 
-def ecart_verdict_decision(statut: str, verdict: str | None, a_une_decision: bool) -> bool:
-    """Le moteur contredit-il la décision humaine en vigueur ?"""
-    attendu = STATUT_VERS_ELIGIBILITE.get(statut)
-    return bool(a_une_decision and verdict and attendu and verdict != attendu)
+def ecart_verdict_decision(
+    statut: str,
+    verdict: str | None,
+    a_une_decision: bool,
+    derniere_decision: str | None = None,
+) -> bool:
+    """Le moteur contredit-il la décision humaine en vigueur ?
+
+    On compare le verdict à l'éligibilité impliquée par le statut courant et par la dernière
+    décision humaine (règle 10 de KAN-11).
+    """
+    if not (a_une_decision and verdict):
+        return False
+    attendus = {
+        STATUT_VERS_ELIGIBILITE.get(statut),
+        STATUT_VERS_ELIGIBILITE.get(derniere_decision or ""),
+    } - {None}
+    return any(verdict != a for a in attendus)
