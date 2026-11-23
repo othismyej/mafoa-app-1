@@ -440,7 +440,7 @@ class Candidature(SourceRefMixin, TimeStampedModel):
 
     @classmethod
     def statut_choices_spontanee(cls) -> list[tuple[str, str]]:
-        return [(v, label) for v, label in cls.Statut.choices if v in cls.STATUTS_SPONTANEE]
+        return [(v, cls.Statut(v).label) for v in cls.STATUTS_SPONTANEE]
 
 
 class DetailsSpontanee(TimeStampedModel):
