@@ -4,6 +4,7 @@
    strictement nécessaires (connexion, réinitialisation du mot de passe, invitation).
 2. ``MFARequiredMiddleware`` : un utilisateur connecté sans TOTP actif est redirigé vers
    l'activation du TOTP. Aucune autre page n'est accessible tant qu'il n'est pas configuré.
+   Contrôlé par ``settings.MFA_REQUIRED`` (toujours actif en production).
 """
 
 from allauth.mfa.utils import is_mfa_enabled
@@ -52,7 +53,8 @@ class MFARequiredMiddleware:
     def __call__(self, request):
         user = request.user
         if (
-            user.is_authenticated
+            settings.MFA_REQUIRED
+            and user.is_authenticated
             and not request.path_info.startswith(self._allowed_paths())
             and not is_mfa_enabled(user, types=["totp"])
         ):

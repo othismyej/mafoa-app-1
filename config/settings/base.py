@@ -111,6 +111,9 @@ ACCOUNT_RATE_LIMITS = {
     "login": "20/m/ip",
     "reset_password": "5/h/ip,3/h/key",
 }
+# Double authentification obligatoire. Désactivable uniquement en développement
+# (voir dev.py) ; toujours forcée en production (voir prod.py).
+MFA_REQUIRED = env.bool("MFA_REQUIRED", default=True)
 MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
 MFA_TOTP_ISSUER = "Mafoa AI"
 

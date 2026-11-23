@@ -93,7 +93,9 @@ uv run celery -A config worker --loglevel=info
 ## Première connexion
 
 1. Connectez-vous avec le compte créé par `createsuperuser`.
-2. Activez la double authentification : l'application l'exige avant toute autre page.
+2. Activez la double authentification. En production, elle est toujours exigée avant toute autre
+   page. En local, elle est facultative par défaut (`MFA_REQUIRED=false` dans `.env`) : mettez
+   `MFA_REQUIRED=true` pour retrouver le comportement de production.
    Scannez le QR code avec une application TOTP (Google Authenticator, Microsoft Authenticator,
    1Password…). Conservez les codes de récupération.
 3. Pour inviter un associé ou un directeur : **Administration → Invitations → Ajouter**. Le lien
