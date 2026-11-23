@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from apps.audit.admin_mixins import ConsultationLoggingAdminMixin
+
 from .models import Candidat, Candidature, Concours, OffreEmploi, Organisation, Piece, PosteConcours
 
 SOURCE_FIELDS = ("source_id", "source_synced_at")
@@ -87,7 +89,7 @@ class OffreEmploiAdmin(admin.ModelAdmin):
 
 
 @admin.register(Candidat)
-class CandidatAdmin(admin.ModelAdmin):
+class CandidatAdmin(ConsultationLoggingAdminMixin, admin.ModelAdmin):
     list_display = ("nom", "prenom", "email", "telephone", "ville")
     search_fields = ("nom", "prenom", "email", "telephone", "cin")
     readonly_fields = (
@@ -107,7 +109,7 @@ class PieceInline(admin.TabularInline):
 
 
 @admin.register(Candidature)
-class CandidatureAdmin(admin.ModelAdmin):
+class CandidatureAdmin(ConsultationLoggingAdminMixin, admin.ModelAdmin):
     list_display = ("candidat", "cible_display", "date_candidature", "statut")
     list_filter = ("statut", "concours")
     search_fields = ("candidat__nom", "candidat__prenom", "candidat__email")
@@ -121,7 +123,7 @@ class CandidatureAdmin(admin.ModelAdmin):
 
 
 @admin.register(Piece)
-class PieceAdmin(admin.ModelAdmin):
+class PieceAdmin(ConsultationLoggingAdminMixin, admin.ModelAdmin):
     list_display = ("nom_fichier", "type", "candidature", "taille")
     list_filter = ("type",)
     search_fields = ("nom_fichier", "sha256")

@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
+from django.db.models.fields.json import KT
 
 
 class AuditAction(models.TextChoices):
@@ -20,6 +21,7 @@ class AuditAction(models.TextChoices):
     SYNC = "sync", "Synchronisation site"
     EXPORT = "export", "Export"
     AI_CALL = "ai_call", "Appel IA"
+    ACCESS_DENIED = "access_denied", "Accès refusé"
 
 
 class AppendOnlyError(Exception):
@@ -70,7 +72,13 @@ class JournalAudit(models.Model):
         verbose_name = "entrée du journal d'audit"
         verbose_name_plural = "journal d'audit"
         ordering = ["-timestamp", "-id"]
-        indexes = [models.Index(fields=["content_type", "object_id"])]
+        indexes = [
+            models.Index(fields=["content_type", "object_id"]),
+            # Filtre « dossier » du journal et panneau des consultations (KAN-14, règle 18).
+            models.Index(KT("metadata__candidature_id"), name="audit_meta_candidature_idx"),
+            # Filtre « acteur » trié par date (KAN-14, règle 18).
+            models.Index(fields=["actor", "timestamp"], name="audit_actor_ts_idx"),
+        ]
 
     def __str__(self) -> str:
         return f"{self.timestamp:%Y-%m-%d %H:%M} {self.actor_repr} {self.action} {self.object_repr}"
