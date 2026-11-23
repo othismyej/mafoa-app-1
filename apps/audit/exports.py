@@ -53,6 +53,13 @@ def _clean(value: str) -> str:
     return _ILLEGAL.sub("\ufffd", value)
 
 
+def sanitize(value: str) -> str:
+    """Cellule texte sûre pour un tableur : caractères de contrôle remplacés, formule neutralisée.
+
+    Point d'entrée partagé avec les exports métier (KAN-37)."""
+    return neutralize(_clean(value))
+
+
 def row_for(entry: JournalAudit) -> list[str]:
     ct = entry.content_type
     metadata = {k: v for k, v in (entry.metadata or {}).items() if k not in METADATA_NON_EXPORTEES}
@@ -74,7 +81,7 @@ def row_for(entry: JournalAudit) -> list[str]:
         entry.user_agent,
         metadata_json,
     ]
-    return [neutralize(_clean(v)) for v in values]
+    return [sanitize(v) for v in values]
 
 
 def _entries(qs: QuerySet) -> Iterator[JournalAudit]:
