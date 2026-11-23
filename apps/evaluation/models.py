@@ -82,6 +82,12 @@ class VerificationEligibilite(models.Model):
         verbose_name = "vérification d'éligibilité"
         verbose_name_plural = "vérifications d'éligibilité"
         ordering = ["-created_at"]
+        indexes = [
+            # Dernière vérification d'une candidature (listes et fiches concours).
+            models.Index(
+                fields=["candidature", "-created_at", "-id"], name="verif_cand_dernier_idx"
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.candidature} : {self.get_resultat_display()}"
@@ -173,6 +179,9 @@ class Anomalie(models.Model):
         verbose_name = "anomalie"
         verbose_name_plural = "anomalies"
         ordering = ["resolue", "-created_at"]
+        indexes = [
+            models.Index(fields=["candidature", "resolue"], name="anomalie_cand_resolue_idx"),
+        ]
 
     def __str__(self) -> str:
         return f"{self.get_type_display()} — {self.candidature}"

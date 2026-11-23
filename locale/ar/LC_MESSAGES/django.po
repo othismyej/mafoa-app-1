@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 00:57+0000\n"
+"POT-Creation-Date: 2026-11-23 01:01+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,6 +18,30 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+#: apps/recruitment/views.py:73
+msgid "Candidat"
+msgstr ""
+
+#: apps/recruitment/views.py:74
+msgid "Date de candidature"
+msgstr ""
+
+#: apps/recruitment/views.py:75 templates/recruitment/concours_detail.html:16
+#: templates/recruitment/poste_candidatures.html:33
+msgid "Statut"
+msgstr ""
+
+#: apps/recruitment/views.py:76
+#: templates/recruitment/poste_candidatures.html:39
+msgid "Verdict d’éligibilité"
+msgstr ""
+
+#: apps/recruitment/views.py:77
+#: templates/recruitment/poste_candidatures.html:45
+msgid "Anomalies"
+msgstr ""
+
 #: templates/account/login.html:6 templates/account/login.html:10
 #: templates/account/login.html:27
 msgid "Sign In"
@@ -32,6 +56,7 @@ msgid "Send me a sign-in code"
 msgstr ""
 
 #: templates/base.html:19 templates/recruitment/concours_detail.html:7
+#: templates/recruitment/poste_candidatures.html:6
 msgid "Tableau de bord"
 msgstr ""
 
@@ -47,16 +72,90 @@ msgstr ""
 msgid "Déconnexion"
 msgstr ""
 
+#: templates/recruitment/_candidatures_resultats.html:5
+msgid "Aucune candidature pour ce poste."
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:5
+#: templates/recruitment/_candidatures_resultats.html:8
+#, python-format
+msgid "%(n)s candidature affichée sur %(m)s"
+msgid_plural "%(n)s candidatures affichées sur %(m)s"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_candidatures_resultats.html:11
+msgid ""
+"Le verdict est celui du moteur d’éligibilité ; il ne constitue pas une "
+"décision."
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:32
+msgid "Éligible"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:33
+msgid "Non éligible"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:34
+#: templates/recruitment/concours_detail.html:38
+msgid "À vérifier"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:35
+msgid "Non évaluée"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:40
+msgid "haute"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:40
+msgid "moyenne"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:40
+msgid "info"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:50
+msgid "Pagination"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:51
+msgid "Précédente"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:52
+#, python-format
+msgid "Page %(num)s sur %(total)s"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:53
+msgid "Suivante"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:58
+msgid "Aucune candidature ne correspond à ces critères."
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:59
+#: templates/recruitment/poste_candidatures.html:58
+msgid "Réinitialiser"
+msgstr ""
+
 #: templates/recruitment/concours_detail.html:6
+#: templates/recruitment/poste_candidatures.html:5
 msgid "Fil d’Ariane"
 msgstr ""
 
 #: templates/recruitment/concours_detail.html:15
 msgid "Organisation"
-msgstr ""
-
-#: templates/recruitment/concours_detail.html:16
-msgid "Statut"
 msgstr ""
 
 #: templates/recruitment/concours_detail.html:17
@@ -65,6 +164,7 @@ msgstr ""
 
 #: templates/recruitment/concours_detail.html:18
 #: templates/recruitment/concours_detail.html:34
+#: templates/recruitment/poste_candidatures.html:17
 msgid "Date limite"
 msgstr ""
 
@@ -104,15 +204,12 @@ msgstr ""
 msgid "Non éligibles"
 msgstr ""
 
-#: templates/recruitment/concours_detail.html:38
-msgid "À vérifier"
-msgstr ""
-
 #: templates/recruitment/concours_detail.html:39
 msgid "Non évaluées"
 msgstr ""
 
 #: templates/recruitment/concours_detail.html:48
+#: templates/recruitment/poste_candidatures.html:18
 msgid "(date du concours)"
 msgstr ""
 
@@ -122,4 +219,24 @@ msgstr ""
 
 #: templates/recruitment/concours_detail.html:72
 msgid "Aucun poste pour ce concours."
+msgstr ""
+
+#: templates/recruitment/poste_candidatures.html:16
+msgid "Postes à pourvoir"
+msgstr ""
+
+#: templates/recruitment/poste_candidatures.html:28
+msgid "Rechercher un candidat (nom, prénom)"
+msgstr ""
+
+#: templates/recruitment/poste_candidatures.html:30
+msgid "Au moins 2 caractères"
+msgstr ""
+
+#: templates/recruitment/poste_candidatures.html:51
+msgid "Lignes par page"
+msgstr ""
+
+#: templates/recruitment/poste_candidatures.html:57
+msgid "Filtrer"
 msgstr ""
