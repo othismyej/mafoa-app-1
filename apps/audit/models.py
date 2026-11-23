@@ -22,6 +22,7 @@ class AuditAction(models.TextChoices):
     EXPORT = "export", "Export"
     AI_CALL = "ai_call", "Appel IA"
     ACCESS_DENIED = "access_denied", "Accès refusé"
+    LOT = "lot", "Action en lot"
 
 
 class AppendOnlyError(Exception):
@@ -78,6 +79,8 @@ class JournalAudit(models.Model):
             models.Index(KT("metadata__candidature_id"), name="audit_meta_candidature_idx"),
             # Filtre « acteur » trié par date (KAN-14, règle 18).
             models.Index(fields=["actor", "timestamp"], name="audit_actor_ts_idx"),
+            # Reconstitution d'un lot et contrôle de rejeu (KAN-15, règles 19 et 29).
+            models.Index(KT("metadata__lot_id"), name="audit_meta_lot_idx"),
         ]
 
     def __str__(self) -> str:

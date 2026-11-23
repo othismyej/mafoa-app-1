@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date
 
 from django.db import transaction
@@ -82,8 +83,29 @@ def criteres_from_cible(cible) -> CriteresPoste:
     )
 
 
+@dataclass(frozen=True)
+class ContexteLot:
+    """Appel du moteur depuis une relance en lot (KAN-15, règles 24 et 28).
+
+    ``request`` peut être une vraie requête ou un substitut (tâche Celery) portant ``META``
+    (adresse IP, navigateur) et ``user``.
+    """
+
+    lot_id: str
+    acteur: object
+    request: object = None
+
+
 @transaction.atomic
-def run_eligibility(candidature: Candidature) -> VerificationEligibilite:
+def run_eligibility(
+    candidature: Candidature, *, lot: ContexteLot | None = None
+) -> VerificationEligibilite:
+    """Calcule un verdict et reclasse la candidature si elle n'a aucune décision humaine.
+
+    Hors lot : une entrée ``update`` « moteur d'éligibilité » n'est écrite que si le statut
+    change. Depuis un lot (``lot``) : exactement une entrée ``update`` au nom de l'utilisateur
+    qui a lancé le lot, que le statut change ou non (pas de double entrée).
+    """
     resultat = evaluate(
         profil_from_declared(candidature.donnees_declarees or {}),
         criteres_from_cible(candidature.cible),
@@ -99,14 +121,36 @@ def run_eligibility(candidature: Candidature) -> VerificationEligibilite:
     # Verrou sur la ligne puis relecture : une décision humaine concurrente est soit déjà validée
     # (visible ici), soit bloquée jusqu'à la fin de cette transaction (règle 9).
     c = Candidature.objects.select_for_update().get(pk=candidature.pk)
+    before = c.statut
     if (
         not c.decisions.exists()
         and c.statut in AUTO_CLASSABLE
         and c.statut != resultat.verdict.value
     ):
-        before = c.statut
         c.statut = resultat.verdict.value
         c.save(update_fields=["statut", "updated_at"])
+    statut_modifie = c.statut != before
+    metadata = {"verification_id": verification.pk, "moteur": resultat.version}
+    if lot is not None:
+        acteur = lot.acteur
+        log(
+            AuditAction.UPDATE,
+            actor=acteur,
+            obj=c,
+            object_repr=f"Candidature #{c.pk}",
+            before={"statut": before},
+            after={"statut": c.statut},
+            request=lot.request,
+            actor_repr=f"{acteur.email} via moteur d'éligibilité",
+            metadata={
+                **metadata,
+                "lot_id": str(lot.lot_id),
+                "operation": "relance_eligibilite",
+                "verdict": resultat.verdict.value,
+                "statut_modifie": statut_modifie,
+            },
+        )
+    elif statut_modifie:
         log(
             AuditAction.UPDATE,
             obj=c,
@@ -114,9 +158,10 @@ def run_eligibility(candidature: Candidature) -> VerificationEligibilite:
             before={"statut": before},
             after={"statut": c.statut},
             actor_repr="moteur d'éligibilité",
-            metadata={"verification_id": verification.pk, "moteur": resultat.version},
+            metadata=metadata,
         )
     candidature.statut = c.statut
+    verification.statut_modifie = statut_modifie
     return verification
 
 
@@ -134,12 +179,19 @@ def record_decision(
     derniere_decision_attendue=_INCONNUE,
     confirmer_revision: bool = False,
     confirmer_avertissements: bool = False,
+    lot_id=None,
+    avertissements_lot: tuple[str, ...] | list[str] = (),
 ) -> Decision:
     """Enregistre une décision humaine (spec KAN-13). Seul chemin d'enregistrement.
 
     Lève ``DecisionError`` (refus, rien n'est enregistré) ou ``ConfirmationRequise``
     (révision ou avertissement à confirmer). Décision, statut et audit sont écrits dans une
     seule transaction, sous verrou de la candidature.
+
+    ``lot_id`` (KAN-15) : décision prise en lot. Seules les décisions et transitions de
+    ``decisions.TRANSITIONS_LOT`` sont alors acceptées, jamais une révision ; l'identifiant est
+    inscrit sur la décision et dans l'audit (``mode = "lot"``). ``avertissements_lot`` : les
+    avertissements propres au lot confirmés par l'utilisateur (ex. verdict non favorable).
     """
     if not getattr(auteur, "is_authenticated", False):
         raise DecisionError(
@@ -166,6 +218,8 @@ def record_decision(
                 _("Le concours est terminé : aucune décision n'est possible."), "concours_termine"
             )
         decisions.verifier_transition(c.statut, decision)
+        if lot_id is not None:
+            decisions.verifier_transition_lot(c.statut, decision, derniere is not None)
         motif = decisions.nettoyer_motif(motif)
 
         revision = decisions.est_revision(c.statut, decision, derniere is not None)
@@ -178,14 +232,20 @@ def record_decision(
             )
 
         avant = c.statut
-        obj = Decision.objects.create(candidature=c, auteur=auteur, decision=decision, motif=motif)
+        obj = Decision.objects.create(
+            candidature=c, auteur=auteur, decision=decision, motif=motif, lot_id=lot_id
+        )
         c.statut = decision
         c.save(update_fields=["statut", "updated_at"])
         metadata = {"decision_id": obj.pk, "motif": motif, "revision": revision}
         if revision:
             metadata["decision_remplacee_id"] = derniere.pk if derniere else None
-        if alertes:
-            metadata["avertissements_confirmes"] = alertes
+        confirmes = alertes + [a for a in avertissements_lot if a not in alertes]
+        if confirmes:
+            metadata["avertissements_confirmes"] = confirmes
+        if lot_id is not None:
+            metadata["lot_id"] = str(lot_id)
+            metadata["mode"] = "lot"
         log(
             AuditAction.DECISION,
             actor=auteur,
