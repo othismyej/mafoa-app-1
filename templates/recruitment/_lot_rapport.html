@@ -1,9 +1,9 @@
-{% load i18n %}
+{% load i18n accord %}
 {% if etat == "lance" %}
 <div aria-live="polite" data-lot-annonce>{% blocktranslate count n=nb with id=lot_court asvar message %}Relance lancée en arrière-plan pour {{ n }} candidature (lot {{ id }}). Les verdicts apparaîtront dans la liste au fur et à mesure.{% plural %}Relance lancée en arrière-plan pour {{ n }} candidatures (lot {{ id }}). Les verdicts apparaîtront dans la liste au fur et à mesure.{% endblocktranslate %}{% include "components/alert.html" with message=message tone="info" role="status" %}</div>
 {% else %}
 <div aria-live="polite" data-lot-annonce>
-  <p class="text-base font-medium text-ink-900" data-lot-bilan>{% if operation == "decision" %}{% blocktranslate count n=nb_succes %}{{ n }} décision enregistrée{% plural %}{{ n }} décisions enregistrées{% endblocktranslate %}, {% blocktranslate count n=nb_echecs %}{{ n }} non enregistrée{% plural %}{{ n }} non enregistrées{% endblocktranslate %}{% else %}{% blocktranslate count n=nb_succes %}{{ n }} verdict recalculé{% plural %}{{ n }} verdicts recalculés{% endblocktranslate %}, {% blocktranslate count n=nb_statuts_modifies %}dont {{ n }} statut modifié{% plural %}dont {{ n }} statuts modifiés{% endblocktranslate %}{% if nb_echecs %}, {% blocktranslate count n=nb_echecs %}{{ n }} en échec{% plural %}{{ n }} en échec{% endblocktranslate %}{% endif %}{% endif %}</p>
+  <p class="text-base font-medium text-ink-900" data-lot-bilan>{% if operation == "decision" %}{% blocktranslate count c=nb_succes|accord with n=nb_succes %}{{ n }} décision enregistrée{% plural %}{{ n }} décisions enregistrées{% endblocktranslate %}, {% blocktranslate count c=nb_echecs|accord with n=nb_echecs %}{{ n }} non enregistrée{% plural %}{{ n }} non enregistrées{% endblocktranslate %}{% else %}{% blocktranslate count c=nb_succes|accord with n=nb_succes %}{{ n }} verdict recalculé{% plural %}{{ n }} verdicts recalculés{% endblocktranslate %}, {% blocktranslate count c=nb_statuts_modifies|accord with n=nb_statuts_modifies %}dont {{ n }} statut modifié{% plural %}dont {{ n }} statuts modifiés{% endblocktranslate %}{% if nb_echecs %}, {% blocktranslate count c=nb_echecs|accord with n=nb_echecs %}{{ n }} en échec{% plural %}{{ n }} en échec{% endblocktranslate %}{% endif %}{% endif %}</p>
 </div>
 {% if echecs %}
 <div class="mt-4" data-lot-echecs>

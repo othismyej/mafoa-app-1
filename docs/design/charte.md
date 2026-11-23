@@ -184,6 +184,8 @@ sont dans `templates/components/`.
 | Filtre « pastille » | `.chip` (case ou bouton radio visible dans un `label`) | État coché : bordure et fond rouges légers (`:has(:checked)`). |
 | Alerte | `components/alert.html` (`message`, `tone`, `role`), `.alert-*` | Icône + texte ; jamais rouge. |
 | Messages Django | `components/messages.html` | `error` et `warning` → ton « attention ». |
+| Sélection de lignes | `.lot-case` (cible 36 px) + `.lot-check` | Case par ligne et « tout sélectionner » (actions en lot, KAN-15) ; nom accessible « Sélectionner NOM Prénom ». |
+| Panneau d'action en lot | `recruitment/_lot_panneau.html` | Carte à liseré anthracite ; avertissements en `fieldset` ambre avec choix radio sans présélection ; un seul `.btn-primary`. |
 | Chronologie | `.timeline` | Formations, expériences, historique des décisions ; premier point en rouge (élément le plus récent / en vigueur). |
 | Icônes | `components/icon.html` (`name`, `size`) | SVG en ligne, trait 1,75 px, `aria-hidden`. |
 | Pages d'entrée | `allauth/layouts/entrance.html`, `.entrance-card`, `.auth-content` | Carte centrée, logo, accroche « Espace direction » ; le contenu allauth (sans classes) est stylé par descendance. |

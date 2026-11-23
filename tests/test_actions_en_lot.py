@@ -210,6 +210,11 @@ def texte(response) -> str:
     return re.sub(r"\s+", " ", unescape(html)).strip()
 
 
+def exact(t: str, phrase: str) -> bool:
+    """La phrase figure telle quelle, sans lettre accolée (« 0 non enregistrée » ≠ « …ées »)."""
+    return re.search(r"(?<![\w])" + re.escape(phrase) + r"(?![\w])", t) is not None
+
+
 def groupe(response, attribut: str, valeur: str) -> set[int]:
     """Identifiants des candidatures listées dans un bloc ``data-<attribut>="<valeur>"``."""
     doc = parse(response.content.decode())
@@ -402,7 +407,7 @@ def test_ca7_poste_hors_concours_ou_inexistant(client, direction_user, ref):
 def test_ca8_mode_ids(client, direction_user, ref):
     response = recap(client, direction_user, ref.p1, "convoquee", [ref.B, ref.G])
     assert response.status_code == 200
-    assert "2 candidatures sélectionnées" in texte(response)
+    assert exact(texte(response), "2 candidatures sélectionnées")
 
 
 def test_ca9_identifiant_hors_poste_ou_inexistant(client, direction_user, ref):
@@ -416,7 +421,7 @@ def test_ca9_identifiant_hors_poste_ou_inexistant(client, direction_user, ref):
 
 def test_ca10_doublons_dedoublonnes(client, direction_user, ref):
     response = recap(client, direction_user, ref.p1, "convoquee", ids=[ref.B.pk, ref.B.pk])
-    assert "1 candidature sélectionnée" in texte(response)
+    assert exact(texte(response), "1 candidature sélectionnée")
 
 
 def test_ca11_mode_filtre_meme_ensemble_que_la_liste(client, direction_user, ref):
@@ -452,10 +457,10 @@ def test_ca12_toutes_pages_confondues(client, direction_user, ref):
         mode="filtre",
         params={"statut": "eligible", "taille": "50"},
     )
-    assert "120 candidatures sélectionnées" in texte(response)
+    assert exact(texte(response), "120 candidatures sélectionnées")
     client.force_login(direction_user)
     liste = client.get(url_liste(poste), {"statut": "eligible"})
-    assert "Appliquer aux 120 résultats du filtre" in texte(liste)
+    assert exact(texte(liste), "Appliquer aux 120 résultats du filtre")
 
 
 def test_ca13_selection_vide(client, direction_user, ref):
@@ -486,7 +491,7 @@ def test_ca14_plafond_sans_troncature(client, direction_user, ref, settings):
     Candidature.objects.filter(poste_concours=poste).first().delete()
     response = recap(client, direction_user, poste, "convoquee", mode="filtre")
     assert response.status_code == 200
-    assert "5 candidatures sélectionnées" in texte(response)
+    assert exact(texte(response), "5 candidatures sélectionnées")
 
 
 def test_ca15_fragment_sans_case_cochee(client, direction_user, ref):
@@ -557,7 +562,7 @@ def test_ca18_recapitulatif_convoquee(client, direction_user, ref):
         "Rejetée 1",
     ]:
         assert attendu in repartition
-    assert "4 candidatures concernées" in t
+    assert exact(t, "4 candidatures concernées")
     payload = lots.lire_jeton(jeton(response), user=direction_user, poste=ref.p1)
     assert {c[0] for c in payload["c"]} == ids(ref.B, ref.G, ref.H, ref.J)
     g = groupes_par_libelle(response)
@@ -567,7 +572,7 @@ def test_ca18_recapitulatif_convoquee(client, direction_user, ref):
     assert g["Transition interdite depuis Rejetée"] == ids(ref.I)
     assert g["Déjà Convoquée"] == ids(ref.D)
     assert groupe(response, "lot-avertissement", "anomalie_haute") == ids(ref.G)
-    assert "(1 dossier)" in t
+    assert exact(t, "(1 dossier)")
 
 
 def test_ca19_recapitulatif_eligible(client, direction_user, ref):
@@ -689,7 +694,7 @@ def test_ca24_ca2_trois_decisions_distinctes(client, ref, request, fixture_user)
     token = _lot_bhj(client, user, ref)
     response = executer(client, ref.p1, token, "convoquee")
     assert response.status_code == 200
-    assert "3 décisions enregistrées, 0 non enregistrée" in texte(response)
+    assert exact(texte(response), "3 décisions enregistrées, 0 non enregistrée")
     nouvelles = Decision.objects.filter(lot_id__isnull=False)
     assert nouvelles.count() == 3
     assert {d.candidature_id for d in nouvelles} == ids(ref.B, ref.H, ref.J)
@@ -767,7 +772,7 @@ def test_ca28_eligible_avec_verdict_non_favorable(client, direction_user, ref):
         motif="Dossiers examinés un à un : critères remplis.",
         choix={"verdict_non_favorable": "inclure"},
     )
-    assert "4 décisions enregistrées, 0 non enregistrée" in texte(response)
+    assert exact(texte(response), "4 décisions enregistrées, 0 non enregistrée")
     for c in (ref.A, ref.C, ref.E, ref.F):
         assert statut(c) == S.ELIGIBLE
         assert Decision.objects.filter(candidature=c, lot_id__isnull=False).count() == 1
@@ -782,7 +787,7 @@ def test_ca29_concurrence_entre_recap_et_execution(client, direction_user, ref):
     autre = make_user("autre-direction@example.org", Role.DIRECTION)
     record_decision(ref.B, autre, S.REJETEE, "Rejet depuis la fiche, fictif.")
     response = executer(client, ref.p1, token, "convoquee")
-    assert "2 décisions enregistrées, 1 non enregistrée" in texte(response)
+    assert exact(texte(response), "2 décisions enregistrées, 1 non enregistrée")
     assert statut(ref.B) == S.REJETEE
     assert Decision.objects.filter(candidature=ref.B).count() == 1
     assert {statut(ref.H), statut(ref.J)} == {S.CONVOQUEE}
@@ -818,7 +823,7 @@ def test_ca31_erreur_technique_sur_une_candidature(client, direction_user, ref):
     assert statut(ref.H) == S.PRESELECTIONNEE
     assert {statut(ref.B), statut(ref.J)} == {S.CONVOQUEE}
     assert groupe(response, "lot-echec", "erreur_technique") == ids(ref.H)
-    assert "2 décisions enregistrées, 1 non enregistrée" in texte(response)
+    assert exact(texte(response), "2 décisions enregistrées, 1 non enregistrée")
 
 
 def test_ca32_jeton_altere(client, direction_user, ref):
@@ -927,7 +932,7 @@ def test_ca34_concours_termine_pendant_execution(client, direction_user, ref):
 
     with mock.patch.object(evaluation_services, "record_decision", side_effect=puis_termine):
         response = executer(client, ref.p1, token, "convoquee")
-    assert "1 décision enregistrée, 2 non enregistrées" in texte(response)
+    assert exact(texte(response), "1 décision enregistrée, 2 non enregistrées")
     assert "Concours terminé entre-temps" in texte(response)
 
 
@@ -960,8 +965,8 @@ def test_ca37_ca38_relance_synchrone(client, direction_user, ref):
     cands = [ref.B, ref.C, ref.D, ref.E, ref.J]
     response = recap(client, direction_user, ref.p1, "relance_eligibilite", cands)
     t = texte(response)
-    assert "5 candidatures concernées" in t
-    assert "2 candidatures déjà décidées" in t
+    assert exact(t, "5 candidatures concernées")
+    assert exact(t, "2 candidatures déjà décidées")
     avant_decisions = Decision.objects.count()
     avant = VerificationEligibilite.objects.count()
     response = executer(client, ref.p1, jeton(response), "relance_eligibilite")
@@ -974,9 +979,9 @@ def test_ca37_ca38_relance_synchrone(client, direction_user, ref):
     derniere_j = VerificationEligibilite.objects.filter(candidature=ref.J).order_by("-id")[0]
     assert derniere_j.resultat == "non_eligible"
     t = texte(response)
-    assert "5 verdicts recalculés" in t
+    assert exact(t, "5 verdicts recalculés")
     # B éligible → éligible ; C (Bac+5) non éligible → éligible ; E reçue → éligible.
-    assert "dont 2 statuts modifiés" in t
+    assert exact(t, "dont 2 statuts modifiés")
 
 
 def test_ca39_relance_asynchrone(client, direction_user, ref, settings):
@@ -985,7 +990,7 @@ def test_ca39_relance_asynchrone(client, direction_user, ref, settings):
     token = jeton(recap(client, direction_user, ref.p1, "relance_eligibilite", cands))
     with mock.patch("apps.evaluation.tasks.relancer_eligibilite_lot.delay") as delay:
         response = executer(client, ref.p1, token, "relance_eligibilite")
-    assert "Relance lancée en arrière-plan pour 5 candidatures" in texte(response)
+    assert exact(texte(response), "Relance lancée en arrière-plan pour 5 candidatures")
     kwargs = delay.call_args.kwargs
     payload = lots.lire_jeton(token, user=direction_user, poste=ref.p1)
     assert kwargs["lot_id"] == payload["lot"]
@@ -999,7 +1004,7 @@ def test_ca39_relance_asynchrone_en_mode_eager(client, direction_user, ref, sett
     token = jeton(recap(client, direction_user, ref.p1, "relance_eligibilite", cands))
     avant = VerificationEligibilite.objects.count()
     response = executer(client, ref.p1, token, "relance_eligibilite")
-    assert "Relance lancée en arrière-plan pour 5 candidatures" in texte(response)
+    assert exact(texte(response), "Relance lancée en arrière-plan pour 5 candidatures")
     assert VerificationEligibilite.objects.count() == avant + 5
     assert statut(ref.H) == S.PRESELECTIONNEE  # déjà décidée : jamais reclassée
     fin = [e for e in entrees_lot() if e.metadata["etape"] == "termine"]
@@ -1071,7 +1076,7 @@ def test_ca42_erreur_moteur_sur_une_candidature(client, direction_user, ref):
         response = executer(client, ref.p1, token, "relance_eligibilite")
     assert VerificationEligibilite.objects.count() == avant + 2
     assert groupe(response, "lot-echec", "erreur_technique") == ids(ref.C)
-    assert "2 verdicts recalculés" in texte(response)
+    assert exact(texte(response), "2 verdicts recalculés")
 
 
 # --------------------------------------------------------------------------------------
@@ -1238,3 +1243,50 @@ def test_ca49_libelles_traduits():
         sans_balises = re.sub(r"<[^>]+>", " ", sans_balises)
         restant = re.sub(r"[\s·(),:/—]+", "", sans_balises)
         assert restant == "", f"{nom} : texte non traduit « {restant[:80]} »"
+
+
+# --------------------------------------------------------------------------------------
+# Cas limites
+# --------------------------------------------------------------------------------------
+
+
+def test_tous_exclus_par_avertissement(client, direction_user, ref):
+    """Tous les dossiers concernés exclus : rien n'est enregistré, entrées « lot » écrites."""
+    token = jeton(recap(client, direction_user, ref.p1, "convoquee", [ref.G]))
+    response = executer(client, ref.p1, token, "convoquee", choix={"anomalie_haute": "exclure"})
+    assert response.status_code == 200
+    assert exact(texte(response), "0 décision enregistrée, 0 non enregistrée")
+    assert statut(ref.G) == S.ELIGIBLE
+    assert [e.metadata["etape"] for e in entrees_lot()] == ["lance", "termine"]
+    assert entrees_lot()[0].metadata["exclues_ids"] == [ref.G.pk]
+
+
+def test_toutes_non_concernees_sans_bouton(client, direction_user, ref):
+    response = recap(client, direction_user, ref.p1, "convoquee", [ref.A, ref.F])
+    assert exact(texte(response), "0 candidature concernée")
+    assert "data-lot-executer" not in response.content.decode()
+    response = executer(client, ref.p1, jeton(response), "convoquee")
+    assert response.status_code == 400
+    assert not entrees_lot()
+
+
+def test_compteur_initial_au_singulier(client, direction_user, ref):
+    client.force_login(direction_user)
+    response = client.get(url_liste(ref.p1))
+    assert exact(texte(response), "0 candidature sélectionnée")
+
+
+def test_barre_absente_sans_resultat(client, direction_user, ref):
+    client.force_login(direction_user)
+    vide = make_poste(ref.c1, "P-VIDE")
+    assert 'id="lot"' not in client.get(url_liste(vide)).content.decode()
+    filtre = client.get(url_liste(ref.p1), {"q": "zzzinconnu"}).content.decode()
+    assert 'id="lot"' not in filtre
+
+
+def test_motif_html_echappe(client, direction_user, ref):
+    token = _lot_bhj(client, direction_user, ref)
+    motif = "<script>alert(1)</script> motif fictif"
+    response = executer(client, ref.p1, token, "convoquee", motif=motif, confirmer=False)
+    assert "<script>alert(1)</script>" not in response.content.decode()
+    assert "&lt;script&gt;" in response.content.decode()

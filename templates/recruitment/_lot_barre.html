@@ -1,4 +1,4 @@
-{% load i18n %}{% comment %}
+{% load i18n accord %}{% comment %}
 Barre d'actions en lot (KAN-15, règle 32) : formulaire POST distinct du formulaire de filtres.
 Les cases du tableau y sont rattachées par l'attribut form="lot". Les paramètres de filtre
 validés (CandidatureFilter.querystring) sont transmis, préfixés par « lot_ », pour le mode
@@ -19,7 +19,7 @@ validés (CandidatureFilter.querystring) sont transmis, préfixés par « lot_ �
     </select>
   </div>
   <p class="min-h-10 flex-1 basis-48 content-center font-medium text-ink-800" aria-live="polite" data-lot-compteur
-     data-singulier="{% translate '%n candidature sélectionnée' %}" data-pluriel="{% translate '%n candidatures sélectionnées' %}">{% blocktranslate count n=0 %}{{ n }} candidature sélectionnée{% plural %}{{ n }} candidatures sélectionnées{% endblocktranslate %}</p>
+     data-singulier="{% translate '%n candidature sélectionnée' %}" data-pluriel="{% translate '%n candidatures sélectionnées' %}">{% blocktranslate count c=0|accord with n=0 %}{{ n }} candidature sélectionnée{% plural %}{{ n }} candidatures sélectionnées{% endblocktranslate %}</p>
   <div class="flex flex-wrap gap-2">
     <button type="submit" name="mode" value="ids" class="btn-primary">{% translate "Appliquer à la sélection" %}</button>
     <button type="submit" name="mode" value="filtre" class="btn-secondary" data-lot-filtre>{% blocktranslate count n=page.paginator.count %}Appliquer au {{ n }} résultat du filtre{% plural %}Appliquer aux {{ n }} résultats du filtre{% endblocktranslate %}</button>

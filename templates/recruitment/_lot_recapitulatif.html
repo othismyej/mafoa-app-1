@@ -1,8 +1,8 @@
-{% load i18n %}
+{% load i18n accord %}
 <p class="font-medium text-ink-900" aria-live="polite" data-lot-annonce>
-  <span data-lot-selectionnees>{% blocktranslate count n=nb_selectionnees %}{{ n }} candidature sélectionnée{% plural %}{{ n }} candidatures sélectionnées{% endblocktranslate %}</span> ·
-  <span data-lot-concernees>{% blocktranslate count n=nb_concernees %}{{ n }} candidature concernée{% plural %}{{ n }} candidatures concernées{% endblocktranslate %}</span>{% if nb_non_concernees %} ·
-  <span data-lot-non-concernees>{% blocktranslate count n=nb_non_concernees %}{{ n }} non concernée{% plural %}{{ n }} non concernées{% endblocktranslate %}</span>{% endif %}
+  <span data-lot-selectionnees>{% blocktranslate count c=nb_selectionnees|accord with n=nb_selectionnees %}{{ n }} candidature sélectionnée{% plural %}{{ n }} candidatures sélectionnées{% endblocktranslate %}</span> ·
+  <span data-lot-concernees>{% blocktranslate count c=nb_concernees|accord with n=nb_concernees %}{{ n }} candidature concernée{% plural %}{{ n }} candidatures concernées{% endblocktranslate %}</span>{% if nb_non_concernees %} ·
+  <span data-lot-non-concernees>{% blocktranslate count c=nb_non_concernees|accord with n=nb_non_concernees %}{{ n }} non concernée{% plural %}{{ n }} non concernées{% endblocktranslate %}</span>{% endif %}
 </p>
 {% if erreurs %}<div class="alert alert-warning mt-4" role="alert" data-lot-erreurs>{% include "components/icon.html" with name="alert" size="alert-icon" %}<ul class="space-y-1">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
 
@@ -13,12 +13,12 @@
 </dl>
 
 {% if operation == "relance_eligibilite" and nb_deja_decidees %}
-<p class="mt-4 flex items-start gap-2 rounded-control bg-ink-50 px-4 py-3 text-ink-700" data-lot-deja-decidees>{% include "components/icon.html" with name="info" size="mt-0.5 h-4 w-4 text-ink-500" %}<span>{% blocktranslate count n=nb_deja_decidees %}{{ n }} candidature déjà décidée : un nouveau verdict sera calculé, son statut ne changera pas.{% plural %}{{ n }} candidatures déjà décidées : un nouveau verdict sera calculé, leur statut ne changera pas.{% endblocktranslate %}</span></p>
+<p class="mt-4 flex items-start gap-2 rounded-control bg-ink-50 px-4 py-3 text-ink-700" data-lot-deja-decidees>{% include "components/icon.html" with name="info" size="mt-0.5 h-4 w-4 text-ink-500" %}<span>{% blocktranslate count c=nb_deja_decidees|accord with n=nb_deja_decidees %}{{ n }} candidature déjà décidée : un nouveau verdict sera calculé, son statut ne changera pas.{% plural %}{{ n }} candidatures déjà décidées : un nouveau verdict sera calculé, leur statut ne changera pas.{% endblocktranslate %}</span></p>
 {% endif %}
 
 {% if groupes %}
 <div class="mt-5" data-lot-groupes>
-  <h3 class="section-title text-sm">{% blocktranslate count n=nb_non_concernees %}{{ n }} candidature non concernée{% plural %}{{ n }} candidatures non concernées{% endblocktranslate %}</h3>
+  <h3 class="section-title text-sm">{% blocktranslate count c=nb_non_concernees|accord with n=nb_non_concernees %}{{ n }} candidature non concernée{% plural %}{{ n }} candidatures non concernées{% endblocktranslate %}</h3>
   <ul class="mt-2 space-y-3">
   {% for g in groupes %}
     <li class="rounded-control border border-ink-200 px-4 py-3" data-lot-groupe="{{ g.raison }}">
@@ -63,11 +63,11 @@
     </p>
   </div>
   <label class="check items-start"><input type="checkbox" name="confirmer" value="1" required class="lot-check mt-0.5" {% if confirmer %}checked{% endif %}>
-    <span>{% blocktranslate count n=nb_concernees with d=decision_libelle %}Je confirme enregistrer la décision « {{ d }} » pour {{ n }} candidature, en mon nom et avec ce motif.{% plural %}Je confirme enregistrer la décision « {{ d }} » pour {{ n }} candidatures, chacune en mon nom et avec ce motif.{% endblocktranslate %}</span></label>
+    <span>{% blocktranslate count c=nb_concernees|accord with n=nb_concernees d=decision_libelle %}Je confirme enregistrer la décision « {{ d }} » pour {{ n }} candidature, en mon nom et avec ce motif.{% plural %}Je confirme enregistrer la décision « {{ d }} » pour {{ n }} candidatures, chacune en mon nom et avec ce motif.{% endblocktranslate %}</span></label>
   {% endif %}
   {% endif %}
   <div class="flex flex-wrap items-center gap-2">
-    {% if executable %}<button type="submit" class="btn-primary" data-lot-executer>{% if operation == "decision" %}{% blocktranslate count n=nb_concernees %}Enregistrer {{ n }} décision{% plural %}Enregistrer les {{ n }} décisions{% endblocktranslate %}{% else %}{% blocktranslate count n=nb_concernees %}Relancer {{ n }} calcul{% plural %}Relancer {{ n }} calculs{% endblocktranslate %}{% endif %}</button>{% endif %}
+    {% if executable %}<button type="submit" class="btn-primary" data-lot-executer>{% if operation == "decision" %}{% blocktranslate count c=nb_concernees|accord with n=nb_concernees %}Enregistrer {{ n }} décision{% plural %}Enregistrer les {{ n }} décisions{% endblocktranslate %}{% else %}{% blocktranslate count c=nb_concernees|accord with n=nb_concernees %}Relancer {{ n }} calcul{% plural %}Relancer {{ n }} calculs{% endblocktranslate %}{% endif %}</button>{% endif %}
     <a href="{{ retour_url }}" class="btn-secondary" data-lot-retour>{% translate "Annuler et revenir à la liste" %}</a>
   </div>
   {% if executable %}<p class="flex items-start gap-2 text-xs text-ink-600">{% include "components/icon.html" with name="shield" size="mt-0.5 h-4 w-4 text-ink-500" %}<span>{% translate "Chaque candidature est traitée séparément et inscrite au journal d’audit. Ce récapitulatif est valable 30 minutes." %}</span></p>{% endif %}
