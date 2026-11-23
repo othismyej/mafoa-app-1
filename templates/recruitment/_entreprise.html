@@ -1,0 +1,1 @@
+{% load i18n %}{# Entreprise d'une offre : organisation, ou « Entreprise confidentielle » (KAN-38, règle 3). Paramètre : offre. #}{% if offre.entreprise_confidentielle %}{% translate "Entreprise confidentielle" %}{% else %}{{ offre.organisation }}{% endif %}

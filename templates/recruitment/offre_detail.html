@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block head_title %}{{ offre.intitule }}{% endblock %}
+{% block content %}
+{% include "components/breadcrumb.html" with offres=True current=offre.intitule only %}
+
+<header class="card card-accent mb-6">
+  <div class="card-body flex flex-wrap items-start justify-between gap-6 sm:p-6">
+    <div class="min-w-0">
+      <p class="page-eyebrow" data-entreprise>{% include "recruitment/_entreprise.html" %}</p>
+      <h1 class="page-title">{{ offre.intitule }}</h1>
+      <p class="mt-1 text-sm text-ink-600">{% translate "Offre d’emploi — recrutement privé" %}</p>
+    </div>
+    <dl class="grid w-full gap-x-6 gap-y-2 text-sm sm:w-auto sm:grid-cols-2" data-fiche-offre>
+      <div class="flex items-center justify-between gap-4"><dt class="text-ink-600">{% translate "Statut" %} :</dt> <dd>{% include "components/badge_statut.html" with code=offre.statut label=offre.get_statut_display %}</dd></div>
+      <div class="flex items-center justify-between gap-4"><dt class="text-ink-600">{% translate "Ville" %} :</dt> <dd class="font-medium text-ink-900">{{ offre.ville|default:"—" }}</dd></div>
+      <div class="flex items-center justify-between gap-4"><dt class="text-ink-600">{% translate "Contrat" %} :</dt> <dd class="font-medium text-ink-900">{{ offre.type_contrat|default:"—" }}</dd></div>
+      <div class="flex items-center justify-between gap-4"><dt class="text-ink-600">{% translate "Mode de travail" %} :</dt> <dd class="font-medium text-ink-900">{{ offre.get_mode_travail_display }}</dd></div>
+      <div class="flex items-center justify-between gap-4"><dt class="text-ink-600">{% translate "Postes à pourvoir" %} :</dt> <dd class="font-display font-semibold text-ink-900">{{ offre.nombre_postes }}</dd></div>
+      <div class="flex items-center justify-between gap-4"><dt class="text-ink-600">{% translate "Date limite" %} :</dt> <dd class="font-medium tabular-nums text-ink-900">{{ offre.date_limite|date:"d/m/Y"|default:"—" }}</dd></div>
+    </dl>
+  </div>
+  {% if offre.source_synced_at %}<p class="border-t border-ink-100 px-5 py-2.5 text-xs text-ink-600 sm:px-6">{% blocktranslate with d=offre.source_synced_at|date:"d/m/Y H:i" %}Données du site synchronisées le {{ d }}{% endblocktranslate %}</p>{% endif %}
+</header>
+
+<section class="card mb-8" aria-labelledby="titre-fiche">
+  <div class="card-header">
+    <h2 id="titre-fiche" class="section-title flex items-center gap-2">{% include "components/icon.html" with name="file" size="h-5 w-5 text-ink-500" %}{% translate "Fiche de poste" %}</h2>
+    {% if offre.secteur or offre.get_fonction_display %}<p class="hint">{{ offre.secteur }}{% if offre.secteur and offre.fonction %} · {% endif %}{{ offre.get_fonction_display }}</p>{% endif %}
+  </div>
+  <div class="card-body grid gap-6 lg:grid-cols-3">
+    <div class="text-sm text-ink-800 lg:col-span-2" data-fiche-de-poste>
+      {% if offre.fiche_de_poste %}
+        {% with resume=offre.fiche_de_poste|truncatewords:60 %}
+        {% if resume == offre.fiche_de_poste %}{{ offre.fiche_de_poste|linebreaks }}{% else %}
+        <p>{{ resume }}</p>
+        <details class="mt-2">
+          <summary class="link inline-flex min-h-10 cursor-pointer items-center">{% translate "Lire la fiche complète" %}</summary>
+          <div class="mt-2 space-y-2">{{ offre.fiche_de_poste|linebreaks }}</div>
+        </details>
+        {% endif %}
+        {% endwith %}
+      {% else %}<p class="text-ink-600">{% translate "Fiche de poste non renseignée." %}</p>{% endif %}
+      {% if offre.competences %}
+      <h3 class="field-legend mt-5">{% translate "Compétences attendues" %}</h3>
+      <ul class="flex flex-wrap gap-2">{% for comp in offre.competences %}<li class="badge badge-neutre badge-plain">{{ comp }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+    <dl class="space-y-3 text-sm" data-criteres>
+      <div><dt class="text-ink-600">{% translate "Niveau d’études minimum" %}</dt><dd class="font-medium text-ink-900">{{ offre.get_niveau_etudes_min_display|default:"—" }}</dd></div>
+      <div><dt class="text-ink-600">{% translate "Expérience" %}</dt><dd class="font-medium text-ink-900">{% if offre.experience_min_annees is not None and offre.experience_max_annees is not None %}{% blocktranslate with min=offre.experience_min_annees|floatformat:"-1" max=offre.experience_max_annees|floatformat:"-1" %}De {{ min }} à {{ max }} ans{% endblocktranslate %}{% elif offre.experience_min_annees is not None %}{% blocktranslate with min=offre.experience_min_annees|floatformat:"-1" %}Au moins {{ min }} ans{% endblocktranslate %}{% elif offre.experience_max_annees is not None %}{% blocktranslate with max=offre.experience_max_annees|floatformat:"-1" %}Au plus {{ max }} ans{% endblocktranslate %}{% else %}—{% endif %}</dd></div>
+      {% if offre.autres_criteres %}<div><dt class="text-ink-600">{% translate "Autres critères" %}</dt><dd class="font-medium text-ink-900">{{ offre.autres_criteres|linebreaksbr }}</dd></div>{% endif %}
+      {% if offre.salaire %}<div><dt class="text-ink-600">{% translate "Salaire" %}</dt><dd class="font-medium text-ink-900">{{ offre.salaire }}</dd></div>{% endif %}
+    </dl>
+  </div>
+</section>
+
+<h2 id="titre-candidatures" class="section-title mb-3 text-lg">{% translate "Candidatures reçues sur cette offre" %}</h2>
+{% include "recruitment/_candidatures_filtres.html" %}
+<div id="resultats" hx-boost="true" hx-target="#resultats" hx-swap="innerHTML" hx-push-url="true">
+  {% include "recruitment/_candidatures_resultats.html" %}
+</div>
+{% endblock %}

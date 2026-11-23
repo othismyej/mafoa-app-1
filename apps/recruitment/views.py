@@ -47,12 +47,25 @@ def poste_candidatures(request, concours_pk: int, poste_pk: int):
     poste = get_object_or_404(
         PosteConcours.objects.select_related("concours"), pk=poste_pk, concours_id=concours_pk
     )
-    queryset, flt = filter_candidatures(poste, request.GET)
+    return _liste_candidatures(
+        request,
+        poste,
+        "recruitment/poste_candidatures.html",
+        {"poste": poste, "concours": poste.concours, "lot_actif": True},
+    )
+
+
+def _liste_candidatures(request, cible, page_template: str, extra: dict):
+    """Liste filtrée des candidatures d'une cible, poste ou offre (KAN-10, KAN-38 règle 14).
+
+    Même logique serveur (``filter_candidatures``), mêmes gabarits partagés, même
+    journalisation (une entrée ``view`` par réponse servie, objet = la cible).
+    """
+    queryset, flt = filter_candidatures(cible, request.GET)
     page = Paginator(queryset, flt.taille).get_page(flt.page)
-    total = poste.candidatures.count()
+    total = cible.candidatures.count()
     context = {
-        "poste": poste,
-        "concours": poste.concours,
+        **extra,
         "flt": flt,
         "page": page,
         "total": total,
@@ -61,9 +74,6 @@ def poste_candidatures(request, concours_pk: int, poste_pk: int):
         "anomalie_choices": ANOMALIE_CHOICES,
         "page_sizes": PAGE_SIZES,
         "querystring": flt.querystring(include_tri=True),
-        # Barre d'actions en lot (KAN-15) : paramètres validés et décisions permises en lot.
-        "lot_params": parse_qsl(flt.querystring(include_tri=True)),
-        "lot_decisions": [(d, Candidature.Statut(d).label) for d in decision_rules.DECISIONS_LOT],
         "querystring_sans_tri": flt.querystring(include_tri=False),
         "sort_headers": [
             {
@@ -76,9 +86,15 @@ def poste_candidatures(request, concours_pk: int, poste_pk: int):
             for key, label in SORT_HEADERS
         ],
     }
+    if context.get("lot_actif"):
+        # Barre d'actions en lot (KAN-15) : paramètres validés et décisions permises en lot.
+        context["lot_params"] = parse_qsl(flt.querystring(include_tri=True))
+        context["lot_decisions"] = [
+            (d, Candidature.Statut(d).label) for d in decision_rules.DECISIONS_LOT
+        ]
     log(
         AuditAction.VIEW,
-        obj=poste,
+        obj=cible,
         request=request,
         metadata={**flt.as_metadata(), "page": page.number, "nb_resultats": page.paginator.count},
     )
@@ -87,11 +103,7 @@ def poste_candidatures(request, concours_pk: int, poste_pk: int):
         request.headers.get("HX-Request") == "true"
         and request.headers.get("HX-History-Restore-Request") != "true"
     )
-    template = (
-        "recruitment/_candidatures_resultats.html"
-        if fragment
-        else "recruitment/poste_candidatures.html"
-    )
+    template = "recruitment/_candidatures_resultats.html" if fragment else page_template
     response = render(request, template, context)
     patch_vary_headers(response, ["HX-Request", "HX-History-Restore-Request"])
     return response

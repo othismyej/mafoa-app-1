@@ -256,5 +256,5 @@ def test_tableau_de_bord_distingue_concours_et_offres(client, direction_user):
     assert Concours.objects.count() == 1 and OffreEmploi.objects.count() == 5
     assert "Concours publics" in html
     assert "3 postes · 1 en cours" in html
-    assert "Offres d&#x27;emploi (privé)" in html or "Offres d'emploi (privé)" in html
+    assert "Offres d’emploi (recrutement privé)" in html
     assert "3 ouvertes" in html

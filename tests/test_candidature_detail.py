@@ -474,8 +474,8 @@ def test_en_tete_poste_de_concours_et_lien_retour(client, direction_user, cand, 
 
 
 def test_en_tete_offre_confidentielle(client, direction_user):
-    """CA8 — Offre confidentielle : intitulé de l'offre et « Confidential Company » au lieu de
-    l'organisation."""
+    """CA8 — Offre confidentielle : intitulé de l'offre et « Entreprise confidentielle » au lieu
+    de l'organisation (libellé harmonisé par KAN-38, règle 3)."""
     org = Organisation.objects.create(nom="Groupe Privé Fictif Omega", type=Organisation.Type.PRIVE)
     offre = OffreEmploi.objects.create(
         organisation=org, intitule="Responsable logistique fictif", entreprise_confidentielle=True
@@ -485,7 +485,7 @@ def test_en_tete_offre_confidentielle(client, direction_user):
     html = response.content.decode()
     text = page_text(response)
     assert "Responsable logistique fictif" in text
-    assert "Confidential Company" in text
+    assert "Entreprise confidentielle" in text
     assert "Groupe Privé Fictif Omega" not in html
 
 
@@ -496,7 +496,7 @@ def test_en_tete_offre_non_confidentielle_affiche_organisation(client, direction
     text = page_text(ok(client, direction_user, new_candidature(offre=offre)))
     assert "Comptable fictif" in text
     assert "Société Fictive Sigma" in text
-    assert "Confidential Company" not in text
+    assert "Entreprise confidentielle" not in text
 
 
 # --------------------------------------------------------------------------------------

@@ -1414,3 +1414,73 @@ def test_motif_html_echappe(client, direction_user, ref):
     response = executer(client, ref.p1, token, "convoquee", motif=motif, confirmer=False)
     assert "<script>alert(1)</script>" not in response.content.decode()
     assert "&lt;script&gt;" in response.content.decode()
+
+
+# --------------------------------------------------------------------------------------
+# Cloisonnement poste / offre (relecture conformité KAN-38, S1)
+# --------------------------------------------------------------------------------------
+
+
+def _candidature_offre():
+    from apps.recruitment.models import OffreEmploi
+
+    org = Organisation.objects.create(nom="Société fictive Lot", type=Organisation.Type.PRIVE)
+    offre = OffreEmploi.objects.create(organisation=org, intitule="Offre fictive lot")
+    return Candidature.objects.create(
+        candidat=_candidat("OFFRE", "Fictive"),
+        offre=offre,
+        date_candidature=timezone.make_aware(datetime(2026, 3, 15, 10, 30)),
+        statut=S.ELIGIBLE,
+        donnees_declarees=PROFIL_BAC5,
+    )
+
+
+def test_s1_recapitulatif_refuse_une_candidature_d_offre(client, direction_user, ref):
+    co = _candidature_offre()
+    for selection in ([co.pk], [ref.B.pk, co.pk]):
+        response = recap(client, direction_user, ref.p1, "convoquee", ids=selection)
+        assert response.status_code == 400
+        assert 'name="jeton"' not in response.content.decode()
+    assert refus("ids_hors_poste").count() == 2
+    assert not Decision.objects.filter(candidature=co).exists()
+    assert statut(co) == S.ELIGIBLE
+
+
+def test_s1_execution_ignore_une_candidature_d_offre(client, direction_user, ref):
+    """L'exécution ne lit que le jeton signé : des ``ids`` ajoutés au POST sont sans effet."""
+    co = _candidature_offre()
+    client.force_login(direction_user)
+    nb = Decision.objects.count()
+    # Sans jeton : refus, aucune décision.
+    response = client.post(
+        url_exec(ref.p1),
+        {
+            "action": "convoquee",
+            "mode": "ids",
+            "ids": [str(co.pk)],
+            "motif": MOTIF,
+            "confirmer": "1",
+        },
+    )
+    assert response.status_code == 400
+    assert refus("jeton_invalide").count() == 1
+    assert Decision.objects.count() == nb
+    # Jeton valide pour B seul + identifiant d'offre injecté : seule B est décidée.
+    token = jeton(recap(client, None, ref.p1, "convoquee", [ref.B]))
+    response = client.post(
+        url_exec(ref.p1),
+        {
+            "jeton": token,
+            "action": "convoquee",
+            "mode": "ids",
+            "ids": [str(co.pk)],
+            "motif": MOTIF,
+            "confirmer": "1",
+        },
+    )
+    assert response.status_code == 200
+    assert not Decision.objects.filter(candidature=co).exists()
+    assert statut(co) == S.ELIGIBLE
+    assert set(
+        Decision.objects.filter(lot_id__isnull=False).values_list("candidature", flat=True)
+    ) == {ref.B.pk}

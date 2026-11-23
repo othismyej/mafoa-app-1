@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block head_title %}{% translate "Offres d’emploi" %}{% endblock %}
+{% block content %}
+{% translate "Offres d’emploi" as courant %}
+{% include "components/breadcrumb.html" with current=courant only %}
+<header class="mb-6">
+  <p class="page-eyebrow">{% translate "Recrutement privé" %}</p>
+  <h1 class="page-title">{% translate "Offres d’emploi" %}</h1>
+  <p class="mt-1 text-sm text-ink-600">{% translate "Postes à pourvoir chez nos clients entreprises, publiés sur le site, avec les candidatures reçues sur chacun." %}</p>
+</header>
+
+{% if total %}
+<form method="get" action="{{ request.path }}" class="card mb-6 flex flex-wrap items-end gap-x-6 gap-y-4 p-5 text-sm" id="filtres-offres">
+  <fieldset>
+    <legend class="field-legend">{% translate "Statut de l’offre" %}</legend>
+    <div class="flex flex-wrap gap-2">
+    {% for value, label in statut_choices %}
+    <label class="chip"><input type="checkbox" name="statut" value="{{ value }}" {% if value in statuts %}checked{% endif %}> {{ label }}</label>
+    {% endfor %}
+    </div>
+  </fieldset>
+  <div class="flex flex-wrap gap-2">
+    <button type="submit" class="btn-primary">{% include "components/icon.html" with name="filter" size="h-4 w-4" %}{% translate "Filtrer" %}</button>
+    <a href="{{ request.path }}" class="btn-secondary">{% translate "Réinitialiser" %}</a>
+  </div>
+</form>
+{% endif %}
+
+<p class="mb-3 text-sm font-medium text-ink-800" data-compteur>{% blocktranslate count n=page.paginator.count with m=total %}{{ n }} offre affichée sur {{ m }}{% plural %}{{ n }} offres affichées sur {{ m }}{% endblocktranslate %}</p>
+{% if total and not page.paginator.count %}
+<div class="card card-body flex flex-col items-center gap-3 py-10 text-center text-ink-600">
+  <p>{% translate "Aucune offre ne correspond à ce filtre." %}</p>
+  <a href="{{ request.path }}" class="btn-secondary btn-sm">{% translate "Réinitialiser" %}</a>
+</div>
+{% else %}
+{% translate "Aucune offre d’emploi pour le moment." as vide %}
+{% include "recruitment/_offres_tableau.html" with offres=page.object_list vide=vide %}
+{% endif %}
+{% if page.paginator.num_pages > 1 %}
+<nav class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="{% translate 'Pagination' %}" data-pagination>
+  <span class="text-ink-600">{% blocktranslate with num=page.number total=page.paginator.num_pages %}Page {{ num }} sur {{ total }}{% endblocktranslate %}</span>
+  <span class="flex gap-2">
+  {% if page.has_previous %}<a class="btn-secondary btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page.previous_page_number }}">{% translate "Précédente" %}</a>{% endif %}
+  {% if page.has_next %}<a class="btn-secondary btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page.next_page_number }}">{% translate "Suivante" %}</a>{% endif %}
+  </span>
+</nav>
+{% endif %}
+{% endblock %}
