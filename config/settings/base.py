@@ -113,6 +113,9 @@ ACCOUNT_RATE_LIMITS = {
 }
 MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
 MFA_TOTP_ISSUER = "Mafoa AI"
+# Accepte aussi le code précédent et le suivant (±30 s) : un léger décalage d'horloge
+# du téléphone ne doit pas bloquer la connexion (recommandation RFC 6238).
+MFA_TOTP_TOLERANCE = 1
 
 # --- Sessions et cookies ----------------------------------------------------
 SESSION_COOKIE_AGE = env.int("SESSION_COOKIE_AGE", default=8 * 3600)

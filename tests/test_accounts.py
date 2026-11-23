@@ -186,3 +186,18 @@ def test_admin_cree_une_invitation_journalisee(client, admin_user):
 def test_admin_ne_peut_pas_creer_de_compte_directement(client, admin_user):
     client.force_login(admin_user)
     assert client.get(reverse("admin:accounts_user_add")).status_code == 403
+
+
+def test_code_totp_de_la_periode_precedente_accepte():
+    from allauth.mfa.totp.internal.auth import (
+        format_hotp_value,
+        hotp_value,
+        validate_totp_code,
+        yield_hotp_counters_from_time,
+    )
+
+    secret = "JBSWY3DPEHPK3PXP"
+    courant = list(yield_hotp_counters_from_time())[1]  # milieu de la fenêtre ±1
+    assert validate_totp_code(secret, format_hotp_value(hotp_value(secret, courant - 1)))
+    assert validate_totp_code(secret, format_hotp_value(hotp_value(secret, courant + 1)))
+    assert not validate_totp_code(secret, format_hotp_value(hotp_value(secret, courant - 3)))
