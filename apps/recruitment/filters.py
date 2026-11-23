@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from django.db.models import Case, Count, IntegerField, OuterRef, Q, QuerySet, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from django.http import QueryDict
+from django.utils.translation import gettext_lazy as _
 
 from apps.evaluation.eligibility.levels import normalize_text
 from apps.evaluation.models import Anomalie, Verdict
@@ -19,16 +20,16 @@ from .models import Candidature, PosteConcours
 from .selectors import NON_EVALUEE, latest_verdict_subquery
 
 VERDICT_CHOICES: list[tuple[str, str]] = [
-    (Verdict.ELIGIBLE.value, "Éligible"),
-    (Verdict.NON_ELIGIBLE.value, "Non éligible"),
-    (Verdict.A_VERIFIER.value, "À vérifier"),
-    (NON_EVALUEE, "Non évaluée"),
+    (Verdict.ELIGIBLE.value, _("Éligible")),
+    (Verdict.NON_ELIGIBLE.value, _("Non éligible")),
+    (Verdict.A_VERIFIER.value, _("À vérifier")),
+    (NON_EVALUEE, _("Non évaluée")),
 ]
 ANOMALIES_TOUTES, ANOMALIES_AVEC, ANOMALIES_SANS = "toutes", "avec", "sans"
 ANOMALIE_CHOICES = [
-    (ANOMALIES_TOUTES, "Toutes"),
-    (ANOMALIES_AVEC, "Avec anomalie non résolue"),
-    (ANOMALIES_SANS, "Sans anomalie non résolue"),
+    (ANOMALIES_TOUTES, _("Toutes")),
+    (ANOMALIES_AVEC, _("Avec anomalie non résolue")),
+    (ANOMALIES_SANS, _("Sans anomalie non résolue")),
 ]
 SORT_KEYS = ("candidat", "date", "statut", "verdict", "anomalies")
 DEFAULT_SORT = "date"
@@ -78,7 +79,7 @@ class CandidatureFilter:
             anomalies = ANOMALIES_TOUTES
         tri_raw = params.get("tri", DEFAULT_SORT)
         desc = tri_raw.startswith("-")
-        tri = tri_raw.lstrip("-")
+        tri = tri_raw[1:] if desc else tri_raw  # un seul « - » accepté
         if tri not in SORT_KEYS:
             tri, desc = DEFAULT_SORT, False
         try:

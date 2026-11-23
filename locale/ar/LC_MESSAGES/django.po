@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 01:01+0000\n"
+"POT-Creation-Date: 2026-11-23 01:13+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,63 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+#: apps/recruitment/filters.py:23 apps/recruitment/models.py:274
+#: templates/recruitment/_candidatures_resultats.html:32
+msgid "Éligible"
+msgstr ""
+
+#: apps/recruitment/filters.py:24 apps/recruitment/models.py:275
+#: templates/recruitment/_candidatures_resultats.html:33
+msgid "Non éligible"
+msgstr ""
+
+#: apps/recruitment/filters.py:25 apps/recruitment/models.py:276
+#: templates/recruitment/_candidatures_resultats.html:34
+#: templates/recruitment/concours_detail.html:38
+msgid "À vérifier"
+msgstr ""
+
+#: apps/recruitment/filters.py:26
+#: templates/recruitment/_candidatures_resultats.html:35
+msgid "Non évaluée"
+msgstr ""
+
+#: apps/recruitment/filters.py:30
+msgid "Toutes"
+msgstr ""
+
+#: apps/recruitment/filters.py:31
+msgid "Avec anomalie non résolue"
+msgstr ""
+
+#: apps/recruitment/filters.py:32
+msgid "Sans anomalie non résolue"
+msgstr ""
+
+#: apps/recruitment/models.py:272
+msgid "Reçue"
+msgstr ""
+
+#: apps/recruitment/models.py:273
+msgid "En analyse"
+msgstr ""
+
+#: apps/recruitment/models.py:277
+msgid "Présélectionnée"
+msgstr ""
+
+#: apps/recruitment/models.py:278
+msgid "Convoquée"
+msgstr ""
+
+#: apps/recruitment/models.py:279
+msgid "Retenue"
+msgstr ""
+
+#: apps/recruitment/models.py:280
+msgid "Rejetée"
+msgstr ""
 
 #: apps/recruitment/views.py:73
 msgid "Candidat"
@@ -91,23 +148,6 @@ msgstr[5] ""
 msgid ""
 "Le verdict est celui du moteur d’éligibilité ; il ne constitue pas une "
 "décision."
-msgstr ""
-
-#: templates/recruitment/_candidatures_resultats.html:32
-msgid "Éligible"
-msgstr ""
-
-#: templates/recruitment/_candidatures_resultats.html:33
-msgid "Non éligible"
-msgstr ""
-
-#: templates/recruitment/_candidatures_resultats.html:34
-#: templates/recruitment/concours_detail.html:38
-msgid "À vérifier"
-msgstr ""
-
-#: templates/recruitment/_candidatures_resultats.html:35
-msgid "Non évaluée"
 msgstr ""
 
 #: templates/recruitment/_candidatures_resultats.html:40

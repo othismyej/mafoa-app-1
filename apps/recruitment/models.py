@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import Q
+from django.utils.translation import gettext_lazy as _
 
 from apps.evaluation.eligibility.levels import NiveauEtudes
 
@@ -268,15 +269,15 @@ class Candidat(SourceRefMixin, TimeStampedModel):
 
 class Candidature(SourceRefMixin, TimeStampedModel):
     class Statut(models.TextChoices):
-        RECUE = "recue", "Reçue"
-        EN_ANALYSE = "en_analyse", "En analyse"
-        ELIGIBLE = "eligible", "Éligible"
-        NON_ELIGIBLE = "non_eligible", "Non éligible"
-        A_VERIFIER = "a_verifier", "À vérifier"
-        PRESELECTIONNEE = "preselectionnee", "Présélectionnée"
-        CONVOQUEE = "convoquee", "Convoquée"
-        RETENUE = "retenue", "Retenue"
-        REJETEE = "rejetee", "Rejetée"
+        RECUE = "recue", _("Reçue")
+        EN_ANALYSE = "en_analyse", _("En analyse")
+        ELIGIBLE = "eligible", _("Éligible")
+        NON_ELIGIBLE = "non_eligible", _("Non éligible")
+        A_VERIFIER = "a_verifier", _("À vérifier")
+        PRESELECTIONNEE = "preselectionnee", _("Présélectionnée")
+        CONVOQUEE = "convoquee", _("Convoquée")
+        RETENUE = "retenue", _("Retenue")
+        REJETEE = "rejetee", _("Rejetée")
 
     candidat = models.ForeignKey(
         Candidat, verbose_name="candidat", on_delete=models.PROTECT, related_name="candidatures"
