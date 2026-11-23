@@ -22,3 +22,6 @@ media/
 .idea/
 .vscode/
 apercu/
+
+# Front (build CSS local)
+node_modules/

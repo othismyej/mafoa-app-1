@@ -1,6 +1,8 @@
+import re
 from datetime import timedelta
 
 import pytest
+from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -214,3 +216,26 @@ def test_pages_connectees_non_mises_en_cache(client, direction_user):
     client.force_login(direction_user)
     cache_control = client.get(reverse("dashboard")).headers["Cache-Control"]
     assert "no-store" in cache_control and "private" in cache_control
+
+
+def test_csp_sans_origine_externe_et_css_local(client):
+    """KAN-32 — Le CSS est compilé et servi localement : la CSP n'autorise aucune origine
+    externe (plus de CDN Tailwind) et la page de connexion charge static/css/app.css."""
+    response = client.get(reverse("account_login"))
+    csp = response.headers["Content-Security-Policy"]
+    assert "cdn.tailwindcss.com" not in csp
+    assert "https:" not in csp and "http:" not in csp
+    assert "font-src 'self'" in csp
+    html = response.content.decode()
+    assert "cdn.tailwindcss.com" not in html
+    assert "css/app.css" in html
+
+
+def test_css_compile_present_et_commite():
+    """KAN-32 — Le CSS compilé est dans le dépôt (le Dockerfile et la CI n'utilisent pas Node)."""
+    css = settings.BASE_DIR / "static" / "css" / "app.css"
+    assert css.exists() and css.stat().st_size > 0
+    content = css.read_text(encoding="utf-8")
+    assert "Poppins" in content and "Roboto" in content
+    urls = re.findall(r"url\(([^)]*)\)", content)
+    assert urls and all(u.strip("\"'").startswith("../fonts/") for u in urls), urls

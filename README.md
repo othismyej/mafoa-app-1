@@ -174,6 +174,25 @@ Avec `AI_PSEUDONYMIZE=true` (valeur par défaut), nom, CIN, téléphone et email
 des jetons avant l'envoi. Chaque appel est enregistré dans `AppelIA` : modèle, version du prompt,
 entrée pseudonymisée, sortie et durée.
 
+## Interface et CSS
+
+La charte graphique (palette, typographie, composants, accessibilité, RTL) est dans
+[`docs/design/charte.md`](docs/design/charte.md). Les fragments réutilisables sont dans
+`templates/components/`.
+
+Le CSS est compilé localement avec Tailwind 3.4 et **commité** (`static/css/app.css`) : Docker,
+la CI et `collectstatic` n'ont pas besoin de Node. Après avoir modifié un gabarit (nouvelles
+classes), `frontend/app.css` ou `tailwind.config.js`, recompilez puis commitez le résultat :
+
+```bash
+npm install
+npm run build:css   # ou npm run watch:css pendant le développement
+```
+
+Les polices Poppins (OFL 1.1) et Roboto (Apache 2.0) sont auto-hébergées dans `static/fonts/`
+(woff2, sous-ensemble latin, licences incluses) ; `npm run fonts` les recopie depuis
+`@fontsource`. Aucune ressource externe n'est chargée (CSP `'self'`).
+
 ## Qualité
 
 ```bash
