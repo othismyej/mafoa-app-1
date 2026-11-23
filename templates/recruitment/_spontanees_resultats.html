@@ -1,0 +1,74 @@
+{% load i18n %}
+{# Tri courant, rattaché au formulaire de filtres : il est conservé quand un filtre change. #}
+{% if not flt.tri_par_defaut %}<input type="hidden" name="tri" value="{{ flt.tri_param }}" form="filtres">{% endif %}
+{% if not total %}
+<div class="card card-body flex flex-col items-center gap-2 py-10 text-center text-ink-600" data-vide>
+  {% include "components/icon.html" with name="inbox" size="h-8 w-8 text-ink-500" %}
+  <p>{% translate "Aucune candidature spontanée pour le moment." %}</p>
+  <p class="text-sm" data-compteur>{% blocktranslate count n=0 with m=0 %}{{ n }} candidature affichée sur {{ m }}{% plural %}{{ n }} candidatures affichées sur {{ m }}{% endblocktranslate %}</p>
+</div>
+{% else %}
+<div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+  <p class="text-sm font-medium text-ink-800" data-compteur>
+    {% blocktranslate count n=page.paginator.count with m=total %}{{ n }} candidature affichée sur {{ m }}{% plural %}{{ n }} candidatures affichées sur {{ m }}{% endblocktranslate %}
+  </p>
+  <p class="hint">{% translate "Les plus récentes d’abord. Le lieu affiché est le lieu de travail souhaité par le candidat." %}</p>
+</div>
+{% if page.paginator.count %}
+<div class="table-wrap">
+<table class="table-data" data-table-spontanees>
+  <caption class="sr-only">{% translate "Candidatures spontanées : candidat, date, souhaits, pièces, statut et anomalies" %}</caption>
+  <thead>
+    <tr>
+      {% for h in sort_headers %}
+      <th scope="col" class="text-start" {% if h.active %}aria-sort="{% if h.desc %}descending{% else %}ascending{% endif %}"{% endif %}>
+        {% if h.key %}<a href="?{% if querystring_sans_tri %}{{ querystring_sans_tri }}&amp;{% endif %}tri={{ h.param }}" class="{% if h.active %}text-ink-900{% endif %}" data-tri="{{ h.key }}">{{ h.label }}{% if h.active %} <span aria-hidden="true" class="text-brand-700">{% if h.desc %}↓{% else %}↑{% endif %}</span>{% endif %}</a>{% else %}{{ h.label }}{% endif %}
+      </th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+  {% for c in page.object_list %}
+    {% with d=c.details_spontanee %}
+    <tr data-candidature-id="{{ c.pk }}">
+      <td class="font-medium" data-col="candidat">
+        <a href="{% url 'recruitment:candidature_detail' c.pk %}" class="link" hx-boost="false">{{ c.candidat }}</a>
+        {% if c.nb_spontanees_actives > 1 %}<span class="badge badge-neutre badge-plain ms-1 whitespace-nowrap" data-dossiers-spontanes>{% blocktranslate count n=c.nb_spontanees_actives %}{{ n }} dossier spontané{% plural %}{{ n }} dossiers spontanés{% endblocktranslate %}</span>{% endif %}
+      </td>
+      <td class="whitespace-nowrap tabular-nums text-ink-700" data-col="date">{{ c.date_candidature|date:"d/m/Y H:i" }}</td>
+      <td data-col="fonction">{% if d.fonction_souhaitee %}{{ d.get_fonction_souhaitee_display }}{% elif d.fonction_souhaitee_brute %}<span class="text-ink-600" data-fonction-brute>{{ d.fonction_souhaitee_brute }}</span>{% else %}—{% endif %}</td>
+      <td data-col="secteur">{{ d.secteur_souhaite|default:"—" }}</td>
+      <td data-col="lieu">{{ d.lieu_souhaite|default:"—" }}</td>
+      <td class="whitespace-nowrap" data-col="pieces">
+        {% if c.a_cv %}<span class="font-medium text-ink-900" data-cv="oui">{% translate "CV" %}</span>{% else %}<span class="text-ink-600" data-cv="non">{% translate "Sans CV" %}</span>{% endif %}
+        <span class="meta" data-nb-pieces="{{ c.nb_pieces }}">· {% blocktranslate count n=c.nb_pieces %}{{ n }} pièce{% plural %}{{ n }} pièces{% endblocktranslate %}</span>
+      </td>
+      <td data-col="statut">{% include "components/badge_statut.html" with code=c.statut label=c.get_statut_display %}</td>
+      <td data-col="anomalies">
+        {% if c.nb_anomalies %}<span class="inline-flex items-center gap-2"><span class="font-semibold tabular-nums text-ink-900">{{ c.nb_anomalies }}</span>
+          <span class="badge badge-plain badge-{{ c.gravite_max|default:'info' }}" data-gravite="{{ c.gravite_max }}">{% if c.gravite_max == "haute" %}{% translate "haute" %}{% elif c.gravite_max == "moyenne" %}{% translate "moyenne" %}{% else %}{% translate "info" %}{% endif %}</span></span>
+        {% else %}<span class="sr-only">{% translate "Aucune anomalie" %}</span>{% endif %}
+      </td>
+    </tr>
+    {% endwith %}
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if page.paginator.num_pages > 1 %}
+<nav class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="{% translate 'Pagination' %}" data-pagination>
+  <span class="text-ink-600">{% blocktranslate with num=page.number total=page.paginator.num_pages %}Page {{ num }} sur {{ total }}{% endblocktranslate %}</span>
+  <span class="flex gap-2">
+  {% if page.has_previous %}<a class="btn-secondary btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page.previous_page_number }}">{% translate "Précédente" %}</a>{% endif %}
+  {% if page.has_next %}<a class="btn-secondary btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page.next_page_number }}">{% translate "Suivante" %}</a>{% endif %}
+  </span>
+</nav>
+{% endif %}
+{% else %}
+<div class="card card-body flex flex-col items-center gap-3 py-10 text-center text-ink-600">
+  {% include "components/icon.html" with name="search" size="h-8 w-8 text-ink-500" %}
+  <p>{% translate "Aucune candidature ne correspond à ces critères." %}</p>
+  <a href="{{ request.path }}" class="btn-secondary btn-sm" data-reinitialiser>{% translate "Réinitialiser" %}</a>
+</div>
+{% endif %}
+{% endif %}

@@ -8,7 +8,10 @@ Cas volontairement piégés pour tester le traitement :
 - candidats non éligibles (niveau, expérience), spécialités à apprécier ;
 - dates manquantes ou incohérentes ;
 - pièces manquantes (pas de diplôme, pas d'attestation) ;
-- doublons de candidats (même personne, deux comptes) et pièce identique partagée.
+- doublons de candidats (même personne, deux comptes) et pièce identique partagée ;
+- candidatures spontanées (KAN-39) : 6 dossiers ``SP-…`` sans poste ni offre, ajoutés après
+  les données existantes, sans aucun tirage aléatoire (les candidatures, pièces et empreintes
+  existantes sont identiques pour une même graine).
 """
 
 from __future__ import annotations
@@ -33,6 +36,7 @@ from .dto import (
     OrganisationDTO,
     PieceDTO,
     PosteConcoursDTO,
+    SouhaitsDTO,
 )
 
 PRENOMS_F = [
@@ -335,6 +339,87 @@ OFFRES_DEF = [
     },
 ]
 
+# Candidatures spontanées fictives (KAN-39, règle 19). Dates fixes, aucun aléa. « candidat » :
+# (nom, prénom, sexe, naissance, ville, région) d'un nouveau candidat, ou None pour le candidat
+# existant ayant une candidature de concours ; « meme_que » : seconde candidature d'un candidat.
+_FORMATION_SP = {
+    "intitule": "Master en Génie de l'eau",
+    "niveau": "Bac+5",
+    "specialite": "Hydraulique",
+    "etablissement": "École Nationale Fictive d'Ingénieurs",
+    "annee_obtention": 2019,
+}
+SPONTANEES_DEF = [
+    {
+        "id": "SP-0001",
+        "candidat": ("Hamdi", "Salma", "F", date(1994, 3, 14), "Agadir", "Souss-Massa"),
+        "date": datetime(2026, 11, 2, 10, 0, tzinfo=UTC),
+        "souhaits": SouhaitsDTO(
+            fonction_souhaitee="Ingénieur",
+            secteur_souhaite="Eau et assainissement",
+            lieu_souhaite="Agadir",
+            disponibilite="Immédiate",
+            message="Ingénieure hydraulicienne, je souhaite rejoindre un projet d'eau potable "
+            "dans la région (message fictif).",
+            consentement_vivier=True,
+            consentement_le=datetime(2026, 11, 2, 10, 0, tzinfo=UTC),
+        ),
+        "pieces": ("cv", "lettre"),
+    },
+    {
+        "id": "SP-0002",
+        "candidat": (
+            "Lamrani",
+            "Anas",
+            "M",
+            date(1990, 7, 2),
+            "Tanger",
+            "Tanger-Tétouan-Al Hoceima",
+        ),
+        "date": datetime(2026, 10, 15, 9, 0, tzinfo=UTC),
+        "souhaits": SouhaitsDTO(
+            fonction_souhaitee="Technicien",
+            secteur_souhaite="Électricité",
+            lieu_souhaite="Tanger",
+            disponibilite="Préavis d'un mois",
+            consentement_vivier=False,
+        ),
+        "pieces": ("cv",),
+    },
+    {
+        "id": "SP-0003",
+        "candidat": ("Saidi", "Rim", "F", date(1987, 11, 23), "Casablanca", "Casablanca-Settat"),
+        "date": datetime(2026, 9, 1, 14, 0, tzinfo=UTC),
+        "souhaits": SouhaitsDTO(
+            fonction_souhaitee="responsable",
+            secteur_souhaite="Finance / Comptabilité",
+            lieu_souhaite="Casablanca",
+        ),
+        "pieces": ("cv", "lettre"),
+    },
+    {
+        "id": "SP-0004",
+        "candidat": ("Ouali", "Omar", "M", date(1998, 5, 9), "Fès", "Fès-Meknès"),
+        "date": datetime(2026, 11, 20, 8, 30, tzinfo=UTC),
+        "souhaits": None,  # aucun souhait, consentement inconnu
+        "pieces": ("cv", "lettre"),
+    },
+    {
+        "id": "SP-0005",
+        "candidat": None,  # candidat existant, ayant aussi une candidature de concours
+        "date": datetime(2026, 11, 10, 16, 0, tzinfo=UTC),
+        "souhaits": SouhaitsDTO(fonction_souhaitee="Data scientist", lieu_souhaite="Agadir"),
+        "pieces": ("lettre",),  # sans CV
+    },
+    {
+        "id": "SP-0006",
+        "meme_que": "SP-0001",  # seconde candidature spontanée, plus ancienne
+        "date": datetime(2026, 6, 1, 9, 0, tzinfo=UTC),
+        "souhaits": SouhaitsDTO(fonction_souhaitee="Chef de service"),
+        "pieces": ("cv", "lettre"),
+    },
+]
+
 # Répartition des scénarios de candidats (le reste est éligible).
 SCENARIOS = [
     ("eligible", 0.55),
@@ -550,7 +635,80 @@ class FixtureSource(SiteSource):
             pieces,
             self.nb_candidats + 2,
         )
+
+        # Candidatures spontanées (KAN-39) : après tout le reste, sans tirage aléatoire.
+        existant = next(
+            c
+            for c in candidats
+            if any(a.candidat_source_id == c.source_id and a.poste_source_id for a in candidatures)
+        )
+        par_candidature: dict[str, CandidatDTO] = {}
+        for k, spec in enumerate(SPONTANEES_DEF):
+            if spec.get("meme_que"):
+                cand = par_candidature[spec["meme_que"]]
+            elif spec["candidat"] is None:
+                cand = existant
+            else:
+                nom, prenom, sexe, naissance, ville, region = spec["candidat"]
+                idx = self.nb_candidats + 3 + k
+                cand = add_candidat(
+                    idx,
+                    nom,
+                    prenom,
+                    sexe,
+                    naissance,
+                    f"{_slug(prenom)}.{_slug(nom)}.sp{idx}@example.org",
+                    f"06 00 90 {10 + k:02d} {idx % 100:02d}",
+                    (ville, region),
+                )
+            par_candidature[spec["id"]] = cand
+            self._add_spontanee(spec, cand, candidatures, pieces)
         return candidats, candidatures, pieces
+
+    def _add_spontanee(self, spec, cand, candidatures, pieces):
+        declared = {
+            "formation": [dict(_FORMATION_SP)],
+            "experiences": [
+                {
+                    "employeur": "Société Fictive des Eaux",
+                    "poste": "Chargé d'études",
+                    "debut": "2020-01-06",
+                    "fin": None,
+                }
+            ],
+        }
+        app_id = spec["id"]
+        candidatures.append(
+            CandidatureDTO(
+                source_id=app_id,
+                candidat_source_id=cand.source_id,
+                date_candidature=spec["date"],
+                donnees_declarees=declared,
+                type="spontanee",
+                souhaits=spec["souhaits"],
+            )
+        )
+        for t in spec["pieces"]:
+            key = f"fixture://candidatures-spontanees/{app_id}/{t}.pdf"
+            self._pdf_specs[key] = {
+                "type": t,
+                "candidat": cand,
+                "same_as": None,
+                "declared": declared,
+                "cible": None,
+                "spontanee": True,
+            }
+            pieces.append(
+                PieceDTO(
+                    source_id=f"F-{app_id}-{t}",
+                    candidature_source_id=app_id,
+                    type=t,
+                    nom_fichier=f"{t}_{_slug(cand.nom)}.pdf",
+                    storage_key=key,
+                    content_type="application/pdf",
+                    recue_le=spec["date"],
+                )
+            )
 
     @staticmethod
     def _pick_scenario(rng: random.Random) -> str:
@@ -634,6 +792,8 @@ class FixtureSource(SiteSource):
                 donnees_declarees=declared,
                 poste_source_id=f"P-{obj[1].ref}" if kind == "poste" else None,
                 offre_source_id=obj["id"] if kind == "offre" else None,
+                # Type explicite (KAN-39, règle 11) : jamais déduit côté source.
+                type="concours" if kind == "poste" else "offre",
             )
         )
 
@@ -775,6 +935,12 @@ def _render_pdf(spec: dict) -> bytes:
     else:
         line("LETTRE DE MOTIVATION", 16, 1.2)
         line(f"{nom_complet}")
+        if spec.get("spontanee"):
+            line("Objet : Candidature spontanée")
+            line("Madame, Monsieur, je vous adresse ma candidature spontanée pour votre vivier.")
+            c.showPage()
+            c.save()
+            return buf.getvalue()
         line(f"Objet : candidature au poste « {spec['cible']} »")
         line("Madame, Monsieur, je vous prie de trouver ci-joint mon dossier de candidature.")
     c.showPage()

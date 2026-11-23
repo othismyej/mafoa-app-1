@@ -25,6 +25,7 @@ from integrations.site_source.base import get_source
 
 from . import pieces as pieces_service
 from . import presenters
+from . import spontanees as spontanees_service
 from .filters import ANOMALIE_CHOICES, PAGE_SIZES, VERDICT_CHOICES, filter_candidatures
 from .models import Candidature, Concours, Piece, PosteConcours
 from .selectors import concours_stats
@@ -69,7 +70,8 @@ def _liste_candidatures(request, cible, page_template: str, extra: dict):
         "flt": flt,
         "page": page,
         "total": total,
-        "statut_choices": Candidature.Statut.choices,
+        # « Conservée au vivier » est impossible pour un poste ou une offre (KAN-39, règle 44).
+        "statut_choices": Candidature.statut_choices_avec_cible(),
         "verdict_choices": VERDICT_CHOICES,
         "anomalie_choices": ANOMALIE_CHOICES,
         "page_sizes": PAGE_SIZES,
@@ -126,6 +128,7 @@ def _fiche_queryset():
         "candidat",
         "poste_concours__concours__organisation",
         "offre__organisation",
+        "details_spontanee",
     ).prefetch_related(
         Prefetch("pieces", queryset=Piece.objects.order_by("type", "id")),
         Prefetch(
@@ -141,16 +144,53 @@ def _fiche_queryset():
     )
 
 
+AUTRES_CANDIDATURES_MAX = 20
+
+
+def _autres_candidatures(candidature: Candidature) -> tuple[list[Candidature], int]:
+    """Autres candidatures du même candidat (KAN-39, règle 27) : 20 au plus, total à part.
+
+    Deux requêtes au plus, quel que soit le nombre de dossiers.
+    """
+    qs = (
+        Candidature.objects.filter(candidat_id=candidature.candidat_id)
+        .exclude(pk=candidature.pk)
+        .select_related("poste_concours", "offre")
+        .order_by("-date_candidature", "-id")
+    )
+    autres = list(qs[: AUTRES_CANDIDATURES_MAX + 1])
+    total = qs.count() if len(autres) > AUTRES_CANDIDATURES_MAX else len(autres)
+    return autres[:AUTRES_CANDIDATURES_MAX], total
+
+
+def _spontanee_context(candidature: Candidature) -> dict:
+    details = getattr(candidature, "details_spontanee", None)
+    autres, total = _autres_candidatures(candidature)
+    return {
+        "details": details,
+        "autres_candidatures": autres,
+        "autres_candidatures_total": total,
+        "fin_conservation": spontanees_service.fin_conservation(candidature),
+        "duree_conservation": spontanees_service.duree_conservation_mois(),
+    }
+
+
 def _fiche_context(candidature: Candidature, form: dict | None = None) -> dict:
     # Historique borné : la dernière vérification + les 20 précédentes (la page ne grossit pas
     # indéfiniment avec les réévaluations), et le nombre total pour information.
-    verifs_qs = VerificationEligibilite.objects.filter(candidature=candidature).order_by(
-        "-created_at", "-id"
-    )
-    verifications = list(verifs_qs[: HISTORIQUE_VERIFICATIONS + 1])
-    total_verifications = (
-        verifs_qs.count() if len(verifications) > HISTORIQUE_VERIFICATIONS else len(verifications)
-    )
+    # Candidature spontanée : aucune vérification d'éligibilité (KAN-39, règle 26).
+    if candidature.est_spontanee:
+        verifications, total_verifications = [], 0
+    else:
+        verifs_qs = VerificationEligibilite.objects.filter(candidature=candidature).order_by(
+            "-created_at", "-id"
+        )
+        verifications = list(verifs_qs[: HISTORIQUE_VERIFICATIONS + 1])
+        total_verifications = (
+            verifs_qs.count()
+            if len(verifications) > HISTORIQUE_VERIFICATIONS
+            else len(verifications)
+        )
     decisions_list = list(candidature.decisions.all())
     anomalies = list(candidature.anomalies.all())
     derniere = verifications[0] if verifications else None
@@ -181,6 +221,7 @@ def _fiche_context(candidature: Candidature, form: dict | None = None) -> dict:
         "formations": presenters.formations(donnees),
         "experiences": presenters.experiences(donnees),
         "decision_form": _decision_form_context(candidature, decisions_list, form or {}),
+        **(_spontanee_context(candidature) if candidature.est_spontanee else {}),
     }
 
 
@@ -189,7 +230,8 @@ def _decision_form_context(candidature, decisions_list, form: dict) -> dict:
     return {
         "disponible": not decision_rules.concours_termine(candidature),
         "choix": [
-            (d, Candidature.Statut(d).label) for d in decision_rules.decisions_permises(statut)
+            (d, Candidature.Statut(d).label)
+            for d in decision_rules.decisions_permises(statut, candidature.type)
         ],
         "statut_attendu": statut,
         "derniere_decision_id": decisions_list[0].pk if decisions_list else "",

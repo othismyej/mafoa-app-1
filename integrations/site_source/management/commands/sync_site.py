@@ -14,7 +14,10 @@ class Command(BaseCommand):
         parser.add_argument(
             "--evaluate",
             action="store_true",
-            help="Lance le moteur d'éligibilité sur toutes les candidatures après l'import.",
+            help=(
+                "Lance le moteur d'éligibilité sur les candidatures de concours et d'offre après "
+                "l'import (les candidatures spontanées, sans critères, sont ignorées)."
+            ),
         )
 
     def handle(self, *args, **options):
@@ -25,10 +28,30 @@ class Command(BaseCommand):
             if counts:
                 detail = ", ".join(f"{k} : {v}" for k, v in sorted(counts.items()))
                 self.stdout.write(f"  {label} — {detail}")
+        par_type = ", ".join(
+            f"{t} : {v['created']} créée(s) / {v['updated']} mise(s) à jour"
+            for t, v in report.candidatures_par_type.items()
+        )
+        self.stdout.write(f"  Candidatures par type — {par_type}")
+        if report.refusees or report.conflits_type or report.souhaits_ignores:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"  Candidatures refusées : {len(report.refusees)} · conflits de type : "
+                    f"{len(report.conflits_type)} · souhaits ignorés : "
+                    f"{len(report.souhaits_ignores)}"
+                )
+            )
         if options["evaluate"]:
-            qs = Candidature.objects.select_related("poste_concours__concours", "offre", "candidat")
+            # KAN-39, règle 20 : seules les candidatures de concours et d'offre sont évaluées.
+            qs = Candidature.objects.exclude(type=Candidature.Type.SPONTANEE).select_related(
+                "poste_concours__concours", "offre", "candidat"
+            )
+            ignorees = Candidature.objects.filter(type=Candidature.Type.SPONTANEE).count()
             verdicts: dict[str, int] = {}
             for candidature in qs:
                 v = run_eligibility(candidature)
                 verdicts[v.resultat] = verdicts.get(v.resultat, 0) + 1
             self.stdout.write(self.style.SUCCESS(f"Éligibilité calculée : {verdicts}"))
+            self.stdout.write(
+                f"  Candidatures spontanées ignorées (aucun critère d'éligibilité) : {ignorees}"
+            )

@@ -83,6 +83,10 @@ def criteres_from_cible(cible) -> CriteresPoste:
     )
 
 
+class CandidatureSpontaneeError(ValueError):
+    """Le moteur d'éligibilité ne s'applique pas à une candidature spontanée (KAN-39, règle 20)."""
+
+
 @dataclass(frozen=True)
 class ContexteLot:
     """Appel du moteur depuis une relance en lot (KAN-15, règles 24 et 28).
@@ -106,6 +110,12 @@ def run_eligibility(
     change. Depuis un lot (``lot``) : exactement une entrée ``update`` au nom de l'utilisateur
     qui a lancé le lot, que le statut change ou non (pas de double entrée).
     """
+    if candidature.type == Candidature.Type.SPONTANEE or candidature.cible is None:
+        # Rien n'est créé ni modifié : aucune vérification, aucun statut, aucun audit.
+        raise CandidatureSpontaneeError(
+            f"Candidature #{candidature.pk} : candidature spontanée, sans critères "
+            "d'éligibilité (aucune vérification possible)."
+        )
     resultat = evaluate(
         profil_from_declared(candidature.donnees_declarees or {}),
         criteres_from_cible(candidature.cible),
@@ -217,12 +227,12 @@ def record_decision(
             raise DecisionError(
                 _("Le concours est terminé : aucune décision n'est possible."), "concours_termine"
             )
-        decisions.verifier_transition(c.statut, decision)
+        decisions.verifier_transition(c.statut, decision, c.type)
         if lot_id is not None:
             decisions.verifier_transition_lot(c.statut, decision, derniere is not None)
         motif = decisions.nettoyer_motif(motif)
 
-        revision = decisions.est_revision(c.statut, decision, derniere is not None)
+        revision = decisions.est_revision(c.statut, decision, derniere is not None, c.type)
         alertes = decisions.avertissements(c, decision)
         if (revision and not confirmer_revision) or (alertes and not confirmer_avertissements):
             raise decisions.ConfirmationRequise(
@@ -246,6 +256,8 @@ def record_decision(
         if lot_id is not None:
             metadata["lot_id"] = str(lot_id)
             metadata["mode"] = "lot"
+        if c.type == Candidature.Type.SPONTANEE:
+            metadata["type_candidature"] = c.type  # KAN-39, règle 39
         log(
             AuditAction.DECISION,
             actor=auteur,

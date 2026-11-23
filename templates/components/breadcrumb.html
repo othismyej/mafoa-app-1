@@ -1,10 +1,12 @@
 {% load i18n %}{% comment %}
 Fil d'Ariane : Tableau de bord › concours › poste › page courante, ou Tableau de bord › Offres d'emploi › offre › page courante.
 Paramètres (tous facultatifs) : concours (lien), poste (lien vers la liste des candidatures, avec concours),
-offres (vrai : lien « Offres d'emploi »), offre (lien vers la page de l'offre, implique « Offres d'emploi »),
+offres (vrai : lien « Offres d'emploi »), spontanees (vrai : lien « Candidatures spontanées », KAN-39), offre (lien vers la page de l'offre, implique « Offres d'emploi »),
 current (texte de la page courante), current_poste (poste courant : « référence — intitulé »).
 {% endcomment %}<nav class="breadcrumb" aria-label="{% translate 'Fil d’Ariane' %}">
   <a href="{% url 'dashboard' %}">{% translate "Tableau de bord" %}</a>
+  {% if spontanees %}<span class="breadcrumb-sep" aria-hidden="true">›</span>
+  <a href="{% url 'recruitment:spontanees_liste' %}" data-retour-liste data-lien-spontanees>{% translate "Candidatures spontanées" %}</a>{% endif %}
   {% if offres or offre %}<span class="breadcrumb-sep" aria-hidden="true">›</span>
   <a href="{% url 'recruitment:offres_liste' %}" data-lien-offres>{% translate "Offres d’emploi" %}</a>{% endif %}
   {% if offre %}<span class="breadcrumb-sep" aria-hidden="true">›</span>

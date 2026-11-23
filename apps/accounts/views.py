@@ -17,6 +17,7 @@ def dashboard(request):
     """Tableau de bord : chiffres clés cliquables, concours, offres (spec KAN-38)."""
     from apps.recruitment.models import Concours
     from apps.recruitment.selectors import offres_avec_compteurs, tableau_de_bord
+    from apps.recruitment.spontanees import compteurs_spontanees
 
     context = {
         # Concours publics (e-Concours) et offres d'emploi privées sont deux familles
@@ -24,6 +25,8 @@ def dashboard(request):
         "stats": tableau_de_bord(),
         "concours": Concours.objects.select_related("organisation").order_by("-date_limite")[:10],
         "offres": offres_avec_compteurs()[:10],
+        # Candidatures spontanées (KAN-39, règle 41) : une requête d'agrégat.
+        "spontanees": compteurs_spontanees(),
     }
     return render(request, "dashboard/index.html", context)
 

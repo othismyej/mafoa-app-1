@@ -395,7 +395,12 @@ def test_ca16_tuiles_cliquables(client, direction_user, ref):
     cand = stat_par_libelle(root, "Candidatures reçues")
     assert cand.tag == "div"
     hrefs = [a.attrs["href"] for a in cand.find_all(lambda n: n.tag == "a")]
-    assert hrefs == ["#concours", reverse("recruitment:offres_liste")]
+    # Troisième ligne ajoutée par KAN-39 : candidatures spontanées.
+    assert hrefs == [
+        "#concours",
+        reverse("recruitment:offres_liste"),
+        reverse("recruitment:spontanees_liste"),
+    ]
     assert by_attr(root, "id", "concours")
 
 
@@ -407,7 +412,10 @@ def test_ca17_sections_offres_et_spontanees(client, direction_user, ref):
     assert tout.attrs["href"] == reverse("recruitment:offres_liste")
     (spont,) = by_attr(root, "data-section", "spontanees")
     assert "Candidatures spontanées" in spont.text()
-    assert "Bientôt disponible" in spont.text()
+    # Emplacement rempli par KAN-39 : compteurs et lien vers la liste.
+    assert "Bientôt disponible" not in spont.text()
+    (lien,) = by_attr(spont, "data-toutes-spontanees")
+    assert lien.attrs["href"] == reverse("recruitment:spontanees_liste")
     # L'entrée de menu « Offres d'emploi » (Q5).
     (nav,) = by_attr(root, "data-nav-offres")
     assert nav.attrs["href"] == reverse("recruitment:offres_liste")

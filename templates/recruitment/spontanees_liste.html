@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block head_title %}{% translate "Candidatures spontanées" %}{% endblock %}
+{% block content %}
+{% translate "Candidatures spontanées" as courant %}
+{% include "components/breadcrumb.html" with current=courant only %}
+<header class="mb-6">
+  <p class="page-eyebrow">{% translate "Vivier" %}</p>
+  <h1 class="page-title">{% translate "Candidatures spontanées" %}</h1>
+  <p class="mt-1 max-w-3xl text-sm text-ink-600">{% translate "Candidatures déposées sur le site sans viser un poste de concours ni une offre d’emploi. Qualifiez-les : conserver au vivier ou rejeter, toujours avec un motif." %}</p>
+</header>
+
+{% include "recruitment/_spontanees_filtres.html" %}
+
+<div id="resultats" aria-live="polite" hx-boost="true" hx-target="#resultats" hx-swap="innerHTML" hx-push-url="true" data-resultats-spontanees>
+  {% include "recruitment/_spontanees_resultats.html" %}
+</div>
+{% endblock %}

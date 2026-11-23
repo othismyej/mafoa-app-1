@@ -170,10 +170,11 @@ class TableauDeBord:
     candidatures_concours: int
     candidatures_offres: int
     a_verifier: int
+    candidatures_spontanees: int = 0  # KAN-39 : troisième famille
 
     @property
     def candidatures(self) -> int:
-        return self.candidatures_concours + self.candidatures_offres
+        return self.candidatures_concours + self.candidatures_offres + self.candidatures_spontanees
 
 
 def tableau_de_bord() -> TableauDeBord:
@@ -191,6 +192,7 @@ def tableau_de_bord() -> TableauDeBord:
     candidatures = Candidature.objects.aggregate(
         concours=Count("id", filter=Q(poste_concours__isnull=False)),
         offres=Count("id", filter=Q(offre__isnull=False)),
+        spontanees=Count("id", filter=Q(type=Candidature.Type.SPONTANEE)),
         a_verifier=Count("id", filter=Q(statut=A_VERIFIER)),
     )
     return TableauDeBord(
@@ -202,6 +204,7 @@ def tableau_de_bord() -> TableauDeBord:
         candidatures_concours=candidatures["concours"],
         candidatures_offres=candidatures["offres"],
         a_verifier=candidatures["a_verifier"],
+        candidatures_spontanees=candidatures["spontanees"],
     )
 
 

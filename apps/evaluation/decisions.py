@@ -41,6 +41,18 @@ REVISIONS = {
 }
 REQUALIFICATIONS = {(S.ELIGIBLE, S.NON_ELIGIBLE), (S.NON_ELIGIBLE, S.ELIGIBLE)}
 
+# Candidatures spontanées (KAN-39, règle 29) : table distincte, appliquée selon le type. La table
+# ci-dessus (concours et offres, KAN-13) est inchangée et ne contient jamais « vivier ».
+SPONTANEE = Candidature.Type.SPONTANEE
+DECISIONS_SPONTANEE = (S.VIVIER, S.REJETEE)
+TRANSITIONS_SPONTANEE: dict[str, tuple[str, ...]] = {
+    S.RECUE: (S.VIVIER, S.REJETEE),
+    S.EN_ANALYSE: (S.VIVIER, S.REJETEE),
+    S.VIVIER: (S.REJETEE,),
+    S.REJETEE: (S.VIVIER,),
+}
+REVISIONS_SPONTANEE = {(S.REJETEE, S.VIVIER)}
+
 MOTIF_MIN, MOTIF_MAX = 10, 2000
 # Refus journalisés (Q6) : signes d'un envoi direct, pas d'une erreur de saisie.
 CODES_REFUS_JOURNALISES = {"transition_interdite", "valeur_interdite"}
@@ -66,7 +78,9 @@ class ConfirmationRequise(Exception):
     avertissements: list[str] = field(default_factory=list)
 
 
-def decisions_permises(statut: str) -> tuple[str, ...]:
+def decisions_permises(statut: str, type_candidature: str | None = None) -> tuple[str, ...]:
+    if type_candidature == SPONTANEE:
+        return TRANSITIONS_SPONTANEE.get(statut, ())
     return TRANSITIONS.get(statut, ())
 
 
@@ -75,7 +89,11 @@ def concours_termine(candidature: Candidature) -> bool:
     return bool(poste and poste.concours.statut == Concours.Statut.TERMINE)
 
 
-def est_revision(statut: str, decision: str, a_deja_une_decision: bool) -> bool:
+def est_revision(
+    statut: str, decision: str, a_deja_une_decision: bool, type_candidature: str | None = None
+) -> bool:
+    if type_candidature == SPONTANEE:
+        return (statut, decision) in REVISIONS_SPONTANEE
     if (statut, decision) in REVISIONS:
         return True
     return a_deja_une_decision and (statut, decision) in REQUALIFICATIONS
@@ -93,8 +111,11 @@ def nettoyer_motif(motif: str | None) -> str:
     return motif
 
 
-def verifier_transition(statut: str, decision: str) -> None:
-    if decision not in DECISIONS:
+def verifier_transition(statut: str, decision: str, type_candidature: str | None = None) -> None:
+    # Spontanée : toute valeur de statut hors de la table est une transition interdite
+    # (règle 29) ; une valeur inconnue reste une « valeur interdite ».
+    valeurs = S.values if type_candidature == SPONTANEE else DECISIONS
+    if decision not in valeurs:
         raise DecisionError(
             _("« %(d)s » n'est pas une décision possible.") % {"d": decision}, "valeur_interdite"
         )
@@ -102,7 +123,7 @@ def verifier_transition(statut: str, decision: str) -> None:
         raise DecisionError(
             _("La candidature est déjà %(s)s.") % {"s": S(decision).label}, "deja_dans_ce_statut"
         )
-    if decision not in decisions_permises(statut):
+    if decision not in decisions_permises(statut, type_candidature):
         raise DecisionError(
             _("Transition interdite : %(a)s → %(b)s.")
             % {"a": S(statut).label if statut in S.values else statut, "b": S(decision).label},
@@ -111,7 +132,12 @@ def verifier_transition(statut: str, decision: str) -> None:
 
 
 def avertissements(candidature: Candidature, decision: str) -> list[str]:
-    """Avertissements non bloquants (règle 10) : confirmation requise."""
+    """Avertissements non bloquants (règle 10) : confirmation requise.
+
+    Sans objet pour une candidature spontanée (KAN-39, règle 30 : aucune décision de sélection).
+    """
+    if candidature.type == SPONTANEE:
+        return []
     result = []
     if (
         decision in (S.PRESELECTIONNEE, S.CONVOQUEE, S.RETENUE)

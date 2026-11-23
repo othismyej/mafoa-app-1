@@ -1,0 +1,62 @@
+{% load i18n %}{# Blocs propres à une candidature spontanée (KAN-39, règles 26, 27 et 37) : remplacent l’éligibilité. #}
+<p class="flex items-start gap-2 rounded-control border border-ink-200 bg-white px-4 py-3 text-sm text-ink-700" data-sans-eligibilite>
+  {% include "components/icon.html" with name="info" size="mt-0.5 h-4 w-4 text-ink-500" %}
+  <span>{% translate "Candidature sans poste ni offre : aucune vérification d’éligibilité." %}</span>
+</p>
+
+<section class="card" aria-labelledby="titre-souhaits" data-souhaits>
+  <div class="card-header">
+    <h2 id="titre-souhaits" class="section-title flex items-center gap-2">{% include "components/icon.html" with name="inbox" size="h-5 w-5 text-ink-500" %}{% translate "Souhaits du candidat" %}</h2>
+  </div>
+  <div class="card-body">
+  {% translate "Non renseigné" as nr %}
+  <dl class="dl-grid text-sm">
+    <dt>{% translate "Fonction souhaitée" %}</dt>
+    <dd data-souhait="fonction">{% if details.fonction_souhaitee %}{{ details.get_fonction_souhaitee_display }}{% elif details.fonction_souhaitee_brute %}{{ details.fonction_souhaitee_brute }} <span class="meta">{% translate "(libellé du site, hors référentiel)" %}</span>{% else %}{{ nr }}{% endif %}</dd>
+    <dt>{% translate "Secteur souhaité" %}</dt>
+    <dd data-souhait="secteur">{{ details.secteur_souhaite|default:nr }}</dd>
+    <dt>{% translate "Lieu de travail souhaité" %}</dt>
+    <dd data-souhait="lieu">{{ details.lieu_souhaite|default:nr }}</dd>
+    <dt>{% translate "Disponibilité" %}</dt>
+    <dd data-souhait="disponibilite">{{ details.disponibilite|default:nr }}</dd>
+    <dt>{% translate "Consentement au vivier" %}</dt>
+    <dd data-souhait="consentement">{% if details.consentement_vivier is True %}{% if details.consentement_le %}{% blocktranslate with d=details.consentement_le|date:"d/m/Y" %}Oui, le {{ d }}{% endblocktranslate %}{% else %}{% translate "Oui" %}{% endif %}{% elif details.consentement_vivier is False %}{% translate "Non" %}{% else %}{{ nr }}{% endif %}</dd>
+  </dl>
+  <div class="mt-4 border-t border-ink-100 pt-4 text-sm">
+    <p class="meta mb-1.5 font-medium uppercase tracking-wide">{% translate "Message du candidat" %}</p>
+    {% if details.message %}
+    <p class="whitespace-pre-line rounded-control bg-ink-50 px-3 py-2 text-ink-800" data-souhait="message">{{ details.message }}</p>
+    {% if details.message_tronque %}<p class="meta mt-1" data-message-tronque>{% translate "(tronqué)" %}</p>{% endif %}
+    {% else %}<p class="text-ink-600" data-souhait="message">{{ nr }}</p>{% endif %}
+  </div>
+  {% if details.consentement_vivier is not True %}
+  <p class="alert alert-info mt-4" role="note" data-consentement-absent>{% include "components/icon.html" with name="info" size="alert-icon" %}<span>{% translate "Le consentement du candidat à la conservation dans le vivier n’est pas établi. La durée de conservation applicable sera revue par la politique de purge (loi 09-08)." %}</span></p>
+  {% endif %}
+  <p class="meta mt-4">{% blocktranslate with n=duree_conservation %}Durée de conservation : {{ n }} mois à compter de la candidature (paramètre).{% endblocktranslate %}</p>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="titre-autres" data-autres-candidatures>
+  <div class="card-header flex flex-wrap items-baseline justify-between gap-2">
+    <h2 id="titre-autres" class="section-title flex items-center gap-2">{% include "components/icon.html" with name="users" size="h-5 w-5 text-ink-500" %}{% translate "Autres candidatures de ce candidat" %}</h2>
+    {% if autres_candidatures_total %}<p class="meta" data-autres-total>{% if autres_candidatures_total > autres_candidatures|length %}{% blocktranslate with n=autres_candidatures|length total=autres_candidatures_total %}{{ n }} plus récentes affichées sur {{ total }}{% endblocktranslate %}{% else %}{% blocktranslate count n=autres_candidatures_total %}{{ n }} candidature{% plural %}{{ n }} candidatures{% endblocktranslate %}{% endif %}</p>{% endif %}
+  </div>
+  <div class="card-body">
+  {% if autres_candidatures %}
+  <ul class="divide-y divide-ink-100 text-sm">
+    {% for a in autres_candidatures %}
+    <li class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3 first:pt-0 last:pb-0" data-autre-candidature="{{ a.pk }}">
+      <div class="min-w-0">
+        <p class="meta font-medium uppercase tracking-wide">{{ a.get_type_display }}</p>
+        <a href="{% url 'recruitment:candidature_detail' a.pk %}" class="link">{% if a.poste_concours %}{% if a.poste_concours.reference %}{{ a.poste_concours.reference }} — {% endif %}{{ a.poste_concours.intitule }}{% elif a.offre %}{{ a.offre.intitule }}{% else %}{% translate "Candidature spontanée" %}{% endif %}</a>
+        <span class="meta tabular-nums">· {{ a.date_candidature|date:"d/m/Y" }}</span>
+      </div>
+      {% include "components/badge_statut.html" with code=a.statut label=a.get_statut_display %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-sm text-ink-600">{% translate "Aucune autre candidature" %}</p>
+  {% endif %}
+  </div>
+</section>
