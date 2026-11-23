@@ -96,7 +96,8 @@ HTMX qu'elle charge (aucun fragment ne doit être accessible sans contrôle de r
    anomalie non résolue portent un indicateur. Aucune pièce : « Aucune pièce reçue ».
    L'emplacement de la visionneuse (KAN-12) est prévu mais vide.
 8. **Verdict d'éligibilité** : la **dernière** `VerificationEligibilite` (la plus récente par
-   `created_at`) est affichée avec :
+   `created_at`, puis par identifiant le plus élevé en cas d'égalité, comme dans KAN-9 et KAN-10)
+   est affichée avec :
    - le résultat global (éligible / non éligible / à vérifier) ;
    - un tableau critère par critère, dans l'ordre de `details` : libellé, verdict, attendu,
      constaté, raison ;
