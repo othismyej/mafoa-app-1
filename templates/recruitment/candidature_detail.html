@@ -117,7 +117,7 @@
     <span class="meta">{% blocktranslate with version=v.moteur_version date=v.created_at|date:"d/m/Y H:i" %}moteur {{ version }}, le {{ date }}{% endblocktranslate %}</span>
     {% if sources %}<span class="meta">· {% translate "Sources" %} : {{ sources|join:", " }}</span>{% endif %}
   </div>
-  <ol class="space-y-3" data-criteres aria-label="{% translate 'Critère' %}">
+  <ol class="space-y-3" data-criteres aria-label="{% translate 'Critères d’éligibilité' %}">
     {% for d in criteres %}
     <li class="rounded-control border p-4 text-sm {% if d.verdict == 'a_verifier' %}border-amber-300 bg-amber-50/40{% elif d.verdict == 'non_eligible' %}border-stone-300{% else %}border-ink-200{% endif %}" data-critere="{{ d.critere }}">
       <div class="flex flex-wrap items-center justify-between gap-2">

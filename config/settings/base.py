@@ -142,6 +142,8 @@ CONTENT_SECURITY_POLICY = {
         "font-src": ["'self'"],
         "img-src": ["'self'", "data:"],
         "frame-ancestors": ["'none'"],
+        "base-uri": ["'self'"],
+        "object-src": ["'none'"],
         "form-action": ["'self'"],
     }
 }

@@ -36,7 +36,9 @@ immédiatement qu'elle appartient à Mafoa Management.
    bibliothèque JS lourde. Respect de la CSP (`config/settings/base.py`) : aucune ressource
    externe non autorisée, aucun script ni gestionnaire d'événement inline. Polices et images
    servies en local depuis `static/`.
-7. **Aucune donnée réelle** dans les maquettes ou captures : données fictives uniquement.
+7. **Aucune donnée réelle** dans les maquettes ou captures : uniquement les données de
+   `FixtureSource`. Captures enregistrées dans le scratchpad (ou `apercu/`, ignoré par git),
+   jamais commitées ni jointes à une PR.
 
 ## Méthode
 
