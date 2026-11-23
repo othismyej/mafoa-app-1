@@ -1,0 +1,5 @@
+{% comment %}Messages Django (succès, information, avertissement ; les erreurs s'affichent en avertissement, jamais en rouge de marque).{% endcomment %}{% if messages %}
+<ul class="mb-6 space-y-2">
+  {% for message in messages %}<li>{% if message.level_tag == "success" %}{% include "components/alert.html" with message=message tone="success" %}{% elif message.level_tag == "warning" or message.level_tag == "error" %}{% include "components/alert.html" with message=message tone="warning" role="alert" %}{% else %}{% include "components/alert.html" with message=message tone="info" %}{% endif %}</li>{% endfor %}
+</ul>
+{% endif %}

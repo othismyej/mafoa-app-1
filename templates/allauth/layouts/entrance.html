@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% comment %}
+Pages d'entrée allauth (connexion, MFA à la connexion, déconnexion, réinitialisation) et invitation :
+carte centrée avec logo, sans navigation de l'application.
+{% endcomment %}
+{% block shell %}
+<div class="entrance">
+  <div class="h-1 bg-brand-600" aria-hidden="true"></div>
+  <main id="contenu" class="flex flex-1 items-center justify-center px-4 py-10 sm:py-16">
+    <div class="w-full max-w-md">
+      <div class="entrance-card">
+        <div class="mb-8 text-center">
+          <img src="{% static 'img/logo-mafoa.png' %}" alt="Mafoa Management" width="246" height="60" class="mx-auto h-14 w-auto">
+          <p class="mt-6 font-display text-xs font-semibold uppercase tracking-[0.2em] text-brand-700">{% translate "Espace direction" %}</p>
+          <p class="mt-1 text-sm text-ink-600">{% translate "Concours, recrutements et décisions, en toute traçabilité." %}</p>
+        </div>
+        {% include "components/messages.html" %}
+        <div class="auth-content">
+          {% block content %}{% endblock %}
+        </div>
+      </div>
+      <p class="mt-6 flex items-center justify-center gap-2 text-center text-xs text-ink-600">
+        {% include "components/icon.html" with name="lock" size="h-4 w-4" %}
+        <span>{% translate "Accès sur invitation · Double authentification obligatoire" %}</span>
+      </p>
+    </div>
+  </main>
+  <footer class="pb-6 text-center text-xs text-ink-600">
+    <span class="font-display font-semibold uppercase tracking-wider text-brand-700">Mafoa Management</span> · {% translate "Développement et conseil RH" %}
+  </footer>
+</div>
+{% endblock shell %}

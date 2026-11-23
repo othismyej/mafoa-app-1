@@ -4,9 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#d01c2b">
   <title>{% block head_title %}{% endblock %} · Mafoa AI</title>
-  {# HTMX est servi localement. Tailwind (CDN) : à remplacer par un build local avant la production. #}
-  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+  {# CSS compilé localement (Tailwind, voir README) : aucune ressource externe (CSP). #}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
   {# Aucune copie des pages (données personnelles) dans le localStorage du navigateur : #}
   {# l'historique est toujours rechargé depuis le serveur (contrôle d'accès et audit). #}
   {# Les réponses 400/409 (décision refusée) remplacent le formulaire pour afficher l'erreur. #}
@@ -16,31 +18,58 @@
   <script src="{% static 'js/decision.js' %}" defer></script>
   {% block extra_head %}{% endblock %}
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800 antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-  <header class="border-b border-slate-200 bg-white">
-    <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-      <a href="{% url 'dashboard' %}" class="text-lg font-semibold text-slate-900">Mafoa <span class="text-teal-700">AI</span></a>
+<body class="flex min-h-screen flex-col bg-ink-50 text-ink-800 antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <a href="#contenu" class="skip-link">{% translate "Aller au contenu" %}</a>
+  {% block shell %}
+  <header class="app-header">
+    <div class="app-header-accent" aria-hidden="true"></div>
+    <div class="mx-auto flex max-w-page flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-6 lg:px-8">
+      <a href="{% url 'dashboard' %}" class="flex items-center gap-3 rounded-control" aria-label="{% translate 'Mafoa AI — Tableau de bord' %}">
+        <img src="{% static 'img/logo-mafoa.png' %}" alt="Mafoa Management" width="164" height="40" class="h-9 w-auto sm:h-10">
+        <span class="hidden border-s border-ink-200 ps-3 font-display text-sm font-semibold uppercase tracking-wider text-ink-700 sm:inline">AI</span>
+      </a>
       {% if user.is_authenticated %}
-      <nav class="flex items-center gap-4 text-sm">
-        <a href="{% url 'dashboard' %}" class="hover:text-teal-700">{% translate "Tableau de bord" %}</a>
-        {% if user.is_admin %}<a href="{% url 'admin:index' %}" class="hover:text-teal-700">{% translate "Administration" %}</a>{% endif %}
-        <a href="{% url 'mfa_index' %}" class="hover:text-teal-700">{% translate "Sécurité" %}</a>
-        <span class="text-slate-400">{{ user }}</span>
-        <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}
-          <button type="submit" class="rounded border border-slate-300 px-2 py-1 hover:bg-slate-100">{% translate "Déconnexion" %}</button>
-        </form>
+      {% with rm=request.resolver_match %}
+      <nav class="order-last -mx-1 flex w-full gap-1 overflow-x-auto pb-1 md:order-none md:w-auto md:flex-1 md:pb-0" aria-label="{% translate 'Navigation principale' %}">
+        <a href="{% url 'dashboard' %}" class="nav-link gap-2" {% if rm.url_name == "dashboard" %}aria-current="page"{% elif rm.namespace == "recruitment" %}aria-current="true"{% endif %}>{% include "components/icon.html" with name="dashboard" size="h-4 w-4" %}{% translate "Tableau de bord" %}</a>
+        <a href="{% url 'mfa_index' %}" class="nav-link gap-2" {% if rm.url_name|slice:":4" == "mfa_" %}aria-current="page"{% endif %}>{% include "components/icon.html" with name="shield" size="h-4 w-4" %}{% translate "Sécurité" %}</a>
+        {% if user.is_admin %}<a href="{% url 'admin:index' %}" class="nav-link gap-2">{% include "components/icon.html" with name="settings" size="h-4 w-4" %}{% translate "Administration" %}</a>{% endif %}
       </nav>
+      {% endwith %}
+      <details class="user-menu ms-auto">
+        <summary>
+          <span class="avatar" aria-hidden="true">{{ user.full_name|default:user.email|first }}</span>
+          <span class="hidden max-w-48 truncate font-medium text-ink-800 lg:inline">{{ user }}</span>
+          <svg class="h-4 w-4 text-ink-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.2 7.2a.75.75 0 0 1 1.06.02L10 11.17l3.74-3.95a.75.75 0 1 1 1.08 1.04l-4.28 4.5a.75.75 0 0 1-1.08 0l-4.28-4.5a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd"/></svg>
+          <span class="sr-only">{% translate "Menu utilisateur" %}</span>
+        </summary>
+        <div class="user-menu-panel">
+          <div class="border-b border-ink-100 px-3 pb-3 pt-2">
+            <p class="truncate text-sm font-semibold text-ink-900">{{ user }}</p>
+            <p class="truncate text-xs text-ink-600">{{ user.get_role_display }}</p>
+          </div>
+          <div class="pt-2">
+            <a href="{% url 'mfa_index' %}" class="menu-item gap-2">{% include "components/icon.html" with name="lock" size="h-4 w-4" %}{% translate "Double authentification" %}</a>
+            <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}
+              <button type="submit" class="menu-item gap-2">{% include "components/icon.html" with name="logout" size="h-4 w-4 flip-rtl" %}{% translate "Déconnexion" %}</button>
+            </form>
+          </div>
+        </div>
+      </details>
       {% endif %}
     </div>
   </header>
-  <main class="mx-auto max-w-6xl px-4 py-8">
-    {% if messages %}
-    <ul class="mb-6 space-y-2">
-      {% for message in messages %}<li class="rounded border border-teal-200 bg-teal-50 px-4 py-2 text-sm">{{ message }}</li>{% endfor %}
-    </ul>
-    {% endif %}
+  <main id="contenu" class="mx-auto w-full max-w-page flex-1 px-4 py-6 sm:px-6 md:py-8 lg:px-8">
+    {% include "components/messages.html" %}
     {% block body %}{% block content %}{% endblock %}{% endblock %}
   </main>
+  <footer class="app-footer border-t border-ink-200 bg-white">
+    <div class="mx-auto flex max-w-page flex-col gap-1 px-4 py-4 text-xs text-ink-600 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+      <p><span class="font-display font-semibold uppercase tracking-wider text-brand-700">Mafoa Management</span> · {% translate "Développement et conseil RH" %}</p>
+      <p>{% translate "Outil interne réservé à la direction · Données personnelles protégées (loi 09-08) · Toute décision reste humaine" %}</p>
+    </div>
+  </footer>
+  {% endblock shell %}
   {% block extra_body %}{% endblock %}
 </body>
 </html>

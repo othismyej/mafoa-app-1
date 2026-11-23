@@ -1,22 +1,43 @@
 {% extends "base.html" %}
-{% block head_title %}Tableau de bord{% endblock %}
+{% load i18n %}
+{% block head_title %}{% translate "Tableau de bord" %}{% endblock %}
 {% block content %}
-<h1 class="mb-6 text-2xl font-semibold">Tableau de bord</h1>
-<div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-  <div class="rounded-lg border bg-white p-4"><p class="text-sm text-slate-500">Concours</p><p class="text-2xl font-semibold">{{ concours_count }}</p></div>
-  <div class="rounded-lg border bg-white p-4"><p class="text-sm text-slate-500">Offres d'emploi</p><p class="text-2xl font-semibold">{{ offres_count }}</p></div>
-  <div class="rounded-lg border bg-white p-4"><p class="text-sm text-slate-500">Candidatures</p><p class="text-2xl font-semibold">{{ candidatures_count }}</p></div>
-  <div class="rounded-lg border bg-white p-4"><p class="text-sm text-slate-500">Dossiers à vérifier</p><p class="text-2xl font-semibold text-amber-700">{{ a_verifier_count }}</p></div>
+<header class="mb-8 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="page-eyebrow">{% translate "Espace direction" %}</p>
+    <h1 class="page-title">{% translate "Tableau de bord" %}</h1>
+    <p class="mt-1 text-sm text-ink-600">{% blocktranslate with nom=user %}Bonjour {{ nom }}, voici l’état des concours et des recrutements.{% endblocktranslate %}</p>
+  </div>
+</header>
+
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+  {% translate "Concours" as l_concours %}{% include "components/stat.html" with label=l_concours value=concours_count icon="trophy" %}
+  {% translate "Offres d'emploi" as l_offres %}{% include "components/stat.html" with label=l_offres value=offres_count icon="briefcase" %}
+  {% translate "Candidatures" as l_cand %}{% include "components/stat.html" with label=l_cand value=candidatures_count icon="users" %}
+  {% translate "Dossiers à vérifier" as l_verif %}{% include "components/stat.html" with label=l_verif value=a_verifier_count icon="alert" tone="attention" %}
 </div>
-<h2 class="mb-3 mt-10 text-lg font-semibold">Concours</h2>
-<table class="w-full overflow-hidden rounded-lg border bg-white text-sm">
-  <thead class="bg-slate-100 text-left"><tr><th class="p-3">Concours</th><th class="p-3">Organisation</th><th class="p-3">Date limite</th><th class="p-3">Statut</th></tr></thead>
-  <tbody>
-  {% for c in concours %}
-    <tr class="border-t"><td class="p-3"><a href="{% url 'recruitment:concours_detail' c.pk %}" class="text-teal-700 hover:underline">{{ c.intitule }}</a></td><td class="p-3">{{ c.organisation }}</td><td class="p-3">{{ c.date_limite|date:"d/m/Y" }}</td><td class="p-3">{{ c.get_statut_display }}</td></tr>
-  {% empty %}
-    <tr><td colspan="4" class="p-3 text-slate-500">Aucun concours. Lancez <code>python manage.py sync_site</code> pour charger les données fictives.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+
+<section class="mt-10" aria-labelledby="titre-concours">
+  <div class="mb-3 flex items-center justify-between gap-3">
+    <h2 id="titre-concours" class="section-title text-lg">{% translate "Concours" %}</h2>
+    <p class="hint">{% translate "Les plus récents par date limite" %}</p>
+  </div>
+  <div class="table-wrap">
+  <table class="table-data">
+    <thead><tr><th>{% translate "Concours" %}</th><th>{% translate "Organisation" %}</th><th>{% translate "Date limite" %}</th><th>{% translate "Statut" %}</th></tr></thead>
+    <tbody>
+    {% for c in concours %}
+      <tr>
+        <td><a href="{% url 'recruitment:concours_detail' c.pk %}" class="link">{{ c.intitule }}</a></td>
+        <td class="text-ink-700">{{ c.organisation }}</td>
+        <td class="whitespace-nowrap tabular-nums">{{ c.date_limite|date:"d/m/Y" }}</td>
+        <td>{% include "components/badge_statut.html" with code=c.statut label=c.get_statut_display %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4" class="py-10 text-center text-ink-600">{% translate "Aucun concours." %} {% blocktranslate %}Lancez <code>python manage.py sync_site</code> pour charger les données fictives.{% endblocktranslate %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
 {% endblock %}

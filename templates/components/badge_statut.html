@@ -1,0 +1,6 @@
+{% comment %}
+Badge de statut métier. Paramètres : code (recue, en_analyse, eligible, non_eligible, a_verifier,
+preselectionnee, convoquee, retenue, rejetee, non_evaluee, haute, moyenne, info, en_vigueur),
+label (texte affiché), attrs (attributs HTML supplémentaires, facultatif).
+Le texte porte toujours le sens : la couleur n'est qu'un renfort (WCAG 1.4.1).
+{% endcomment %}<span class="badge badge-{{ code|default:'neutre' }}">{{ label }}</span>
