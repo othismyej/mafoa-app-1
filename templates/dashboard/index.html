@@ -13,7 +13,7 @@
   <thead class="bg-slate-100 text-left"><tr><th class="p-3">Concours</th><th class="p-3">Organisation</th><th class="p-3">Date limite</th><th class="p-3">Statut</th></tr></thead>
   <tbody>
   {% for c in concours %}
-    <tr class="border-t"><td class="p-3">{{ c.intitule }}</td><td class="p-3">{{ c.organisation }}</td><td class="p-3">{{ c.date_limite|date:"d/m/Y" }}</td><td class="p-3">{{ c.get_statut_display }}</td></tr>
+    <tr class="border-t"><td class="p-3"><a href="{% url 'recruitment:concours_detail' c.pk %}" class="text-teal-700 hover:underline">{{ c.intitule }}</a></td><td class="p-3">{{ c.organisation }}</td><td class="p-3">{{ c.date_limite|date:"d/m/Y" }}</td><td class="p-3">{{ c.get_statut_display }}</td></tr>
   {% empty %}
     <tr><td colspan="4" class="p-3 text-slate-500">Aucun concours. Lancez <code>python manage.py sync_site</code> pour charger les données fictives.</td></tr>
   {% endfor %}
