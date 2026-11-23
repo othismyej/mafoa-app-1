@@ -64,3 +64,55 @@ def test_admin_journal_en_lecture_seule(client, admin_user):
     assert client.get("/admin/audit/journalaudit/").status_code == 200
     assert client.get(f"/admin/audit/journalaudit/{entry.pk}/delete/").status_code == 403
     assert client.get("/admin/audit/journalaudit/add/").status_code == 403
+
+
+# --- Adresse IP du client (KAN-29) ---------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("count", "meta", "attendu"),
+    [
+        (0, {"REMOTE_ADDR": "10.0.0.1", "HTTP_X_FORWARDED_FOR": "6.6.6.6"}, "10.0.0.1"),
+        (1, {"REMOTE_ADDR": "10.0.0.1", "HTTP_X_FORWARDED_FOR": "6.6.6.6, 41.92.0.7"}, "41.92.0.7"),
+        (
+            2,
+            {"REMOTE_ADDR": "10.0.0.1", "HTTP_X_FORWARDED_FOR": "6.6.6.6, 41.92.0.7, 10.0.0.9"},
+            "41.92.0.7",
+        ),
+        (2, {"REMOTE_ADDR": "10.0.0.1", "HTTP_X_FORWARDED_FOR": "41.92.0.7"}, "10.0.0.1"),
+        (1, {"REMOTE_ADDR": "10.0.0.1", "HTTP_X_FORWARDED_FOR": "not-an-ip"}, "10.0.0.1"),
+        (0, {"REMOTE_ADDR": "pas une ip"}, None),
+        (1, {"REMOTE_ADDR": "10.0.0.1", "HTTP_X_FORWARDED_FOR": "2001:db8::1"}, "2001:db8::1"),
+    ],
+)
+def test_client_ip(rf, settings, count, meta, attendu):
+    from apps.audit.services import client_ip
+
+    settings.TRUSTED_PROXY_COUNT = count
+    request = rf.get("/", **meta)
+    assert client_ip(request) == attendu
+
+
+def test_en_tete_forge_ignore_sans_proxy_de_confiance(direction_user, rf, settings):
+    settings.TRUSTED_PROXY_COUNT = 0
+    request = rf.get("/", REMOTE_ADDR="10.0.0.5", HTTP_X_FORWARDED_FOR="1.2.3.4")
+    request.user = direction_user
+    assert log(AuditAction.VIEW, request=request).ip_address == "10.0.0.5"
+
+
+def test_valeur_invalide_sans_erreur(direction_user, client, settings):
+    settings.TRUSTED_PROXY_COUNT = 1
+    client.force_login(direction_user)
+    response = client.get("/", HTTP_X_FORWARDED_FOR="1.2.3.4<script>")
+    assert response.status_code == 200
+
+
+def test_echec_de_connexion_journalise_malgre_un_en_tete_invalide(client, direction_user, settings):
+    settings.TRUSTED_PROXY_COUNT = 1
+    client.post(
+        "/accounts/login/",
+        {"login": direction_user.email, "password": "faux"},
+        HTTP_X_FORWARDED_FOR="not-an-ip",
+    )
+    entry = JournalAudit.objects.get(action=AuditAction.LOGIN_FAILED)
+    assert entry.ip_address == "127.0.0.1"
