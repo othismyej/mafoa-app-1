@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 20:52+0000\n"
+"POT-Creation-Date: 2026-11-23 21:02+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -205,6 +205,210 @@ msgstr ""
 msgid "Le concours est terminé : aucune décision n'est possible."
 msgstr ""
 
+#: apps/exports/candidatures.py:65
+msgid "N° de dossier"
+msgstr ""
+
+#: apps/exports/candidatures.py:66
+msgid "Poste"
+msgstr ""
+
+#: apps/exports/candidatures.py:67 apps/recruitment/views.py:114
+msgid "Date de candidature"
+msgstr ""
+
+#: apps/exports/candidatures.py:68
+#: templates/recruitment/candidature_detail.html:204
+msgid "Nom"
+msgstr ""
+
+#: apps/exports/candidatures.py:69
+#: templates/recruitment/candidature_detail.html:205
+msgid "Prénom"
+msgstr ""
+
+#: apps/exports/candidatures.py:70
+#: templates/recruitment/candidature_detail.html:206
+msgid "CIN"
+msgstr ""
+
+#: apps/exports/candidatures.py:71
+#: templates/recruitment/candidature_detail.html:207
+msgid "Date de naissance"
+msgstr ""
+
+#: apps/exports/candidatures.py:73
+msgctxt "colonne d'export"
+msgid "Email"
+msgstr ""
+
+#: apps/exports/candidatures.py:74
+#: templates/recruitment/candidature_detail.html:209
+msgid "Téléphone"
+msgstr ""
+
+#: apps/exports/candidatures.py:75 templates/recruitment/_offres_tableau.html:7
+#: templates/recruitment/candidature_detail.html:210
+#: templates/recruitment/offre_detail.html:16
+msgid "Ville"
+msgstr ""
+
+#: apps/exports/candidatures.py:76
+msgid "Formations déclarées"
+msgstr ""
+
+#: apps/exports/candidatures.py:77
+#: templates/recruitment/candidature_detail.html:86
+msgid "Expériences déclarées"
+msgstr ""
+
+#: apps/exports/candidatures.py:78
+msgid "Expérience calculée (années)"
+msgstr ""
+
+#: apps/exports/candidatures.py:79
+msgid "Statut actuel"
+msgstr ""
+
+#: apps/exports/candidatures.py:80
+msgid "Décision humaine"
+msgstr ""
+
+#: apps/exports/candidatures.py:81
+msgid "Motif de la décision"
+msgstr ""
+
+#: apps/exports/candidatures.py:82
+msgid "Auteur de la décision"
+msgstr ""
+
+#: apps/exports/candidatures.py:83
+msgid "Date de la décision"
+msgstr ""
+
+#: apps/exports/candidatures.py:84
+msgid "Verdict du moteur (pas une décision)"
+msgstr ""
+
+#: apps/exports/candidatures.py:85
+msgid "Date du verdict"
+msgstr ""
+
+#: apps/exports/candidatures.py:86
+msgid "Version du moteur"
+msgstr ""
+
+#: apps/exports/candidatures.py:89
+msgid "Niveau d'études"
+msgstr ""
+
+#: apps/exports/candidatures.py:90
+#: templates/recruitment/candidature_detail.html:70
+msgid "Spécialité"
+msgstr ""
+
+#: apps/exports/candidatures.py:91 templates/recruitment/offre_detail.html:51
+msgid "Expérience"
+msgstr ""
+
+#: apps/exports/candidatures.py:102
+msgid "Autres critères (vérification humaine)"
+msgstr ""
+
+#: apps/exports/candidatures.py:103
+msgid "Anomalies non résolues (nombre)"
+msgstr ""
+
+#: apps/exports/candidatures.py:104
+msgid "Anomalies non résolues"
+msgstr ""
+
+#: apps/exports/candidatures.py:110
+#: templates/recruitment/concours_detail.html:41
+msgid "Référence"
+msgstr ""
+
+#: apps/exports/candidatures.py:111
+msgid "Intitulé du poste"
+msgstr ""
+
+#: apps/exports/candidatures.py:112 templates/recruitment/offre_detail.html:19
+#: templates/recruitment/poste_candidatures.html:14
+msgid "Postes à pourvoir"
+msgstr ""
+
+#: apps/exports/candidatures.py:113 templates/dashboard/index.html:41
+#: templates/recruitment/_offres_tableau.html:8
+#: templates/recruitment/concours_detail.html:24
+#: templates/recruitment/concours_detail.html:44
+#: templates/recruitment/offre_detail.html:20
+#: templates/recruitment/poste_candidatures.html:15
+msgid "Date limite"
+msgstr ""
+
+#: apps/exports/candidatures.py:114
+#: templates/recruitment/_offres_tableau.html:8
+#: templates/recruitment/concours_detail.html:26
+#: templates/recruitment/concours_detail.html:45
+msgid "Candidatures"
+msgstr ""
+
+#: apps/exports/candidatures.py:115
+msgid "Éligibles (moteur)"
+msgstr ""
+
+#: apps/exports/candidatures.py:116
+msgid "Non éligibles (moteur)"
+msgstr ""
+
+#: apps/exports/candidatures.py:117
+msgid "À vérifier (moteur)"
+msgstr ""
+
+#: apps/exports/candidatures.py:118
+#: templates/recruitment/concours_detail.html:49
+msgid "Non évaluées"
+msgstr ""
+
+#: apps/exports/candidatures.py:232 apps/recruitment/filters.py:28
+#: templates/components/verdict.html:4
+msgid "Non évaluée"
+msgstr ""
+
+#: apps/exports/candidatures.py:242
+#: templates/recruitment/candidature_detail.html:78
+msgid "Aucune formation déclarée"
+msgstr ""
+
+#: apps/exports/candidatures.py:248
+msgid "Non renseignées"
+msgstr ""
+
+#: apps/exports/candidatures.py:251
+msgid "Sans intitulé"
+msgstr ""
+
+#: apps/exports/candidatures.py:253
+#: templates/recruitment/candidature_detail.html:92
+msgid "Aucune expérience déclarée"
+msgstr ""
+
+#: apps/exports/candidatures.py:294
+msgid "Aucune décision humaine"
+msgstr ""
+
+#: apps/exports/candidatures.py:448
+#: templates/recruitment/concours_detail.html:69
+msgid "Total"
+msgstr ""
+
+#: apps/exports/views.py:40
+#, python-format
+msgid ""
+"L’export est limité à %(max)s candidatures (%(n)s correspondent) : "
+"restreignez les filtres."
+msgstr ""
+
 #: apps/recruitment/filters.py:25 apps/recruitment/models.py:274
 #: templates/components/verdict.html:4
 msgid "Éligible"
@@ -218,12 +422,8 @@ msgstr ""
 #: apps/recruitment/filters.py:27 apps/recruitment/models.py:276
 #: templates/components/verdict.html:4
 #: templates/recruitment/_offres_tableau.html:8
-#: templates/recruitment/concours_detail.html:45
+#: templates/recruitment/concours_detail.html:48
 msgid "À vérifier"
-msgstr ""
-
-#: apps/recruitment/filters.py:28 templates/components/verdict.html:4
-msgid "Non évaluée"
 msgstr ""
 
 #: apps/recruitment/filters.py:32
@@ -423,15 +623,11 @@ msgstr ""
 msgid "en cours"
 msgstr ""
 
-#: apps/recruitment/views.py:114
-msgid "Date de candidature"
-msgstr ""
-
 #: apps/recruitment/views.py:115 templates/dashboard/index.html:41
 #: templates/recruitment/_candidatures_filtres.html:16
 #: templates/recruitment/_offres_tableau.html:8
 #: templates/recruitment/candidature_detail.html:35
-#: templates/recruitment/concours_detail.html:19
+#: templates/recruitment/concours_detail.html:22
 #: templates/recruitment/offre_detail.html:15
 msgid "Statut"
 msgstr ""
@@ -623,26 +819,26 @@ msgid "entrée n° %(id)s"
 msgstr ""
 
 #: templates/audit/_journal_resultats.html:46
-#: templates/recruitment/_candidatures_resultats.html:49
+#: templates/recruitment/_candidatures_resultats.html:51
 #: templates/recruitment/offres_liste.html:41
 msgid "Pagination"
 msgstr ""
 
 #: templates/audit/_journal_resultats.html:48
-#: templates/recruitment/_candidatures_resultats.html:50
+#: templates/recruitment/_candidatures_resultats.html:52
 #: templates/recruitment/offres_liste.html:42
 #, python-format
 msgid "Page %(num)s sur %(total)s"
 msgstr ""
 
 #: templates/audit/_journal_resultats.html:50
-#: templates/recruitment/_candidatures_resultats.html:52
+#: templates/recruitment/_candidatures_resultats.html:54
 #: templates/recruitment/offres_liste.html:44
 msgid "Précédente"
 msgstr ""
 
 #: templates/audit/_journal_resultats.html:51
-#: templates/recruitment/_candidatures_resultats.html:53
+#: templates/recruitment/_candidatures_resultats.html:55
 #: templates/recruitment/offres_liste.html:45
 msgid "Suivante"
 msgstr ""
@@ -654,7 +850,7 @@ msgstr ""
 #: templates/audit/_journal_resultats.html:59
 #: templates/audit/journal_liste.html:62
 #: templates/recruitment/_candidatures_filtres.html:47
-#: templates/recruitment/_candidatures_resultats.html:61
+#: templates/recruitment/_candidatures_resultats.html:63
 #: templates/recruitment/offres_liste.html:25
 #: templates/recruitment/offres_liste.html:34
 msgid "Réinitialiser"
@@ -929,17 +1125,8 @@ msgid "Les plus récents par date limite"
 msgstr ""
 
 #: templates/dashboard/index.html:41
-#: templates/recruitment/concours_detail.html:18
-msgid "Organisation"
-msgstr ""
-
-#: templates/dashboard/index.html:41
-#: templates/recruitment/_offres_tableau.html:8
 #: templates/recruitment/concours_detail.html:21
-#: templates/recruitment/concours_detail.html:41
-#: templates/recruitment/offre_detail.html:20
-#: templates/recruitment/poste_candidatures.html:15
-msgid "Date limite"
+msgid "Organisation"
 msgstr ""
 
 #: templates/dashboard/index.html:51
@@ -1012,32 +1199,36 @@ msgid ""
 "décision."
 msgstr ""
 
-#: templates/recruitment/_candidatures_resultats.html:22
+#: templates/recruitment/_candidatures_resultats.html:16
+msgid "Exporter en Excel (filtres appliqués)"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:24
 msgid "Sélectionner toutes les candidatures de la page"
 msgstr ""
 
-#: templates/recruitment/_candidatures_resultats.html:22
+#: templates/recruitment/_candidatures_resultats.html:24
 msgid "Signalement"
 msgstr ""
 
-#: templates/recruitment/_candidatures_resultats.html:33
+#: templates/recruitment/_candidatures_resultats.html:35
 #, python-format
 msgid "Sélectionner %(nom)s"
 msgstr ""
 
-#: templates/recruitment/_candidatures_resultats.html:40
+#: templates/recruitment/_candidatures_resultats.html:42
 msgid "haute"
 msgstr ""
 
-#: templates/recruitment/_candidatures_resultats.html:40
+#: templates/recruitment/_candidatures_resultats.html:42
 msgid "moyenne"
 msgstr ""
 
-#: templates/recruitment/_candidatures_resultats.html:40
+#: templates/recruitment/_candidatures_resultats.html:42
 msgid "info"
 msgstr ""
 
-#: templates/recruitment/_candidatures_resultats.html:60
+#: templates/recruitment/_candidatures_resultats.html:62
 msgid "Aucune candidature ne correspond à ces critères."
 msgstr ""
 
@@ -1440,20 +1631,8 @@ msgid "Offre"
 msgstr ""
 
 #: templates/recruitment/_offres_tableau.html:7
-#: templates/recruitment/candidature_detail.html:210
-#: templates/recruitment/offre_detail.html:16
-msgid "Ville"
-msgstr ""
-
-#: templates/recruitment/_offres_tableau.html:7
 #: templates/recruitment/offre_detail.html:17
 msgid "Contrat"
-msgstr ""
-
-#: templates/recruitment/_offres_tableau.html:8
-#: templates/recruitment/concours_detail.html:23
-#: templates/recruitment/concours_detail.html:42
-msgid "Candidatures"
 msgstr ""
 
 #: templates/recruitment/_offres_tableau.html:20
@@ -1630,10 +1809,6 @@ msgstr ""
 msgid "Niveau"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:70
-msgid "Spécialité"
-msgstr ""
-
 #: templates/recruitment/candidature_detail.html:71
 msgid "Établissement"
 msgstr ""
@@ -1642,20 +1817,8 @@ msgstr ""
 msgid "Année"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:78
-msgid "Aucune formation déclarée"
-msgstr ""
-
-#: templates/recruitment/candidature_detail.html:86
-msgid "Expériences déclarées"
-msgstr ""
-
 #: templates/recruitment/candidature_detail.html:90
 msgid "Expérience non renseignée"
-msgstr ""
-
-#: templates/recruitment/candidature_detail.html:92
-msgid "Aucune expérience déclarée"
 msgstr ""
 
 #: templates/recruitment/candidature_detail.html:104
@@ -1756,28 +1919,8 @@ msgstr ""
 msgid "Identité et contacts"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:204
-msgid "Nom"
-msgstr ""
-
-#: templates/recruitment/candidature_detail.html:205
-msgid "Prénom"
-msgstr ""
-
-#: templates/recruitment/candidature_detail.html:206
-msgid "CIN"
-msgstr ""
-
-#: templates/recruitment/candidature_detail.html:207
-msgid "Date de naissance"
-msgstr ""
-
 #: templates/recruitment/candidature_detail.html:208
 msgid "Email"
-msgstr ""
-
-#: templates/recruitment/candidature_detail.html:209
-msgid "Téléphone"
 msgstr ""
 
 #: templates/recruitment/candidature_detail.html:217
@@ -1800,55 +1943,47 @@ msgstr ""
 msgid "Voir qui a consulté ce dossier"
 msgstr ""
 
-#: templates/recruitment/concours_detail.html:20
+#: templates/recruitment/concours_detail.html:17
+msgid "Exporter le concours en Excel"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:23
 msgid "Date de publication"
 msgstr ""
 
-#: templates/recruitment/concours_detail.html:22
+#: templates/recruitment/concours_detail.html:25
 msgid "Nombre total de postes"
 msgstr ""
 
-#: templates/recruitment/concours_detail.html:30
-#: templates/recruitment/concours_detail.html:40
+#: templates/recruitment/concours_detail.html:33
+#: templates/recruitment/concours_detail.html:43
 msgid "Postes"
 msgstr ""
 
-#: templates/recruitment/concours_detail.html:31
+#: templates/recruitment/concours_detail.html:34
 msgid ""
 "Répartition selon le dernier verdict du moteur d’éligibilité. Un verdict "
 "n’est pas une décision : toute décision reste humaine."
 msgstr ""
 
-#: templates/recruitment/concours_detail.html:38
-msgid "Référence"
-msgstr ""
-
-#: templates/recruitment/concours_detail.html:39
+#: templates/recruitment/concours_detail.html:42
 msgid "Intitulé"
 msgstr ""
 
-#: templates/recruitment/concours_detail.html:43
+#: templates/recruitment/concours_detail.html:46
 msgid "Éligibles"
 msgstr ""
 
-#: templates/recruitment/concours_detail.html:44
+#: templates/recruitment/concours_detail.html:47
 msgid "Non éligibles"
 msgstr ""
 
-#: templates/recruitment/concours_detail.html:46
-msgid "Non évaluées"
-msgstr ""
-
-#: templates/recruitment/concours_detail.html:55
+#: templates/recruitment/concours_detail.html:58
 #: templates/recruitment/poste_candidatures.html:16
 msgid "(date du concours)"
 msgstr ""
 
-#: templates/recruitment/concours_detail.html:66
-msgid "Total"
-msgstr ""
-
-#: templates/recruitment/concours_detail.html:79
+#: templates/recruitment/concours_detail.html:82
 msgid "Aucun poste pour ce concours."
 msgstr ""
 
@@ -1858,11 +1993,6 @@ msgstr ""
 
 #: templates/recruitment/offre_detail.html:18
 msgid "Mode de travail"
-msgstr ""
-
-#: templates/recruitment/offre_detail.html:19
-#: templates/recruitment/poste_candidatures.html:14
-msgid "Postes à pourvoir"
 msgstr ""
 
 #: templates/recruitment/offre_detail.html:28
@@ -1883,10 +2013,6 @@ msgstr ""
 
 #: templates/recruitment/offre_detail.html:50
 msgid "Niveau d’études minimum"
-msgstr ""
-
-#: templates/recruitment/offre_detail.html:51
-msgid "Expérience"
 msgstr ""
 
 #: templates/recruitment/offre_detail.html:51

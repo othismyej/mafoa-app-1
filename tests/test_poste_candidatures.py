@@ -623,16 +623,18 @@ def test_nom_mene_a_la_fiche_candidature(client, direction_user, ref):
 
 
 def test_liste_en_lecture_seule(client, direction_user, ref):
-    """Règle 29, modifiée par KAN-15 — La seule action de modification est la barre d'actions
-    en lot (formulaire POST ``#lot`` vers le récapitulatif, sans écriture directe) : ni export,
-    ni changement de statut ou suppression dans la page."""
+    """Règle 29, modifiée par KAN-15 et KAN-37 — La seule action de modification est la barre
+    d'actions en lot (formulaire POST ``#lot`` vers le récapitulatif, sans écriture directe) ;
+    l'export Excel (KAN-37) est un simple lien GET ; ni changement de statut ni suppression."""
     html = main_html(get(client, direction_user, ref).content.decode())
     forms = re.findall(r"<form[^>]*method=[\"']?post[^>]*>", html, re.I)
     assert len(forms) == 1 and 'id="lot"' in forms[0]
     recap = reverse("recruitment:lot_recapitulatif", args=[ref["concours"].pk, ref["p1"].pk])
     assert re.findall(r'hx-post="([^"]+)"', html) == [recap]
-    for word in ("Décider", "Exporter", "Changer le statut", "Supprimer"):
+    for word in ("Décider", "Changer le statut", "Supprimer"):
         assert word not in html
+    export = reverse("exports:poste_candidatures_xlsx", args=[ref["concours"].pk, ref["p1"].pk])
+    assert re.findall(r'<a [^>]*href="([^"?]+)[^"]*"[^>]*data-export', html) == [export]
 
 
 # --------------------------------------------------------------------------------------

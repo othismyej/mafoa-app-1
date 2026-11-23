@@ -11,7 +11,9 @@
   <p class="text-sm font-medium text-ink-800" data-compteur>
     {% blocktranslate count n=page.paginator.count with m=total %}{{ n }} candidature affichée sur {{ m }}{% plural %}{{ n }} candidatures affichées sur {{ m }}{% endblocktranslate %}
   </p>
-  {% if page.paginator.count %}<p class="hint">{% translate "Le verdict est celui du moteur d’éligibilité ; il ne constitue pas une décision." %}</p>{% endif %}
+  {% if page.paginator.count %}<p class="hint">{% translate "Le verdict est celui du moteur d’éligibilité ; il ne constitue pas une décision." %}</p>
+  {# L'export KAN-37 ne couvre que les postes de concours : pas de bouton sur la page d'une offre. #}
+  {% if poste %}<a class="btn-secondary btn-sm" href="{% url 'exports:poste_candidatures_xlsx' concours.pk poste.pk %}{% if querystring %}?{{ querystring }}{% endif %}" hx-boost="false" download data-export="poste">{% include "components/icon.html" with name="file" size="h-4 w-4" %}{% translate "Exporter en Excel (filtres appliqués)" %}</a>{% endif %}{% endif %}
 </div>
 {% if page.paginator.count %}
 {% if lot_actif %}{% include "recruitment/_lot_barre.html" %}{% endif %}
