@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block head_title %}{% blocktranslate with pk=c.pk %}Fiche candidature n° {{ pk }}{% endblocktranslate %}{% endblock %}
+{% block content %}
+{# Fil d'Ariane et retour à la liste #}
+<nav class="mb-4 text-sm text-slate-500" aria-label="{% translate 'Fil d’Ariane' %}">
+  <a href="{% url 'dashboard' %}" class="hover:text-teal-700">{% translate "Tableau de bord" %}</a>
+  {% if c.poste_concours %}
+  <span aria-hidden="true">›</span>
+  <a href="{% url 'recruitment:concours_detail' c.poste_concours.concours_id %}" class="hover:text-teal-700">{{ c.poste_concours.concours.intitule }}</a>
+  <span aria-hidden="true">›</span>
+  <a href="{% url 'recruitment:poste_candidatures' c.poste_concours.concours_id c.poste_concours_id %}" class="hover:text-teal-700" data-retour-liste>{% if c.poste_concours.reference %}{{ c.poste_concours.reference }} — {% endif %}{{ c.poste_concours.intitule }}</a>
+  {% endif %}
+  <span aria-hidden="true">›</span>
+  <span class="text-slate-700">{{ candidat }}</span>
+</nav>
+
+{# En-tête #}
+<header class="mb-6 rounded-lg border bg-white p-5">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold">{{ candidat.nom|upper }} {{ candidat.prenom }}</h1>
+      <p class="mt-1 text-sm text-slate-600">
+        {% if c.poste_concours %}
+          {{ c.poste_concours.concours.intitule }} · {{ c.poste_concours.concours.organisation }} ·
+          {% if c.poste_concours.reference %}{{ c.poste_concours.reference }} — {% endif %}{{ c.poste_concours.intitule }}
+        {% elif c.offre %}
+          {{ c.offre.intitule }} · {% if c.offre.entreprise_confidentielle %}Confidential Company{% else %}{{ c.offre.organisation }}{% endif %}
+        {% endif %}
+      </p>
+    </div>
+    <dl class="text-sm">
+      <div><dt class="inline text-slate-500">{% translate "Statut" %} :</dt> <dd class="inline font-semibold" data-statut>{{ c.get_statut_display }}</dd></div>
+      <div><dt class="inline text-slate-500">{% translate "Candidature du" %} :</dt> <dd class="inline">{{ c.date_candidature|date:"d/m/Y H:i" }}</dd></div>
+      <div><dt class="inline text-slate-500">{% translate "Anomalies" %} :</dt>
+        <dd class="inline {% if nb_anomalies_non_resolues %}font-semibold text-amber-700{% endif %}" data-nb-anomalies>
+          {% blocktranslate count n=nb_anomalies_non_resolues %}{{ n }} anomalie non résolue{% plural %}{{ n }} anomalies non résolues{% endblocktranslate %}
+        </dd></div>
+    </dl>
+  </div>
+  {% if c.source_synced_at %}<p class="mt-3 text-xs text-slate-500">{% blocktranslate with d=c.source_synced_at|date:"d/m/Y H:i" %}Données du site synchronisées le {{ d }}{% endblocktranslate %}</p>{% endif %}
+</header>
+
+{% if ecart %}
+<div class="mb-6 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm" role="note" data-ecart>
+  {% with d=decisions.0 %}
+  {% blocktranslate with verdict=derniere_verification.get_resultat_display date=d.created_at|date:"d/m/Y" statut=c.get_statut_display %}Le moteur d’éligibilité indique « {{ verdict }} » ; la décision humaine du {{ date }} reste en vigueur (statut « {{ statut }} »).{% endblocktranslate %}
+  {% endwith %}
+</div>
+{% endif %}
+
+<div class="grid gap-6 lg:grid-cols-2">
+  {# Identité #}
+  <section class="rounded-lg border bg-white p-5" aria-labelledby="titre-identite">
+    <h2 id="titre-identite" class="mb-3 text-lg font-semibold">{% translate "Identité et contacts" %}</h2>
+    <dl class="grid grid-cols-3 gap-y-2 text-sm">
+      <dt class="text-slate-500">{% translate "Nom" %}</dt><dd class="col-span-2">{{ candidat.nom|default:_("Non renseigné") }}</dd>
+      <dt class="text-slate-500">{% translate "Prénom" %}</dt><dd class="col-span-2">{{ candidat.prenom|default:_("Non renseigné") }}</dd>
+      <dt class="text-slate-500">{% translate "CIN" %}</dt><dd class="col-span-2">{{ candidat.cin|default:_("Non renseigné") }}</dd>
+      <dt class="text-slate-500">{% translate "Date de naissance" %}</dt><dd class="col-span-2">{{ candidat.date_naissance|date:"d/m/Y"|default:_("Non renseigné") }}</dd>
+      <dt class="text-slate-500">{% translate "Email" %}</dt><dd class="col-span-2 break-all">{{ candidat.email|default:_("Non renseigné") }}</dd>
+      <dt class="text-slate-500">{% translate "Téléphone" %}</dt><dd class="col-span-2">{{ candidat.telephone|default:_("Non renseigné") }}</dd>
+      <dt class="text-slate-500">{% translate "Ville" %}</dt><dd class="col-span-2">{{ candidat.ville|default:_("Non renseigné") }}</dd>
+    </dl>
+  </section>
+
+  {# Pièces #}
+  <section class="rounded-lg border bg-white p-5" aria-labelledby="titre-pieces">
+    <h2 id="titre-pieces" class="mb-3 text-lg font-semibold">{% translate "Pièces" %}</h2>
+    {% if pieces %}
+    <ul class="divide-y text-sm">
+      {% for p in pieces %}
+      <li class="py-2" data-piece="{{ p.pk }}">
+        <span class="font-medium">{{ p.get_type_display }}</span> — {{ p.nom_fichier }}
+        {% if p.pk in pieces_en_anomalie %}<span class="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800" data-piece-anomalie>{% translate "anomalie" %}</span>{% endif %}
+        <div class="text-xs text-slate-500">
+          {{ p.content_type|default:"—" }} · {% if p.taille %}{{ p.taille|filesizeformat }}{% else %}—{% endif %} · {% translate "reçue le" %} {{ p.recue_le|date:"d/m/Y"|default:"—" }}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-sm text-slate-500">{% translate "Aucune pièce reçue" %}</p>
+    {% endif %}
+    {# Emplacement de la visionneuse (KAN-12). #}
+    <div id="visionneuse" data-kan12></div>
+  </section>
+
+  {# Formation #}
+  <section class="rounded-lg border bg-white p-5" aria-labelledby="titre-formation">
+    <h2 id="titre-formation" class="mb-3 text-lg font-semibold">{% translate "Formation déclarée" %}</h2>
+    {% if formations %}
+    <ol class="space-y-2 text-sm">
+      {% for f in formations %}
+      <li data-formation>
+        <div class="font-medium">{{ f.intitule|default:_("Non renseigné") }}</div>
+        <div class="text-slate-600">
+          {% translate "Niveau" %} : {{ f.niveau|default:_("Non renseigné") }} ·
+          {% translate "Spécialité" %} : {{ f.specialite|default:_("Non renseigné") }} ·
+          {% translate "Établissement" %} : {{ f.etablissement|default:_("Non renseigné") }} ·
+          {% translate "Année" %} : {{ f.annee_obtention|default:_("Non renseigné") }}
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <p class="text-sm text-slate-500">{% translate "Aucune formation déclarée" %}</p>
+    {% endif %}
+  </section>
+
+  {# Expériences #}
+  <section class="rounded-lg border bg-white p-5" aria-labelledby="titre-experiences">
+    <h2 id="titre-experiences" class="mb-3 text-lg font-semibold">{% translate "Expériences déclarées" %}</h2>
+    {% if experiences is None %}
+    <p class="text-sm text-slate-500">{% translate "Expérience non renseignée" %}</p>
+    {% elif not experiences %}
+    <p class="text-sm text-slate-500">{% translate "Aucune expérience déclarée" %}</p>
+    {% else %}
+    <ol class="space-y-2 text-sm">
+      {% for e in experiences %}
+      <li data-experience>
+        <div class="font-medium">{{ e.poste|default:_("Non renseigné") }} — {{ e.employeur|default:_("Non renseigné") }}</div>
+        <div class="text-slate-600">
+          {% include "recruitment/_date_affichee.html" with d=e.debut %} → {% include "recruitment/_date_affichee.html" with d=e.fin %}
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+    <p class="mt-2 text-xs text-slate-500">{% translate "La durée d’expérience retenue est celle calculée par le moteur d’éligibilité (voir ci-dessous)." %}</p>
+    {% endif %}
+  </section>
+</div>
+
+{# Éligibilité #}
+<section class="mt-6 rounded-lg border bg-white p-5" aria-labelledby="titre-eligibilite">
+  <h2 id="titre-eligibilite" class="mb-3 text-lg font-semibold">{% translate "Éligibilité" %}</h2>
+  {% if derniere_verification %}
+  {% with v=derniere_verification %}
+  <p class="mb-3 text-sm">
+    {% translate "Verdict du moteur" %} : <strong data-verdict-global>{{ v.get_resultat_display }}</strong>
+    <span class="text-slate-500">· {% blocktranslate with version=v.moteur_version date=v.created_at|date:"d/m/Y H:i" %}moteur {{ version }}, le {{ date }}{% endblocktranslate %}</span>
+    {% if sources %}<span class="text-slate-500">· {% translate "Sources" %} : {{ sources|join:", " }}</span>{% endif %}
+  </p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm" data-criteres>
+    <thead class="bg-slate-100">
+      <tr>
+        <th class="p-2 text-start">{% translate "Critère" %}</th>
+        <th class="p-2 text-start">{% translate "Verdict" %}</th>
+        <th class="p-2 text-start">{% translate "Attendu" %}</th>
+        <th class="p-2 text-start">{% translate "Constaté" %}</th>
+        <th class="p-2 text-start">{% translate "Raison" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in criteres %}
+      <tr class="border-t align-top" data-critere="{{ d.critere }}">
+        <td class="p-2">{% firstof d.libelle d.critere "—" %}</td>
+        <td class="p-2 whitespace-nowrap">
+          {% if d.verdict == "eligible" %}{% translate "Éligible" %}{% elif d.verdict == "non_eligible" %}{% translate "Non éligible" %}{% elif d.verdict == "a_verifier" %}<span class="font-semibold text-amber-700">{% translate "À vérifier" %}</span>{% else %}{{ d.verdict|default:"—" }}{% endif %}
+        </td>
+        <td class="p-2">{{ d.attendu|default:"—" }}</td>
+        <td class="p-2">{{ d.constate|default:"—" }}</td>
+        <td class="p-2">{{ d.raison|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="p-2 text-slate-500">—</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endwith %}
+  {% if verifications_precedentes %}
+  <details class="mt-4 text-sm" data-historique-verifications>
+    <summary class="cursor-pointer text-teal-700">{% blocktranslate count n=verifications_precedentes|length %}{{ n }} vérification précédente{% plural %}{{ n }} vérifications précédentes{% endblocktranslate %}</summary>
+    <ul class="mt-2 space-y-1">
+      {% for v in verifications_precedentes %}
+      <li>{{ v.created_at|date:"d/m/Y H:i" }} · {% translate "moteur" %} {{ v.moteur_version }} · <strong>{{ v.get_resultat_display }}</strong></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+  {% else %}
+  <p class="text-sm text-slate-500">{% translate "Éligibilité non encore vérifiée" %}</p>
+  {% endif %}
+  <p class="mt-3 text-xs text-slate-500">{% translate "Score sur grille : non disponible" %}</p>
+</section>
+
+{# Anomalies #}
+<section class="mt-6 rounded-lg border bg-white p-5" aria-labelledby="titre-anomalies">
+  <h2 id="titre-anomalies" class="mb-3 text-lg font-semibold">{% translate "Anomalies" %}</h2>
+  {% if anomalies %}
+  <ul class="divide-y text-sm">
+    {% for a in anomalies %}
+    <li class="py-2" data-anomalie="{{ a.pk }}" data-resolue="{{ a.resolue|yesno:'oui,non' }}">
+      <span class="font-medium">{{ a.get_type_display }}</span>
+      <span class="ms-2 rounded px-1.5 py-0.5 text-xs {% if a.gravite == 'haute' and not a.resolue %}bg-amber-100 text-amber-800{% else %}bg-slate-100 text-slate-600{% endif %}">{{ a.get_gravite_display }}</span>
+      {% if a.resolue %}<span class="ms-2 text-xs text-slate-500">{% blocktranslate with qui=a.resolue_par|default:"—" quand=a.resolue_le|date:"d/m/Y H:i"|default:"—" %}Résolue par {{ qui }} le {{ quand }}{% endblocktranslate %}</span>{% endif %}
+      <p class="mt-1 whitespace-pre-line">{{ a.description }}</p>
+      <p class="text-xs text-slate-500">
+        {% translate "Détectée le" %} {{ a.created_at|date:"d/m/Y H:i" }}
+        {% if a.piece %}· {% translate "Pièce" %} : {{ a.piece.get_type_display }} ({{ a.piece.nom_fichier }}){% endif %}
+        {% if a.type == "doublon_candidat" %}·
+          {% if a.candidature_liee %}<a href="{% url 'recruitment:candidature_detail' a.candidature_liee_id %}" class="text-teal-700 hover:underline" data-candidature-liee>{% translate "Voir la candidature liée" %} ({{ a.candidature_liee.candidat }})</a>
+          {% else %}{% translate "candidature liée indisponible" %}{% endif %}
+        {% endif %}
+      </p>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-sm text-slate-500">{% translate "Aucune anomalie" %}</p>
+  {% endif %}
+</section>
+
+{# Décisions #}
+<section class="mt-6 rounded-lg border bg-white p-5" aria-labelledby="titre-decisions">
+  <h2 id="titre-decisions" class="mb-3 text-lg font-semibold">{% translate "Historique des décisions" %}</h2>
+  {# Le formulaire de décision (KAN-13) s'insérera ici. #}
+  {% if decisions %}
+  <ol class="divide-y text-sm">
+    {% for d in decisions %}
+    <li class="py-2" data-decision="{{ d.pk }}">
+      <span class="font-medium">{{ d.get_decision_display }}</span>
+      {% if forloop.first %}<span class="ms-2 rounded bg-teal-100 px-1.5 py-0.5 text-xs text-teal-800" data-en-vigueur>{% translate "en vigueur" %}</span>{% endif %}
+      <span class="ms-2 text-xs text-slate-500">{{ d.created_at|date:"d/m/Y H:i" }} · {{ d.auteur.full_name|default:d.auteur.email }}</span>
+      <p class="mt-1 whitespace-pre-line">{{ d.motif }}</p>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="text-sm text-slate-500">{% translate "Aucune décision enregistrée" %}</p>
+  {% endif %}
+</section>
+{% endblock %}

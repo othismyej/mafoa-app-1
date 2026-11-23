@@ -607,13 +607,17 @@ def test_date_limite_de_repli_sur_le_concours(client, direction_user, ref):
     assert "31/03/2026" in parse(main_html(html)).text()
 
 
-def test_nom_sans_lien_tant_que_la_fiche_n_existe_pas(client, direction_user, ref):
-    """Règle 5 — Le nom du candidat est affiché sans lien (fiche KAN-11 non livrée)."""
+def test_nom_mene_a_la_fiche_candidature(client, direction_user, ref):
+    """Règle 5 — Le nom du candidat est le lien vers sa fiche (KAN-11 livré)."""
+    from django.urls import reverse
+
     root = parse(get(client, direction_user, ref))
     for row in rows(root):
         name_cell = tds(row)[1]
-        assert name_cell.text()
-        assert not name_cell.find_all(lambda n: n.tag == "a")
+        links = name_cell.find_all(lambda n: n.tag == "a")
+        assert len(links) == 1
+        pk = int(row.attrs["data-candidature-id"])
+        assert links[0].attrs["href"] == reverse("recruitment:candidature_detail", args=[pk])
 
 
 def test_liste_en_lecture_seule(client, direction_user, ref):

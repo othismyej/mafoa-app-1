@@ -62,6 +62,7 @@ def log(
     after: dict | None = None,
     request=None,
     actor_repr: str = "",
+    object_repr: str = "",
     metadata: dict | None = None,
 ) -> JournalAudit:
     if actor is None and request is not None and request.user.is_authenticated:
@@ -74,7 +75,7 @@ def log(
         action=action,
         content_type=ContentType.objects.get_for_model(obj) if obj is not None else None,
         object_id=str(obj.pk) if obj is not None and obj.pk is not None else "",
-        object_repr=str(obj)[:255] if obj is not None else "",
+        object_repr=(object_repr or (str(obj) if obj is not None else ""))[:255],
         before=before,
         after=after,
         ip_address=client_ip(request),

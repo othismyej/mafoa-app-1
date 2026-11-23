@@ -1,15 +1,19 @@
 from django.core.paginator import Paginator
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, render
 from django.utils.cache import patch_vary_headers
 from django.utils.translation import gettext_lazy as _
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
 from apps.accounts.permissions import DIRECTION_ROLES, role_required
 from apps.audit.models import AuditAction
 from apps.audit.services import log
+from apps.evaluation.models import Anomalie, Decision, VerificationEligibilite
 
+from . import presenters
 from .filters import ANOMALIE_CHOICES, PAGE_SIZES, VERDICT_CHOICES, filter_candidatures
-from .models import Candidature, Concours, PosteConcours
+from .models import Candidature, Concours, Piece, PosteConcours
 from .selectors import concours_stats
 
 
@@ -84,3 +88,67 @@ SORT_HEADERS = [
     ("verdict", _("Verdict d’éligibilité")),
     ("anomalies", _("Anomalies")),
 ]
+
+
+@require_GET
+@never_cache
+@role_required(*DIRECTION_ROLES)
+def candidature_detail(request, pk: int):
+    """Fiche candidature en lecture seule (spec KAN-11)."""
+    candidature = get_object_or_404(
+        Candidature.objects.select_related(
+            "candidat",
+            "poste_concours__concours__organisation",
+            "offre__organisation",
+        ).prefetch_related(
+            Prefetch("pieces", queryset=Piece.objects.order_by("type", "id")),
+            Prefetch(
+                "anomalies",
+                queryset=Anomalie.objects.select_related(
+                    "piece", "resolue_par", "candidature_liee__candidat"
+                ).order_by("resolue", "-created_at", "-id"),
+            ),
+            Prefetch(
+                "verifications_eligibilite",
+                queryset=VerificationEligibilite.objects.order_by("-created_at", "-id"),
+            ),
+            Prefetch(
+                "decisions",
+                queryset=Decision.objects.select_related("auteur").order_by("-created_at", "-id"),
+            ),
+        ),
+        pk=pk,
+    )
+    verifications = list(candidature.verifications_eligibilite.all())
+    decisions = list(candidature.decisions.all())
+    anomalies = list(candidature.anomalies.all())
+    derniere = verifications[0] if verifications else None
+    ecart = presenters.ecart_verdict_decision(
+        candidature.statut, derniere.resultat if derniere else None, bool(decisions)
+    )
+    donnees = candidature.donnees_declarees or {}
+    context = {
+        "c": candidature,
+        "candidat": candidature.candidat,
+        "pieces": list(candidature.pieces.all()),
+        "pieces_en_anomalie": {a.piece_id for a in anomalies if a.piece_id and not a.resolue},
+        "anomalies": anomalies,
+        "nb_anomalies_non_resolues": sum(1 for a in anomalies if not a.resolue),
+        "derniere_verification": derniere,
+        "verifications_precedentes": verifications[1:],
+        "sources": presenters.source_labels(derniere.sources) if derniere else [],
+        "criteres": presenters.criteres(derniere.details) if derniere else [],
+        "ecart": ecart,
+        "decisions": decisions,
+        "formations": presenters.formations(donnees),
+        "experiences": presenters.experiences(donnees),
+    }
+    # Point d'accroche unique de la journalisation des consultations (KAN-14).
+    # Libellé sans nom : le journal, en ajout seul, ne doit pas multiplier les données nominatives.
+    log(
+        AuditAction.VIEW,
+        obj=candidature,
+        request=request,
+        object_repr=f"Candidature #{candidature.pk}",
+    )
+    return render(request, "recruitment/candidature_detail.html", context)
