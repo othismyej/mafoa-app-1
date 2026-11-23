@@ -346,6 +346,8 @@ class Candidature(SourceRefMixin, TimeStampedModel):
         help_text="Formation et expériences saisies par le candidat sur le site.",
     )
 
+    objects = CandidatureQuerySet.as_manager()
+
     class Meta:
         verbose_name = "candidature"
         verbose_name_plural = "candidatures"
@@ -397,7 +399,14 @@ class Candidature(SourceRefMixin, TimeStampedModel):
     def __str__(self) -> str:
         return f"{self.candidat} → {self.cible_libelle}"
 
-    objects = CandidatureQuerySet.as_manager()
+    def save(self, *args, **kwargs):
+        self.renseigner_type()
+        self.concours_id = self.poste_concours.concours_id if self.poste_concours_id else None
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            # Ex. update_or_create : le concours dérivé doit suivre le poste.
+            kwargs["update_fields"] = set(update_fields) | {"concours"}
+        super().save(*args, **kwargs)
 
     def renseigner_type(self) -> None:
         """Commodité (règle 3) : type vide → « concours » si poste, « offre » si offre ; jamais
@@ -407,15 +416,6 @@ class Candidature(SourceRefMixin, TimeStampedModel):
                 self.type = self.Type.CONCOURS
             elif self.offre_id:
                 self.type = self.Type.OFFRE
-
-    def save(self, *args, **kwargs):
-        self.renseigner_type()
-        self.concours_id = self.poste_concours.concours_id if self.poste_concours_id else None
-        update_fields = kwargs.get("update_fields")
-        if update_fields is not None:
-            # Ex. update_or_create : le concours dérivé doit suivre le poste.
-            kwargs["update_fields"] = set(update_fields) | {"concours"}
-        super().save(*args, **kwargs)
 
     @property
     def cible(self):
