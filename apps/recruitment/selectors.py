@@ -41,7 +41,8 @@ class PosteStats:
 
     @property
     def date_limite(self):
-        return self.poste.date_limite or self.poste.concours.date_limite
+        # Même règle que le calcul d'expérience : une seule source de vérité.
+        return self.poste.date_reference
 
     @property
     def date_limite_du_concours(self) -> bool:
