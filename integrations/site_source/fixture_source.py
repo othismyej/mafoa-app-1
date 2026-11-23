@@ -711,7 +711,10 @@ class FixtureSource(SiteSource):
         return list(self._dataset[2])
 
     # --- Pièces PDF ------------------------------------------------------
-    def read_piece(self, storage_key: str) -> bytes:
+    def read_piece(
+        self, storage_key: str, *, max_bytes: int | None = None, timeout: float | None = None
+    ) -> bytes:
+        # PDF générés en mémoire, quelques Ko : max_bytes et timeout sont sans objet ici.
         self._dataset  # noqa: B018  (initialise self._pdf_specs)
         spec = self._pdf_specs.get(storage_key)
         if spec is None:

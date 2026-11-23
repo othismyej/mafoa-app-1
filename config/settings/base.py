@@ -180,6 +180,9 @@ CELERY_TIMEZONE = TIME_ZONE
 # "fixture" (données fictives), plus tard "database" ou "api".
 SITE_SOURCE = env("SITE_SOURCE", default="fixture")
 SITE_SOURCE_FIXTURE_SEED = env.int("SITE_SOURCE_FIXTURE_SEED", default=20260101)
+# Visionneuse des pièces (KAN-12) : taille maximale lue en mémoire et délai de lecture (s).
+PIECE_VIEWER_MAX_BYTES = env.int("PIECE_VIEWER_MAX_BYTES", default=20 * 1024 * 1024)
+PIECE_SOURCE_TIMEOUT = env.float("PIECE_SOURCE_TIMEOUT", default=10.0)
 
 # --- IA ---------------------------------------------------------------------
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")

@@ -1,0 +1,4 @@
+{% load i18n %}<div class="mt-4 space-y-3 border-t border-ink-100 pt-4" data-visionneuse-erreur>
+  {% include "components/alert.html" with message=message tone="warning" role="alert" only %}
+  <button type="button" class="btn-ghost btn-sm min-h-10" data-visionneuse-fermer>{% translate "Fermer" %}</button>
+</div>

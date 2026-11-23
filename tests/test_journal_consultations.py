@@ -342,9 +342,21 @@ def test_ca8_consultation_de_piece_par_appel_direct(dir1, c42, piece7):
     assert e.ip_address == IP and e.actor == dir1
 
 
-@pytest.mark.skip(reason="dépend de KAN-12 (vue qui sert une pièce, requêtes Range)")
-def test_ca8_requete_range_de_la_meme_ouverture_non_journalisee():
-    pass
+def test_ca8_requete_range_servie_en_entier_une_seule_entree(client, dir1, c42):
+    """CA8 (avec KAN-12) : une requête ``Range`` est ignorée (``Accept-Ranges: none``) ; la pièce
+    est servie en entier et une seule entrée ``view`` est créée par réponse."""
+    p = Piece.objects.create(
+        candidature=c42,
+        type=Piece.Type.CV,
+        nom_fichier="cv_fictif.pdf",
+        storage_key="fixture://candidatures/A-0001/cv.pdf",
+        content_type="application/pdf",
+    )
+    url = reverse("recruitment:piece_contenu", args=[c42.pk, p.pk])
+    response = get(client, dir1, url, HTTP_RANGE="bytes=100-199")
+    assert response.status_code == 200
+    assert response["Accept-Ranges"] == "none"
+    assert views().filter(metadata__piece_id=p.pk).count() == 1
 
 
 def test_log_consultation_refuse_les_appels_invalides(dir1, c42, piece7):

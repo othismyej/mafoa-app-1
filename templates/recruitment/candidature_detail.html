@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load static %}
 {% block head_title %}{% blocktranslate with pk=c.pk %}Fiche candidature n° {{ pk }}{% endblocktranslate %}{% endblock %}
+{% block extra_head %}<script src="{% static 'js/visionneuse.js' %}" defer></script>{% endblock %}
 {% block content %}
 {# Fil d'Ariane et retour à la liste #}
 {% if c.poste_concours %}
@@ -228,14 +230,16 @@
           {{ p.content_type|default:"—" }} · {% if p.taille %}{{ p.taille|filesizeformat }}{% else %}—{% endif %} · {% translate "reçue le" %} {{ p.recue_le|date:"d/m/Y"|default:"—" }}
         </div>
       </div>
+      {# Sans JavaScript : la pièce s'ouvre dans un nouvel onglet (KAN-12, règle 19). #}
+      <a href="{% url 'recruitment:piece_contenu' c.pk p.pk %}{% if p.pk in pieces_telechargement %}?telechargement=1{% endif %}" target="_blank" rel="noopener" hx-get="{% url 'recruitment:piece_visionneuse' c.pk p.pk %}" hx-target="#visionneuse" class="btn-secondary btn-sm min-h-10 shrink-0" data-consulter="{{ p.pk }}">{% translate "Consulter" %}<span class="sr-only"> : {{ p.get_type_display }}</span></a>
     </li>
     {% endfor %}
   </ul>
   {% else %}
   <p class="text-sm text-ink-600">{% translate "Aucune pièce reçue" %}</p>
   {% endif %}
-  {# Emplacement de la visionneuse (KAN-12). #}
-  <div id="visionneuse" data-kan12></div>
+  {# Visionneuse (KAN-12) : vide tant qu'aucune pièce n'est consultée (aucun appel à la source). #}
+  <div id="visionneuse" aria-live="polite" data-kan12></div>
   </div>
 </section>
 
