@@ -10,3 +10,7 @@ STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
+
+# En local, la double authentification est facultative par défaut pour faciliter les essais.
+# Mettre MFA_REQUIRED=true dans .env pour retrouver le comportement de production.
+MFA_REQUIRED = env.bool("MFA_REQUIRED", default=False)
