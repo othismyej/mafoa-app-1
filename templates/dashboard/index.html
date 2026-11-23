@@ -7,19 +7,33 @@
     <p class="page-eyebrow">{% translate "Espace direction" %}</p>
     <h1 class="page-title">{% translate "Tableau de bord" %}</h1>
     <p class="mt-1 text-sm text-ink-600">{% blocktranslate with nom=user %}Bonjour {{ nom }}, voici l’état des concours et des recrutements.{% endblocktranslate %}</p>
+    <p class="mt-2 max-w-3xl text-sm text-ink-700" data-explication>{% blocktranslate %}<strong class="font-medium text-ink-900">Concours publics</strong> : e-Concours organisés pour des entités publiques (SRM…), découpés en postes. <strong class="font-medium text-ink-900">Offres d’emploi</strong> : recrutement privé, postes à pourvoir chez nos clients entreprises.{% endblocktranslate %}</p>
   </div>
 </header>
 
-<div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-  {% translate "Concours publics" as l_concours %}{% blocktranslate count n=postes_count asvar h_concours %}{{ n }} poste{% plural %}{{ n }} postes{% endblocktranslate %}{% blocktranslate count n=concours_actifs_count asvar h_actifs %}{{ n }} en cours{% plural %}{{ n }} en cours{% endblocktranslate %}{% with hint=h_concours|add:" · "|add:h_actifs %}{% include "components/stat.html" with label=l_concours value=concours_count hint=hint icon="trophy" %}{% endwith %}
-  {% translate "Offres d'emploi (privé)" as l_offres %}{% blocktranslate count n=offres_ouvertes_count asvar h_offres %}{{ n }} ouverte{% plural %}{{ n }} ouvertes{% endblocktranslate %}{% include "components/stat.html" with label=l_offres value=offres_count hint=h_offres icon="briefcase" %}
-  {% translate "Candidatures" as l_cand %}{% include "components/stat.html" with label=l_cand value=candidatures_count icon="users" %}
-  {% translate "Dossiers à vérifier" as l_verif %}{% include "components/stat.html" with label=l_verif value=a_verifier_count icon="alert" tone="attention" %}
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  {% translate "Concours publics" as l_concours %}{% blocktranslate count n=stats.postes asvar h_concours %}{{ n }} poste{% plural %}{{ n }} postes{% endblocktranslate %}{% blocktranslate count n=stats.concours_en_cours asvar h_actifs %}{{ n }} en cours{% plural %}{{ n }} en cours{% endblocktranslate %}{% translate "Voir les concours" as cta_concours %}
+  {% with hint=h_concours|add:" · "|add:h_actifs %}{% include "components/stat.html" with label=l_concours value=stats.concours hint=hint icon="trophy" href="#concours" cta=cta_concours %}{% endwith %}
+  {% translate "Offres d’emploi (recrutement privé)" as l_offres %}{% blocktranslate count n=stats.offres_ouvertes asvar h_offres %}{{ n }} ouverte{% plural %}{{ n }} ouvertes{% endblocktranslate %}{% translate "Voir les offres" as cta_offres %}{% url 'recruitment:offres_liste' as u_offres %}
+  {% include "components/stat.html" with label=l_offres value=stats.offres hint=h_offres icon="briefcase" href=u_offres cta=cta_offres %}
+  <div class="stat" data-stat-candidatures>
+    <div class="flex items-start justify-between gap-3">
+      <p class="stat-label">{% translate "Candidatures reçues" %}</p>
+      <span class="stat-icon">{% include "components/icon.html" with name="users" %}</span>
+    </div>
+    <p class="stat-value">{{ stats.candidatures }}</p>
+    <ul class="mt-2 space-y-1 text-xs" data-ventilation>
+      <li><a href="#concours" class="link-quiet inline-flex min-h-6 items-center">{% blocktranslate with n=stats.candidatures_concours %}Concours publics : {{ n }}{% endblocktranslate %}</a></li>
+      <li><a href="{% url 'recruitment:offres_liste' %}" class="link-quiet inline-flex min-h-6 items-center">{% blocktranslate with n=stats.candidatures_offres %}Offres d’emploi : {{ n }}{% endblocktranslate %}</a></li>
+    </ul>
+  </div>
+  {% translate "Dossiers à vérifier" as l_verif %}{% translate "En attente d’un examen humain" as h_verif %}{% translate "Voir les dossiers" as cta_verif %}{% url 'recruitment:a_verifier' as u_verif %}
+  {% include "components/stat.html" with label=l_verif value=stats.a_verifier hint=h_verif icon="alert" tone="attention" href=u_verif cta=cta_verif %}
 </div>
 
-<section class="mt-10" aria-labelledby="titre-concours">
-  <div class="mb-3 flex items-center justify-between gap-3">
-    <h2 id="titre-concours" class="section-title text-lg">{% translate "Concours" %}</h2>
+<section id="concours" class="mt-10 scroll-mt-6" aria-labelledby="titre-concours">
+  <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+    <h2 id="titre-concours" class="section-title text-lg">{% translate "Concours" %} <span class="font-sans text-sm font-normal text-ink-600">— {% translate "entités publiques" %}</span></h2>
     <p class="hint">{% translate "Les plus récents par date limite" %}</p>
   </div>
   <div class="table-wrap">
@@ -38,6 +52,23 @@
     {% endfor %}
     </tbody>
   </table>
+  </div>
+</section>
+
+<section id="offres" class="mt-10 scroll-mt-6" aria-labelledby="titre-offres">
+  <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+    <h2 id="titre-offres" class="section-title text-lg">{% translate "Offres d’emploi" %} <span class="font-sans text-sm font-normal text-ink-600">— {% translate "recrutement privé" %}</span></h2>
+    <a href="{% url 'recruitment:offres_liste' %}" class="link text-sm" data-toutes-offres>{% translate "Voir toutes les offres d’emploi" %} <span aria-hidden="true" class="flip-rtl">→</span></a>
+  </div>
+  {% translate "Aucune offre d’emploi pour le moment." as vide %}
+  {% include "recruitment/_offres_tableau.html" with offres=offres vide=vide %}
+</section>
+
+<section id="spontanees" class="mt-10 scroll-mt-6" aria-labelledby="titre-spontanees" data-section="spontanees">
+  <h2 id="titre-spontanees" class="section-title mb-3 text-lg">{% translate "Candidatures spontanées" %}</h2>
+  <div class="card card-body flex items-start gap-3 border-dashed text-sm text-ink-700">
+    {% include "components/icon.html" with name="info" size="h-5 w-5 text-ink-500" %}
+    <p>{% translate "Bientôt disponible : les candidatures envoyées sans viser une offre précise apparaîtront ici." %}</p>
   </div>
 </section>
 {% endblock %}

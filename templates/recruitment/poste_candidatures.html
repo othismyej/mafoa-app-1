@@ -17,56 +17,7 @@
   </dl>
 </header>
 
-{% if total %}
-<form method="get" action="{{ request.path }}" id="filtres"
-      class="card mb-6 grid gap-x-6 gap-y-5 p-5 text-sm md:grid-cols-2 xl:grid-cols-4"
-      hx-get="{{ request.path }}" hx-target="#resultats" hx-swap="innerHTML" hx-push-url="true"
-      hx-trigger="change, input changed delay:300ms from:#recherche, submit">
-  <div class="md:col-span-2 xl:col-span-4">
-    <label for="recherche" class="field-label">{% translate "Rechercher un candidat (nom, prénom)" %}</label>
-    <div class="relative">
-      <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-ink-500">{% include "components/icon.html" with name="search" size="h-4 w-4" %}</span>
-      <input type="search" id="recherche" name="q" value="{{ flt.q }}" maxlength="100" autocomplete="off"
-             class="field-input ps-9" placeholder="{% translate 'Au moins 2 caractères' %}">
-    </div>
-  </div>
-  <fieldset>
-    <legend class="field-legend">{% translate "Statut" %}</legend>
-    <div class="flex flex-wrap gap-2">
-    {% for value, label in statut_choices %}
-    <label class="chip"><input type="checkbox" name="statut" value="{{ value }}" {% if value in flt.statuts %}checked{% endif %}> {{ label }}</label>
-    {% endfor %}
-    </div>
-  </fieldset>
-  <fieldset>
-    <legend class="field-legend">{% translate "Verdict d’éligibilité" %}</legend>
-    <div class="flex flex-wrap gap-2">
-    {% for value, label in verdict_choices %}
-    <label class="chip"><input type="checkbox" name="verdict" value="{{ value }}" {% if value in flt.verdicts %}checked{% endif %}> {{ label }}</label>
-    {% endfor %}
-    </div>
-  </fieldset>
-  <fieldset>
-    <legend class="field-legend">{% translate "Anomalies" %}</legend>
-    <div class="flex flex-wrap gap-2">
-    {% for value, label in anomalie_choices %}
-    <label class="chip"><input type="radio" name="anomalies" value="{{ value }}" {% if value == flt.anomalies %}checked{% endif %}> {{ label }}</label>
-    {% endfor %}
-    </div>
-  </fieldset>
-  <div class="flex flex-col gap-4">
-    <label class="field-label mb-0">{% translate "Lignes par page" %}
-      <select name="taille" class="field-input mt-1.5 w-auto">
-        {% for size in page_sizes %}<option value="{{ size }}" {% if size == flt.taille %}selected{% endif %}>{{ size }}</option>{% endfor %}
-      </select>
-    </label>
-    <div class="mt-auto flex flex-wrap gap-2">
-      <button type="submit" class="btn-primary">{% include "components/icon.html" with name="filter" size="h-4 w-4" %}{% translate "Filtrer" %}</button>
-      <a href="{{ request.path }}" class="btn-secondary">{% translate "Réinitialiser" %}</a>
-    </div>
-  </div>
-</form>
-{% endif %}
+{% include "recruitment/_candidatures_filtres.html" %}
 
 {# Récapitulatif et rapport des actions en lot (KAN-15), insérés par HTMX. #}
 <div id="lot-panneau" class="empty:hidden mb-6" data-lot-panneau></div>

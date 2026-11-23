@@ -4,7 +4,7 @@
 {% if not total %}
 <div class="card card-body flex flex-col items-center gap-2 py-10 text-center text-ink-600">
   {% include "components/icon.html" with name="users" size="h-8 w-8 text-ink-500" %}
-  <p data-compteur>{% translate "Aucune candidature pour ce poste." %} {% blocktranslate count n=0 with m=0 %}{{ n }} candidature affichée sur {{ m }}{% plural %}{{ n }} candidatures affichées sur {{ m }}{% endblocktranslate %}</p>
+  <p data-compteur>{% if offre %}{% translate "Aucune candidature pour cette offre." %}{% else %}{% translate "Aucune candidature pour ce poste." %}{% endif %} {% blocktranslate count n=0 with m=0 %}{{ n }} candidature affichée sur {{ m }}{% plural %}{{ n }} candidatures affichées sur {{ m }}{% endblocktranslate %}</p>
 </div>
 {% else %}
 <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -14,12 +14,12 @@
   {% if page.paginator.count %}<p class="hint">{% translate "Le verdict est celui du moteur d’éligibilité ; il ne constitue pas une décision." %}</p>{% endif %}
 </div>
 {% if page.paginator.count %}
-{% include "recruitment/_lot_barre.html" %}
+{% if lot_actif %}{% include "recruitment/_lot_barre.html" %}{% endif %}
 <div class="table-wrap">
 <table class="table-data">
   <thead>
     <tr>
-      <th class="w-12 !pe-0 !ps-3"><label class="lot-case" data-lot-tout-label hidden><input type="checkbox" class="lot-check" data-lot-tout aria-label="{% translate 'Sélectionner toutes les candidatures de la page' %}"></label></th>
+      <th class="w-12 !pe-0 !ps-3">{% if lot_actif %}<label class="lot-case" data-lot-tout-label hidden><input type="checkbox" class="lot-check" data-lot-tout aria-label="{% translate 'Sélectionner toutes les candidatures de la page' %}"></label>{% else %}<span class="sr-only">{% translate "Signalement" %}</span>{% endif %}</th>
       {% for h in sort_headers %}
       <th class="text-start" {% if h.active %}aria-sort="{% if h.desc %}descending{% else %}ascending{% endif %}"{% endif %}>
         <a href="?{% if querystring_sans_tri %}{{ querystring_sans_tri }}&amp;{% endif %}tri={{ h.param }}" class="{% if h.active %}text-ink-900{% endif %}" data-tri="{{ h.key }}">{{ h.label }}{% if h.active %} <span aria-hidden="true" class="text-brand-700">{% if h.desc %}↓{% else %}↑{% endif %}</span>{% endif %}</a>
@@ -30,7 +30,7 @@
   <tbody>
   {% for c in page.object_list %}
     <tr data-candidature-id="{{ c.pk }}">
-      <td class="w-12 !pe-0 !ps-2 {% if c.dernier_verdict == 'a_verifier' %}border-s-4 border-s-amber-400{% else %}border-s-4 border-s-transparent{% endif %}"><label class="lot-case"><input type="checkbox" class="lot-check" name="ids" value="{{ c.pk }}" form="lot" data-lot-case aria-label="{% blocktranslate with nom=c.candidat %}Sélectionner {{ nom }}{% endblocktranslate %}"></label></td>
+      <td class="w-12 !pe-0 !ps-2 {% if c.dernier_verdict == 'a_verifier' %}border-s-4 border-s-amber-400{% else %}border-s-4 border-s-transparent{% endif %}">{% if lot_actif %}<label class="lot-case"><input type="checkbox" class="lot-check" name="ids" value="{{ c.pk }}" form="lot" data-lot-case aria-label="{% blocktranslate with nom=c.candidat %}Sélectionner {{ nom }}{% endblocktranslate %}"></label>{% endif %}</td>
       <td class="max-w-xs truncate font-medium" title="{{ c.candidat }}"><a href="{% url 'recruitment:candidature_detail' c.pk %}" class="link" hx-boost="false">{{ c.candidat }}</a></td>
       <td class="whitespace-nowrap tabular-nums text-ink-700">{{ c.date_candidature|date:"d/m/Y H:i" }}</td>
       <td>{% include "components/badge_statut.html" with code=c.statut label=c.get_statut_display %}</td>

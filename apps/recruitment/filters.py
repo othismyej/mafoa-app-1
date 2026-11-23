@@ -1,7 +1,8 @@
-"""Filtrage, recherche et tri des candidatures d'un poste (spec KAN-10).
+"""Filtrage, recherche et tri des candidatures d'une cible (spec KAN-10, KAN-38).
 
-Logique serveur unique : la liste (KAN-10) et les futures actions en lot (KAN-15) obtiennent
-exactement le même ensemble de candidatures pour les mêmes paramètres.
+Une « cible » est un poste de concours ou une offre d'emploi. Logique serveur unique : les
+listes (KAN-10, KAN-38) et les actions en lot (KAN-15) obtiennent exactement le même ensemble
+de candidatures pour les mêmes paramètres.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from apps.evaluation.eligibility.levels import normalize_text
 from apps.evaluation.models import Anomalie, Verdict
 
-from .models import Candidature, PosteConcours
+from .models import Candidature, OffreEmploi, PosteConcours
 from .selectors import NON_EVALUEE, latest_verdict_subquery
 
 VERDICT_CHOICES: list[tuple[str, str]] = [
@@ -212,12 +213,25 @@ def annotate_list_columns(queryset: QuerySet[Candidature]) -> QuerySet[Candidatu
     )
 
 
-def filter_candidatures(poste: PosteConcours, params: QueryDict | CandidatureFilter):
-    """Point d'entrée réutilisable (KAN-15) : candidatures d'un poste pour ces paramètres."""
+Cible = PosteConcours | OffreEmploi
+
+
+def candidatures_de(cible: Cible) -> QuerySet[Candidature]:
+    """Candidatures d'un poste de concours ou d'une offre d'emploi (KAN-38, règle 16)."""
+    if isinstance(cible, PosteConcours):
+        return Candidature.objects.filter(poste_concours=cible)
+    if isinstance(cible, OffreEmploi):
+        return Candidature.objects.filter(offre=cible)
+    raise TypeError(f"Cible de candidatures inconnue : {type(cible).__name__}")
+
+
+def filter_candidatures(cible: Cible, params: QueryDict | CandidatureFilter):
+    """Point d'entrée réutilisable (KAN-15, KAN-38) : candidatures d'une cible (poste ou
+    offre) pour ces paramètres."""
     flt = (
         params
         if isinstance(params, CandidatureFilter)
         else CandidatureFilter.from_querydict(params)
     )
-    qs = flt.apply(Candidature.objects.filter(poste_concours=poste).select_related("candidat"))
+    qs = flt.apply(candidatures_de(cible).select_related("candidat"))
     return qs, flt

@@ -36,6 +36,8 @@ BASE_DIR = Path(settings.BASE_DIR)
 TEMPLATES = (
     BASE_DIR / "templates" / "recruitment" / "poste_candidatures.html",
     BASE_DIR / "templates" / "recruitment" / "_candidatures_resultats.html",
+    # Formulaire de filtres extrait pour être partagé avec la page d'une offre (KAN-38).
+    BASE_DIR / "templates" / "recruitment" / "_candidatures_filtres.html",
 )
 CATALOG = BASE_DIR / "locale" / "ar" / "LC_MESSAGES" / "django.po"
 HX = {"HTTP_HX_REQUEST": "true"}

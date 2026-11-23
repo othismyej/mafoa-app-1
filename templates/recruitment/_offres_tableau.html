@@ -1,0 +1,27 @@
+{% load i18n %}{% comment %}
+Tableau des offres d'emploi (KAN-38, règle 5), partagé par la liste des offres et le tableau de bord.
+Paramètre : offres (itérable d'offres annotées par offres_avec_compteurs), vide (message si aucune offre).
+{% endcomment %}<div class="table-wrap">
+<table class="table-data">
+  <thead><tr>
+    <th>{% translate "Entreprise" %}</th><th>{% translate "Offre" %}</th><th>{% translate "Ville" %}</th><th>{% translate "Contrat" %}</th>
+    <th>{% translate "Statut" %}</th><th>{% translate "Date limite" %}</th><th class="text-end">{% translate "Candidatures" %}</th><th class="text-end">{% translate "À vérifier" %}</th>
+  </tr></thead>
+  <tbody>
+  {% for offre in offres %}
+    <tr data-offre-id="{{ offre.pk }}">
+      <td class="max-w-56 truncate text-ink-700" data-col="entreprise">{% include "recruitment/_entreprise.html" %}</td>
+      <td class="font-medium"><a href="{% url 'recruitment:offre_detail' offre.pk %}" class="link">{{ offre.intitule }}</a></td>
+      <td class="text-ink-700">{{ offre.ville|default:"—" }}</td>
+      <td class="whitespace-nowrap text-ink-700">{{ offre.type_contrat|default:"—" }}</td>
+      <td>{% include "components/badge_statut.html" with code=offre.statut label=offre.get_statut_display %}</td>
+      <td class="whitespace-nowrap tabular-nums">{{ offre.date_limite|date:"d/m/Y"|default:"—" }}</td>
+      <td class="text-end font-semibold tabular-nums text-ink-900" data-col="candidatures">{{ offre.nb_candidatures }}</td>
+      <td class="text-end tabular-nums" data-col="a-verifier">{% if offre.nb_a_verifier %}<a href="{% url 'recruitment:offre_detail' offre.pk %}?statut=a_verifier" class="badge badge-a_verifier badge-plain" aria-label="{% blocktranslate count n=offre.nb_a_verifier %}{{ n }} dossier à vérifier{% plural %}{{ n }} dossiers à vérifier{% endblocktranslate %}">{{ offre.nb_a_verifier }}</a>{% else %}<span class="text-ink-600">0</span>{% endif %}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="8" class="py-10 text-center text-ink-600">{{ vide }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
