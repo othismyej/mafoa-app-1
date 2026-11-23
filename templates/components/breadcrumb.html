@@ -1,0 +1,13 @@
+{% load i18n %}{% comment %}
+Fil d'Ariane : Tableau de bord › concours › poste › page courante.
+Paramètres (tous facultatifs) : concours (lien), poste (lien vers la liste des candidatures, avec concours),
+current (texte de la page courante), current_poste (poste courant : « référence — intitulé »).
+{% endcomment %}<nav class="breadcrumb" aria-label="{% translate 'Fil d’Ariane' %}">
+  <a href="{% url 'dashboard' %}">{% translate "Tableau de bord" %}</a>
+  {% if concours %}<span class="breadcrumb-sep" aria-hidden="true">›</span>
+  <a href="{% url 'recruitment:concours_detail' concours.pk %}">{{ concours.intitule }}</a>{% endif %}
+  {% if poste %}<span class="breadcrumb-sep" aria-hidden="true">›</span>
+  <a href="{% url 'recruitment:poste_candidatures' concours.pk poste.pk %}" data-retour-liste>{% if poste.reference %}{{ poste.reference }} — {% endif %}{{ poste.intitule }}</a>{% endif %}
+  <span class="breadcrumb-sep" aria-hidden="true">›</span>
+  <span class="breadcrumb-current" aria-current="page">{% if current_poste %}{% if current_poste.reference %}{{ current_poste.reference }} — {% endif %}{{ current_poste.intitule }}{% else %}{{ current }}{% endif %}</span>
+</nav>

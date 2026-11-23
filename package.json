@@ -1,0 +1,15 @@
+{
+  "name": "mafoa-ai-front",
+  "private": true,
+  "description": "Build CSS (Tailwind) et polices auto-hébergées de Mafoa AI. Le CSS compilé est commité : Node n'est nécessaire qu'en développement.",
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i frontend/app.css -o static/css/app.css --minify",
+    "watch:css": "tailwindcss -c tailwind.config.js -i frontend/app.css -o static/css/app.css --watch",
+    "fonts": "node frontend/copy-fonts.mjs"
+  },
+  "devDependencies": {
+    "@fontsource/poppins": "5.1.0",
+    "@fontsource/roboto": "5.1.0",
+    "tailwindcss": "3.4.17"
+  }
+}

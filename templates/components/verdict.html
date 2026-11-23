@@ -1,0 +1,4 @@
+{% load i18n %}{% comment %}
+Verdict du moteur d'éligibilité. Paramètre : code (eligible, non_eligible, a_verifier ; vide = non évaluée)
+et, facultatif, label (libellé brut si le code est inconnu).
+{% endcomment %}{% if code == "eligible" %}<span class="badge badge-eligible">{% translate "Éligible" %}</span>{% elif code == "non_eligible" %}<span class="badge badge-non_eligible">{% translate "Non éligible" %}</span>{% elif code == "a_verifier" %}<span class="badge badge-a_verifier">{% translate "À vérifier" %}</span>{% elif label %}<span class="badge badge-neutre">{{ label }}</span>{% else %}<span class="badge badge-non_evaluee">{% translate "Non évaluée" %}</span>{% endif %}

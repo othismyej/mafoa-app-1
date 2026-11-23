@@ -1,0 +1,3 @@
+{% comment %}
+Alerte. Paramètres : message, tone (success, info, warning ; défaut info), role (status / alert / note).
+{% endcomment %}<div class="alert alert-{{ tone|default:'info' }}" role="{{ role|default:'status' }}">{% if tone == "success" %}{% include "components/icon.html" with name="check" size="alert-icon" %}{% elif tone == "warning" %}{% include "components/icon.html" with name="alert" size="alert-icon" %}{% else %}{% include "components/icon.html" with name="info" size="alert-icon" %}{% endif %}<div>{{ message }}</div></div>

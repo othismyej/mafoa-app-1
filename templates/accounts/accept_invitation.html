@@ -1,12 +1,12 @@
-{% extends "allauth/layouts/base.html" %}
+{% extends "allauth/layouts/entrance.html" %}
 {% block head_title %}Activer mon compte{% endblock %}
 {% block content %}
 <h1>Activer mon compte</h1>
-<p class="text-sm text-slate-600">Invitation pour <strong>{{ invitation.email }}</strong> ({{ invitation.get_role_display }}).</p>
+<p>Invitation pour <strong>{{ invitation.email }}</strong> ({{ invitation.get_role_display }}).</p>
 <form method="post" class="space-y-3">
   {% csrf_token %}
   {{ form.as_div }}
   <button type="submit">Créer mon compte</button>
 </form>
-<p class="text-xs text-slate-500">Après la première connexion, la double authentification (application TOTP) sera obligatoire.</p>
+<p class="!text-xs">Après la première connexion, la double authentification (application TOTP) sera obligatoire.</p>
 {% endblock %}

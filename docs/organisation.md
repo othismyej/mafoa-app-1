@@ -21,6 +21,7 @@ les sessions Claude Code et aux agents définis dans `.claude/agents/`.
 | **Spécificateur** | agent `specificateur` | Transforme un ticket en user story testable : critères d'acceptation, règles métier, cas limites, impacts sécurité et conformité. Liste les questions ouvertes au lieu de supposer. |
 | **Développeur** | session Claude Code principale | Plan technique, code, migrations, mise à jour du ticket Jira et de la PR. |
 | **Testeur** | agent `testeur` | Écrit et exécute les tests d'acceptation à partir de la spécification (pas à partir du code), y compris les tests de permissions et d'écrans. |
+| **Designer** | agent `designer` | Tient la charte visuelle alignée sur le site (logo, couleurs, typographie), conçoit les écrans, applique le design aux gabarits sans changer le comportement, et vérifie le rendu par captures (bureau, mobile, RTL). |
 | **Relecteur sécurité & conformité** | agent `relecteur-conformite` | Relit chaque PR contre les §5 et §6 de `CLAUDE.md` : données personnelles, CNDP, permissions, audit, secrets, biais, IA. Ne modifie pas le code. |
 
 Rôles prévus plus tard, quand ils deviendront utiles :
@@ -92,6 +93,7 @@ Depuis une session Claude Code, demander par exemple :
 
 - « Utilise l'agent specificateur pour le ticket KAN-11. »
 - « Utilise l'agent testeur sur la spec docs/specs/KAN-11-fiche-candidature.md. »
+- « Utilise l'agent designer pour l'écran de la story KAN-XX. »
 - « Utilise l'agent relecteur-conformite sur la branche courante. »
 
 Les définitions des agents sont dans `.claude/agents/`. Les modifier comme du code : par PR.

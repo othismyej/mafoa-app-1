@@ -2,43 +2,41 @@
 {# Tri courant, rattaché au formulaire de filtres : il est conservé quand un filtre change. #}
 <input type="hidden" name="tri" value="{{ flt.tri_param }}" form="filtres">
 {% if not total %}
-<p class="rounded-lg border bg-white p-4 text-slate-500" data-compteur>{% translate "Aucune candidature pour ce poste." %} {% blocktranslate count n=0 with m=0 %}{{ n }} candidature affichée sur {{ m }}{% plural %}{{ n }} candidatures affichées sur {{ m }}{% endblocktranslate %}</p>
+<div class="card card-body flex flex-col items-center gap-2 py-10 text-center text-ink-600">
+  {% include "components/icon.html" with name="users" size="h-8 w-8 text-ink-500" %}
+  <p data-compteur>{% translate "Aucune candidature pour ce poste." %} {% blocktranslate count n=0 with m=0 %}{{ n }} candidature affichée sur {{ m }}{% plural %}{{ n }} candidatures affichées sur {{ m }}{% endblocktranslate %}</p>
+</div>
 {% else %}
-<p class="mb-2 text-sm text-slate-600" data-compteur>
-  {% blocktranslate count n=page.paginator.count with m=total %}{{ n }} candidature affichée sur {{ m }}{% plural %}{{ n }} candidatures affichées sur {{ m }}{% endblocktranslate %}
-</p>
+<div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+  <p class="text-sm font-medium text-ink-800" data-compteur>
+    {% blocktranslate count n=page.paginator.count with m=total %}{{ n }} candidature affichée sur {{ m }}{% plural %}{{ n }} candidatures affichées sur {{ m }}{% endblocktranslate %}
+  </p>
+  {% if page.paginator.count %}<p class="hint">{% translate "Le verdict est celui du moteur d’éligibilité ; il ne constitue pas une décision." %}</p>{% endif %}
+</div>
 {% if page.paginator.count %}
-<p class="mb-2 text-xs text-slate-500">{% translate "Le verdict est celui du moteur d’éligibilité ; il ne constitue pas une décision." %}</p>
-<div class="overflow-x-auto rounded-lg border bg-white">
-<table class="w-full text-sm">
-  <thead class="bg-slate-100 text-start">
+<div class="table-wrap">
+<table class="table-data">
+  <thead>
     <tr>
-      <th class="w-8 p-3" aria-hidden="true"></th>
+      <th class="w-2 !px-0" aria-hidden="true"></th>
       {% for h in sort_headers %}
-      <th class="p-3 text-start" {% if h.active %}aria-sort="{% if h.desc %}descending{% else %}ascending{% endif %}"{% endif %}>
-        <a href="?{% if querystring_sans_tri %}{{ querystring_sans_tri }}&amp;{% endif %}tri={{ h.param }}" class="hover:text-teal-700" data-tri="{{ h.key }}">{{ h.label }}{% if h.active %} <span aria-hidden="true">{% if h.desc %}↓{% else %}↑{% endif %}</span>{% endif %}</a>
+      <th class="text-start" {% if h.active %}aria-sort="{% if h.desc %}descending{% else %}ascending{% endif %}"{% endif %}>
+        <a href="?{% if querystring_sans_tri %}{{ querystring_sans_tri }}&amp;{% endif %}tri={{ h.param }}" class="{% if h.active %}text-ink-900{% endif %}" data-tri="{{ h.key }}">{{ h.label }}{% if h.active %} <span aria-hidden="true" class="text-brand-700">{% if h.desc %}↓{% else %}↑{% endif %}</span>{% endif %}</a>
       </th>
       {% endfor %}
     </tr>
   </thead>
   <tbody>
   {% for c in page.object_list %}
-    <tr class="border-t" data-candidature-id="{{ c.pk }}">
-      <td class="p-3"></td>
-      <td class="max-w-xs truncate p-3" title="{{ c.candidat }}"><a href="{% url 'recruitment:candidature_detail' c.pk %}" class="text-teal-700 hover:underline" hx-boost="false">{{ c.candidat }}</a></td>
-      <td class="whitespace-nowrap p-3">{{ c.date_candidature|date:"d/m/Y H:i" }}</td>
-      <td class="p-3">{{ c.get_statut_display }}</td>
-      <td class="p-3" data-col="verdict">
-        {% if c.dernier_verdict == "eligible" %}{% translate "Éligible" %}
-        {% elif c.dernier_verdict == "non_eligible" %}{% translate "Non éligible" %}
-        {% elif c.dernier_verdict == "a_verifier" %}<span class="font-semibold text-amber-700">{% translate "À vérifier" %}</span>
-        {% else %}<span class="text-slate-500">{% translate "Non évaluée" %}</span>{% endif %}
-      </td>
-      <td class="p-3" data-col="anomalies">
-        {% if c.nb_anomalies %}{{ c.nb_anomalies }}
-          <span class="ms-1 rounded px-1.5 py-0.5 text-xs {% if c.gravite_max == 'haute' %}bg-amber-100 text-amber-800{% elif c.gravite_max == 'moyenne' %}bg-yellow-50 text-yellow-800{% else %}bg-slate-100 text-slate-600{% endif %}" data-gravite="{{ c.gravite_max }}">
-            {% if c.gravite_max == "haute" %}{% translate "haute" %}{% elif c.gravite_max == "moyenne" %}{% translate "moyenne" %}{% else %}{% translate "info" %}{% endif %}
-          </span>
+    <tr data-candidature-id="{{ c.pk }}">
+      <td class="w-2 !px-0 {% if c.dernier_verdict == 'a_verifier' %}border-s-4 border-s-amber-400{% endif %}"></td>
+      <td class="max-w-xs truncate font-medium" title="{{ c.candidat }}"><a href="{% url 'recruitment:candidature_detail' c.pk %}" class="link" hx-boost="false">{{ c.candidat }}</a></td>
+      <td class="whitespace-nowrap tabular-nums text-ink-700">{{ c.date_candidature|date:"d/m/Y H:i" }}</td>
+      <td>{% include "components/badge_statut.html" with code=c.statut label=c.get_statut_display %}</td>
+      <td data-col="verdict">{% include "components/verdict.html" with code=c.dernier_verdict label="" %}</td>
+      <td data-col="anomalies">
+        {% if c.nb_anomalies %}<span class="inline-flex items-center gap-2"><span class="font-semibold tabular-nums text-ink-900">{{ c.nb_anomalies }}</span>
+          <span class="badge badge-plain badge-{{ c.gravite_max|default:'info' }}" data-gravite="{{ c.gravite_max }}">{% if c.gravite_max == "haute" %}{% translate "haute" %}{% elif c.gravite_max == "moyenne" %}{% translate "moyenne" %}{% else %}{% translate "info" %}{% endif %}</span></span>
         {% endif %}
       </td>
     </tr>
@@ -47,16 +45,19 @@
 </table>
 </div>
 {% if page.paginator.num_pages > 1 %}
-<nav class="mt-3 flex items-center gap-2 text-sm" aria-label="{% translate 'Pagination' %}" data-pagination>
-  {% if page.has_previous %}<a class="rounded border px-2 py-1" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page.previous_page_number }}">{% translate "Précédente" %}</a>{% endif %}
-  <span>{% blocktranslate with num=page.number total=page.paginator.num_pages %}Page {{ num }} sur {{ total }}{% endblocktranslate %}</span>
-  {% if page.has_next %}<a class="rounded border px-2 py-1" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page.next_page_number }}">{% translate "Suivante" %}</a>{% endif %}
+<nav class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="{% translate 'Pagination' %}" data-pagination>
+  <span class="text-ink-600">{% blocktranslate with num=page.number total=page.paginator.num_pages %}Page {{ num }} sur {{ total }}{% endblocktranslate %}</span>
+  <span class="flex gap-2">
+  {% if page.has_previous %}<a class="btn-secondary btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page.previous_page_number }}">{% translate "Précédente" %}</a>{% endif %}
+  {% if page.has_next %}<a class="btn-secondary btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page.next_page_number }}">{% translate "Suivante" %}</a>{% endif %}
+  </span>
 </nav>
 {% endif %}
 {% else %}
-<div class="rounded-lg border bg-white p-4 text-slate-500">
+<div class="card card-body flex flex-col items-center gap-3 py-10 text-center text-ink-600">
+  {% include "components/icon.html" with name="search" size="h-8 w-8 text-ink-500" %}
   <p>{% translate "Aucune candidature ne correspond à ces critères." %}</p>
-  <a href="{{ request.path }}" class="mt-2 inline-block rounded border border-slate-300 px-3 py-1 text-slate-700">{% translate "Réinitialiser" %}</a>
+  <a href="{{ request.path }}" class="btn-secondary btn-sm">{% translate "Réinitialiser" %}</a>
 </div>
 {% endif %}
 {% endif %}

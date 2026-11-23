@@ -133,14 +133,17 @@ X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 
-# CSP : seul Tailwind vient d'un CDN tant que le build front n'existe pas (HTMX est local).
+# CSP : tout est servi localement (CSS Tailwind compilé, polices, HTMX) ; aucune origine externe.
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src": ["'self'"],
-        "script-src": ["'self'", "https://cdn.tailwindcss.com"],
+        "script-src": ["'self'"],
         "style-src": ["'self'", "'unsafe-inline'"],
+        "font-src": ["'self'"],
         "img-src": ["'self'", "data:"],
         "frame-ancestors": ["'none'"],
+        "base-uri": ["'self'"],
+        "object-src": ["'none'"],
         "form-action": ["'self'"],
     }
 }

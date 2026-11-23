@@ -1,64 +1,74 @@
 {% load i18n %}
-<section class="mt-6 rounded-lg border bg-white p-5" id="decisions" aria-labelledby="titre-decisions">
-  <h2 id="titre-decisions" class="mb-3 text-lg font-semibold">{% translate "Décision et historique" %}</h2>
+<section class="card border-t-4 border-t-ink-800" id="decisions" aria-labelledby="titre-decisions">
+  <div class="card-header">
+    <h2 id="titre-decisions" class="section-title flex items-center gap-2">{% include "components/icon.html" with name="history" size="h-5 w-5 text-ink-500" %}{% translate "Décision et historique" %}</h2>
+  </div>
+  <div class="card-body">
 
   {% with f=decision_form %}
-  {% if f.succes %}<p class="mb-3 rounded border border-teal-200 bg-teal-50 px-3 py-2 text-sm" role="status" data-decision-succes>{{ f.succes }}</p>{% endif %}
-  {% if f.erreur %}<p class="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm" role="alert" data-decision-erreur>{{ f.erreur }}</p>{% endif %}
+  {% if f.succes %}<p class="alert alert-success mb-4" role="status" data-decision-succes>{{ f.succes }}</p>{% endif %}
+  {% if f.erreur %}<p class="alert alert-warning mb-4" role="alert" data-decision-erreur>{{ f.erreur }}</p>{% endif %}
 
   {% if not f.disponible %}
-  <p class="mb-4 text-sm text-slate-500" data-decision-indisponible>{% translate "Le concours est terminé : aucune décision n’est possible." %}</p>
+  <p class="mb-5 flex items-start gap-2 rounded-control bg-ink-50 px-4 py-3 text-sm text-ink-700" data-decision-indisponible>{% include "components/icon.html" with name="lock" size="mt-0.5 h-4 w-4 text-ink-500" %}<span>{% translate "Le concours est terminé : aucune décision n’est possible." %}</span></p>
   {% elif f.choix %}
-  <form data-decision-form method="post" action="{% url 'recruitment:decision_enregistrer' c.pk %}" class="mb-6 space-y-3 rounded border border-slate-200 bg-slate-50 p-4 text-sm"
+  <form data-decision-form method="post" action="{% url 'recruitment:decision_enregistrer' c.pk %}" class="mb-6 space-y-4 text-sm"
         hx-post="{% url 'recruitment:decision_enregistrer' c.pk %}" hx-target="#decisions" hx-swap="outerHTML" data-decision-form>
     {% csrf_token %}
     <input type="hidden" name="statut_attendu" value="{{ f.statut_attendu }}">
     <input type="hidden" name="derniere_decision_id" value="{{ f.derniere_decision_id }}">
-    <label class="block font-medium" for="decision-choix">{% translate "Décision" %}</label>
-    <select id="decision-choix" name="decision" required class="w-full rounded border border-slate-300 px-2 py-1.5">
-      <option value="">{% translate "— Choisir —" %}</option>
-      {% for value, label in f.choix %}<option value="{{ value }}" {% if value == f.decision %}selected{% endif %}>{{ label }}</option>{% endfor %}
-    </select>
-    <label class="block font-medium" for="decision-motif">{% translate "Motif (obligatoire, 10 caractères minimum)" %}</label>
-    <textarea id="decision-motif" name="motif" rows="3" maxlength="{{ f.motif_max }}" required aria-describedby="decision-motif-aide" data-compteur-cible="decision-motif-compteur" class="w-full rounded border border-slate-300 px-2 py-1.5">{{ f.motif }}</textarea>
-    <p id="decision-motif-aide" class="flex justify-between text-xs text-slate-500">
-      <span>{% translate "Indiquez des faits liés au dossier, sans donnée sensible." %}</span>
-      <span><span id="decision-motif-compteur" data-compteur>{{ f.motif|length }}</span> / {{ f.motif_max }}</span>
-    </p>
+    <div>
+      <label class="field-label" for="decision-choix">{% translate "Décision" %}</label>
+      <select id="decision-choix" name="decision" required class="field-input">
+        <option value="">{% translate "— Choisir —" %}</option>
+        {% for value, label in f.choix %}<option value="{{ value }}" {% if value == f.decision %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="field-label" for="decision-motif">{% translate "Motif (obligatoire, 10 caractères minimum)" %}</label>
+      <textarea id="decision-motif" name="motif" rows="4" maxlength="{{ f.motif_max }}" required aria-describedby="decision-motif-aide" data-compteur-cible="decision-motif-compteur" class="field-input">{{ f.motif }}</textarea>
+      <p id="decision-motif-aide" class="mt-1.5 flex justify-between gap-3 text-xs text-ink-600">
+        <span>{% translate "Indiquez des faits liés au dossier, sans donnée sensible." %}</span>
+        <span class="shrink-0 tabular-nums"><span id="decision-motif-compteur" data-compteur>{{ f.motif|length }}</span> / {{ f.motif_max }}</span>
+      </p>
+    </div>
     {% if f.confirmation %}
-    <div class="rounded border border-amber-300 bg-amber-50 p-3" data-decision-confirmation>
+    <div class="alert alert-warning flex-col gap-2" data-decision-confirmation>
       {% if f.confirmation.revision %}
-      <label class="block"><input type="checkbox" name="confirmer_revision" value="1" required>
-        {% if f.confirmation.derniere_date %}{% blocktranslate with d=f.confirmation.derniere_date|date:"d/m/Y" %}Je confirme revenir sur la décision du {{ d }}.{% endblocktranslate %}{% else %}{% translate "Je confirme revenir sur le statut actuel." %}{% endif %}
+      <label class="flex items-start gap-2"><input type="checkbox" name="confirmer_revision" value="1" required class="mt-0.5 h-4 w-4 shrink-0">
+        <span>{% if f.confirmation.derniere_date %}{% blocktranslate with d=f.confirmation.derniere_date|date:"d/m/Y" %}Je confirme revenir sur la décision du {{ d }}.{% endblocktranslate %}{% else %}{% translate "Je confirme revenir sur le statut actuel." %}{% endif %}</span>
       </label>
       {% endif %}
       {% if f.confirmation.avertissements %}
       <ul class="my-1 list-disc ps-5">{% for a in f.confirmation.avertissements %}<li>{% translate a %}</li>{% endfor %}</ul>
-      <label class="block"><input type="checkbox" name="confirmer_avertissements" value="1" required> {% translate "J’ai pris connaissance de ces avertissements et je confirme." %}</label>
+      <label class="flex items-start gap-2"><input type="checkbox" name="confirmer_avertissements" value="1" required class="mt-0.5 h-4 w-4 shrink-0"> <span>{% translate "J’ai pris connaissance de ces avertissements et je confirme." %}</span></label>
       {% endif %}
     </div>
     {% endif %}
-    <button type="submit" class="rounded bg-teal-700 px-3 py-2 text-white">{% translate "Enregistrer la décision" %}</button>
-    <p class="text-xs text-slate-500">{% translate "Toute décision est humaine, motivée et inscrite au journal d’audit. Elle ne peut pas être modifiée : on la remplace par une nouvelle décision." %}</p>
+    <button type="submit" class="btn-primary w-full">{% translate "Enregistrer la décision" %}</button>
+    <p class="flex items-start gap-2 text-xs text-ink-600">{% include "components/icon.html" with name="shield" size="mt-0.5 h-4 w-4 text-ink-500" %}<span>{% translate "Toute décision est humaine, motivée et inscrite au journal d’audit. Elle ne peut pas être modifiée : on la remplace par une nouvelle décision." %}</span></p>
   </form>
   {% else %}
-  <p class="mb-4 text-sm text-slate-500" data-decision-statut-inconnu>{% translate "Statut non pris en charge, contactez un administrateur." %}</p>
+  <p class="mb-5 rounded-control bg-ink-50 px-4 py-3 text-sm text-ink-700" data-decision-statut-inconnu>{% translate "Statut non pris en charge, contactez un administrateur." %}</p>
   {% endif %}
   {% endwith %}
 
   {% if decisions %}
-  <ol class="divide-y text-sm">
+  <ol class="timeline border-t-0 text-sm">
     {% for d in decisions %}
-    <li class="py-2" data-decision="{{ d.pk }}">
-      <span class="font-medium">{{ d.get_decision_display }}</span>
-      {% if forloop.first %}<span class="ms-2 rounded bg-teal-100 px-1.5 py-0.5 text-xs text-teal-800" data-en-vigueur>{% translate "en vigueur" %}</span>{% endif %}
-      <span class="ms-2 text-xs text-slate-500">{{ d.created_at|date:"d/m/Y H:i" }} · {{ d.auteur.full_name|default:d.auteur.email }}</span>
-      <p class="mt-1 whitespace-pre-line">{{ d.motif }}</p>
+    <li data-decision="{{ d.pk }}">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="font-semibold text-ink-900">{{ d.get_decision_display }}</span>
+        {% if forloop.first %}<span class="badge badge-en_vigueur" data-en-vigueur>{% translate "en vigueur" %}</span>{% endif %}
+      </div>
+      <p class="meta mt-0.5">{{ d.created_at|date:"d/m/Y H:i" }} · {{ d.auteur.full_name|default:d.auteur.email }}</p>
+      <p class="mt-1.5 whitespace-pre-line rounded-control bg-ink-50 px-3 py-2 text-ink-800">{{ d.motif }}</p>
     </li>
     {% endfor %}
   </ol>
   {% else %}
-  <p class="text-sm text-slate-500">{% translate "Aucune décision enregistrée" %}</p>
+  <p class="text-sm text-ink-600">{% translate "Aucune décision enregistrée" %}</p>
   {% endif %}
+  </div>
 </section>
-{% if request.headers.hx_request == "true" %}<span id="statut-candidature" hx-swap-oob="true">{{ c.get_statut_display }}</span>{% endif %}
+{% if request.headers.hx_request == "true" %}<span id="statut-candidature" class="badge badge-{{ c.statut }}" hx-swap-oob="true">{{ c.get_statut_display }}</span>{% endif %}
