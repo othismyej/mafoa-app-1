@@ -1,0 +1,58 @@
+{% load i18n %}
+<section class="mt-6 rounded-lg border bg-white p-5" id="decisions" aria-labelledby="titre-decisions">
+  <h2 id="titre-decisions" class="mb-3 text-lg font-semibold">{% translate "Décision et historique" %}</h2>
+
+  {% with f=decision_form %}
+  {% if f.succes %}<p class="mb-3 rounded border border-teal-200 bg-teal-50 px-3 py-2 text-sm" role="status" data-decision-succes>{{ f.succes }}</p>{% endif %}
+  {% if f.erreur %}<p class="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm" role="alert" data-decision-erreur>{{ f.erreur }}</p>{% endif %}
+
+  {% if not f.disponible %}
+  <p class="mb-4 text-sm text-slate-500" data-decision-indisponible>{% translate "Le concours est terminé : aucune décision n’est possible." %}</p>
+  {% elif f.choix %}
+  <form method="post" action="{% url 'recruitment:decision_enregistrer' c.pk %}" class="mb-6 space-y-3 rounded border border-slate-200 bg-slate-50 p-4 text-sm"
+        hx-post="{% url 'recruitment:decision_enregistrer' c.pk %}" hx-target="#decisions" hx-swap="outerHTML" data-decision-form>
+    {% csrf_token %}
+    <input type="hidden" name="statut_attendu" value="{{ f.statut_attendu }}">
+    <input type="hidden" name="derniere_decision_id" value="{{ f.derniere_decision_id }}">
+    <label class="block font-medium" for="decision-choix">{% translate "Décision" %}</label>
+    <select id="decision-choix" name="decision" required class="w-full rounded border border-slate-300 px-2 py-1.5">
+      <option value="">{% translate "— Choisir —" %}</option>
+      {% for value, label in f.choix %}<option value="{{ value }}" {% if value == f.decision %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <label class="block font-medium" for="decision-motif">{% translate "Motif (obligatoire, 10 caractères minimum)" %}</label>
+    <textarea id="decision-motif" name="motif" rows="3" maxlength="{{ f.motif_max }}" required class="w-full rounded border border-slate-300 px-2 py-1.5">{{ f.motif }}</textarea>
+    {% if f.confirmation %}
+    <div class="rounded border border-amber-300 bg-amber-50 p-3" data-decision-confirmation>
+      {% if f.confirmation.revision %}
+      <label class="block"><input type="checkbox" name="confirmer_revision" value="1" required>
+        {% if f.confirmation.derniere_date %}{% blocktranslate with d=f.confirmation.derniere_date|date:"d/m/Y" %}Je confirme revenir sur la décision du {{ d }}.{% endblocktranslate %}{% else %}{% translate "Je confirme revenir sur le statut actuel." %}{% endif %}
+      </label>
+      {% endif %}
+      {% if f.confirmation.avertissements %}
+      <ul class="my-1 list-disc ps-5">{% for a in f.confirmation.avertissements %}<li>{% translate a %}</li>{% endfor %}</ul>
+      <label class="block"><input type="checkbox" name="confirmer_avertissements" value="1" required> {% translate "J’ai pris connaissance de ces avertissements et je confirme." %}</label>
+      {% endif %}
+    </div>
+    {% endif %}
+    <button type="submit" class="rounded bg-teal-700 px-3 py-2 text-white">{% translate "Enregistrer la décision" %}</button>
+    <p class="text-xs text-slate-500">{% translate "Toute décision est humaine, motivée et inscrite au journal d’audit. Elle ne peut pas être modifiée : on la remplace par une nouvelle décision." %}</p>
+  </form>
+  {% endif %}
+  {% endwith %}
+
+  {% if decisions %}
+  <ol class="divide-y text-sm">
+    {% for d in decisions %}
+    <li class="py-2" data-decision="{{ d.pk }}">
+      <span class="font-medium">{{ d.get_decision_display }}</span>
+      {% if forloop.first %}<span class="ms-2 rounded bg-teal-100 px-1.5 py-0.5 text-xs text-teal-800" data-en-vigueur>{% translate "en vigueur" %}</span>{% endif %}
+      <span class="ms-2 text-xs text-slate-500">{{ d.created_at|date:"d/m/Y H:i" }} · {{ d.auteur.full_name|default:d.auteur.email }}</span>
+      <p class="mt-1 whitespace-pre-line">{{ d.motif }}</p>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="text-sm text-slate-500">{% translate "Aucune décision enregistrée" %}</p>
+  {% endif %}
+</section>
+{% if request.headers.hx_request == "true" %}<span id="statut-candidature" hx-swap-oob="true">{{ c.get_statut_display }}</span>{% endif %}

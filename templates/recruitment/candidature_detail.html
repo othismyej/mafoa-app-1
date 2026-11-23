@@ -30,7 +30,7 @@
       </p>
     </div>
     <dl class="text-sm">
-      <div><dt class="inline text-slate-500">{% translate "Statut" %} :</dt> <dd class="inline font-semibold" data-statut>{{ c.get_statut_display }}</dd></div>
+      <div><dt class="inline text-slate-500">{% translate "Statut" %} :</dt> <dd class="inline font-semibold" data-statut><span id="statut-candidature">{{ c.get_statut_display }}</span></dd></div>
       <div><dt class="inline text-slate-500">{% translate "Candidature du" %} :</dt> <dd class="inline">{{ c.date_candidature|date:"d/m/Y H:i" }}</dd></div>
       <div><dt class="inline text-slate-500">{% translate "Anomalies" %} :</dt>
         <dd class="inline {% if nb_anomalies_non_resolues %}font-semibold text-amber-700{% endif %}" data-nb-anomalies>
@@ -213,23 +213,6 @@
   {% endif %}
 </section>
 
-{# Décisions #}
-<section class="mt-6 rounded-lg border bg-white p-5" aria-labelledby="titre-decisions">
-  <h2 id="titre-decisions" class="mb-3 text-lg font-semibold">{% translate "Historique des décisions" %}</h2>
-  {# Le formulaire de décision (KAN-13) s'insérera ici. #}
-  {% if decisions %}
-  <ol class="divide-y text-sm">
-    {% for d in decisions %}
-    <li class="py-2" data-decision="{{ d.pk }}">
-      <span class="font-medium">{{ d.get_decision_display }}</span>
-      {% if forloop.first %}<span class="ms-2 rounded bg-teal-100 px-1.5 py-0.5 text-xs text-teal-800" data-en-vigueur>{% translate "en vigueur" %}</span>{% endif %}
-      <span class="ms-2 text-xs text-slate-500">{{ d.created_at|date:"d/m/Y H:i" }} · {{ d.auteur.full_name|default:d.auteur.email }}</span>
-      <p class="mt-1 whitespace-pre-line">{{ d.motif }}</p>
-    </li>
-    {% endfor %}
-  </ol>
-  {% else %}
-  <p class="text-sm text-slate-500">{% translate "Aucune décision enregistrée" %}</p>
-  {% endif %}
-</section>
+{# Décisions (fragment rafraîchi après chaque décision, KAN-13) #}
+{% include "recruitment/_decisions.html" %}
 {% endblock %}

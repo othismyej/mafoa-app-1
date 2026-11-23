@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 01:16+0000\n"
+"POT-Creation-Date: 2026-11-23 01:28+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,39 +18,76 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 
-#: apps/recruitment/filters.py:23 apps/recruitment/models.py:274
+#: apps/evaluation/decisions.py:84
+msgid "Le motif est obligatoire (10 caractères minimum)."
+msgstr ""
+
+#: apps/evaluation/decisions.py:87
+#, python-format
+msgid "Le motif ne peut pas dépasser 2 000 caractères (%(n)d saisis)."
+msgstr ""
+
+#: apps/evaluation/decisions.py:96
+#, python-format
+msgid "« %(d)s » n'est pas une décision possible."
+msgstr ""
+
+#: apps/evaluation/decisions.py:100
+#, python-format
+msgid "La candidature est déjà %(s)s."
+msgstr ""
+
+#: apps/evaluation/decisions.py:104
+#, python-format
+msgid "Transition interdite : %(a)s → %(b)s."
+msgstr ""
+
+#: apps/evaluation/services.py:142
+msgid "Une décision est toujours prise par un utilisateur identifié."
+msgstr ""
+
+#: apps/evaluation/services.py:157
+msgid ""
+"Une autre décision a été enregistrée entre-temps. La fiche a été actualisée."
+msgstr ""
+
+#: apps/evaluation/services.py:162
+msgid "Le concours est terminé : aucune décision n'est possible."
+msgstr ""
+
+#: apps/recruitment/filters.py:24 apps/recruitment/models.py:274
 #: templates/recruitment/_candidatures_resultats.html:32
 #: templates/recruitment/candidature_detail.html:160
 msgid "Éligible"
 msgstr ""
 
-#: apps/recruitment/filters.py:24 apps/recruitment/models.py:275
+#: apps/recruitment/filters.py:25 apps/recruitment/models.py:275
 #: templates/recruitment/_candidatures_resultats.html:33
 #: templates/recruitment/candidature_detail.html:160
 msgid "Non éligible"
 msgstr ""
 
-#: apps/recruitment/filters.py:25 apps/recruitment/models.py:276
+#: apps/recruitment/filters.py:26 apps/recruitment/models.py:276
 #: templates/recruitment/_candidatures_resultats.html:34
 #: templates/recruitment/candidature_detail.html:160
 #: templates/recruitment/concours_detail.html:38
 msgid "À vérifier"
 msgstr ""
 
-#: apps/recruitment/filters.py:26
+#: apps/recruitment/filters.py:27
 #: templates/recruitment/_candidatures_resultats.html:35
 msgid "Non évaluée"
 msgstr ""
 
-#: apps/recruitment/filters.py:30
+#: apps/recruitment/filters.py:31
 msgid "Toutes"
 msgstr ""
 
-#: apps/recruitment/filters.py:31
+#: apps/recruitment/filters.py:32
 msgid "Avec anomalie non résolue"
 msgstr ""
 
-#: apps/recruitment/filters.py:32
+#: apps/recruitment/filters.py:33
 msgid "Sans anomalie non résolue"
 msgstr ""
 
@@ -86,31 +123,35 @@ msgstr ""
 msgid "en cours"
 msgstr ""
 
-#: apps/recruitment/views.py:77
+#: apps/recruitment/views.py:88
 msgid "Candidat"
 msgstr ""
 
-#: apps/recruitment/views.py:78
+#: apps/recruitment/views.py:89
 msgid "Date de candidature"
 msgstr ""
 
-#: apps/recruitment/views.py:79
+#: apps/recruitment/views.py:90
 #: templates/recruitment/candidature_detail.html:33
 #: templates/recruitment/concours_detail.html:16
 #: templates/recruitment/poste_candidatures.html:33
 msgid "Statut"
 msgstr ""
 
-#: apps/recruitment/views.py:80
+#: apps/recruitment/views.py:91
 #: templates/recruitment/poste_candidatures.html:39
 msgid "Verdict d’éligibilité"
 msgstr ""
 
-#: apps/recruitment/views.py:81
+#: apps/recruitment/views.py:92
 #: templates/recruitment/candidature_detail.html:35
 #: templates/recruitment/candidature_detail.html:191
 #: templates/recruitment/poste_candidatures.html:45
 msgid "Anomalies"
+msgstr ""
+
+#: apps/recruitment/views.py:211 apps/recruitment/views.py:213
+msgid "Décision enregistrée."
 msgstr ""
 
 #: templates/account/login.html:6 templates/account/login.html:10
@@ -126,21 +167,21 @@ msgstr ""
 msgid "Send me a sign-in code"
 msgstr ""
 
-#: templates/base.html:19 templates/recruitment/candidature_detail.html:7
+#: templates/base.html:23 templates/recruitment/candidature_detail.html:7
 #: templates/recruitment/concours_detail.html:7
 #: templates/recruitment/poste_candidatures.html:6
 msgid "Tableau de bord"
 msgstr ""
 
-#: templates/base.html:20
+#: templates/base.html:24
 msgid "Administration"
 msgstr ""
 
-#: templates/base.html:21
+#: templates/base.html:25
 msgid "Sécurité"
 msgstr ""
 
-#: templates/base.html:24
+#: templates/base.html:28
 msgid "Déconnexion"
 msgstr ""
 
@@ -206,6 +247,57 @@ msgstr ""
 
 #: templates/recruitment/_date_affichee.html:1
 msgid "Date illisible"
+msgstr ""
+
+#: templates/recruitment/_decisions.html:3
+msgid "Décision et historique"
+msgstr ""
+
+#: templates/recruitment/_decisions.html:10
+msgid "Le concours est terminé : aucune décision n’est possible."
+msgstr ""
+
+#: templates/recruitment/_decisions.html:17
+msgid "Décision"
+msgstr ""
+
+#: templates/recruitment/_decisions.html:19
+msgid "— Choisir —"
+msgstr ""
+
+#: templates/recruitment/_decisions.html:22
+msgid "Motif (obligatoire, 10 caractères minimum)"
+msgstr ""
+
+#: templates/recruitment/_decisions.html:28
+#, python-format
+msgid "Je confirme revenir sur la décision du %(d)s."
+msgstr ""
+
+#: templates/recruitment/_decisions.html:28
+msgid "Je confirme revenir sur le statut actuel."
+msgstr ""
+
+#: templates/recruitment/_decisions.html:33
+msgid "J’ai pris connaissance de ces avertissements et je confirme."
+msgstr ""
+
+#: templates/recruitment/_decisions.html:37
+msgid "Enregistrer la décision"
+msgstr ""
+
+#: templates/recruitment/_decisions.html:38
+msgid ""
+"Toute décision est humaine, motivée et inscrite au journal d’audit. Elle ne "
+"peut pas être modifiée : on la remplace par une nouvelle décision."
+msgstr ""
+
+#: templates/recruitment/_decisions.html:48
+msgid "en vigueur"
+msgstr ""
+
+#: templates/recruitment/_decisions.html:55
+msgid "Aucune décision enregistrée"
 msgstr ""
 
 #: templates/recruitment/candidature_detail.html:6
@@ -430,18 +522,6 @@ msgstr ""
 
 #: templates/recruitment/candidature_detail.html:212
 msgid "Aucune anomalie"
-msgstr ""
-
-#: templates/recruitment/candidature_detail.html:218
-msgid "Historique des décisions"
-msgstr ""
-
-#: templates/recruitment/candidature_detail.html:225
-msgid "en vigueur"
-msgstr ""
-
-#: templates/recruitment/candidature_detail.html:232
-msgid "Aucune décision enregistrée"
 msgstr ""
 
 #: templates/recruitment/concours_detail.html:15
