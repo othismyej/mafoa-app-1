@@ -1,6 +1,7 @@
 from django.core.paginator import Paginator
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, render
+from django.utils.cache import patch_vary_headers
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
@@ -46,8 +47,8 @@ def poste_candidatures(request, concours_pk: int, poste_pk: int):
         "verdict_choices": VERDICT_CHOICES,
         "anomalie_choices": ANOMALIE_CHOICES,
         "page_sizes": PAGE_SIZES,
-        "querystring": _querystring(request.GET),
-        "querystring_sans_tri": _querystring(request.GET, drop=("page", "tri")),
+        "querystring": flt.querystring(include_tri=True),
+        "querystring_sans_tri": flt.querystring(include_tri=False),
         "sort_headers": [
             {
                 "key": key,
@@ -65,12 +66,19 @@ def poste_candidatures(request, concours_pk: int, poste_pk: int):
         request=request,
         metadata={**flt.as_metadata(), "page": page.number, "nb_resultats": page.paginator.count},
     )
+    # Fragment pour les requêtes HTMX, sauf restauration d'historique (page complète attendue).
+    fragment = (
+        request.headers.get("HX-Request") == "true"
+        and request.headers.get("HX-History-Restore-Request") != "true"
+    )
     template = (
         "recruitment/_candidatures_resultats.html"
-        if request.headers.get("HX-Request") == "true"
+        if fragment
         else "recruitment/poste_candidatures.html"
     )
-    return render(request, template, context)
+    response = render(request, template, context)
+    patch_vary_headers(response, ["HX-Request", "HX-History-Restore-Request"])
+    return response
 
 
 SORT_HEADERS = [
@@ -80,14 +88,6 @@ SORT_HEADERS = [
     ("verdict", _("Verdict d’éligibilité")),
     ("anomalies", _("Anomalies")),
 ]
-
-
-def _querystring(params, drop=("page",)) -> str:
-    """Paramètres courants (sans ``page``) pour construire les liens de pagination et de tri."""
-    q = params.copy()
-    for key in drop:
-        q.pop(key, None)
-    return q.urlencode()
 
 
 @require_GET

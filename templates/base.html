@@ -7,6 +7,9 @@
   <title>{% block head_title %}{% endblock %} · Mafoa AI</title>
   {# HTMX est servi localement. Tailwind (CDN) : à remplacer par un build local avant la production. #}
   <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  {# Aucune copie des pages (données personnelles) dans le localStorage du navigateur : #}
+  {# l'historique est toujours rechargé depuis le serveur (contrôle d'accès et audit). #}
+  <meta name="htmx-config" content='{"historyCacheSize":0,"refreshOnHistoryMiss":true}'>
   <script src="{% static 'vendor/htmx-2.0.4.min.js' %}" defer></script>
   {% block extra_head %}{% endblock %}
 </head>

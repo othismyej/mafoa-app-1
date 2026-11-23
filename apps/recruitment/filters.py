@@ -7,6 +7,7 @@ exactement le même ensemble de candidatures pour les mêmes paramètres.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from urllib.parse import urlencode
 
 from django.db.models import Case, Count, IntegerField, OuterRef, Q, QuerySet, Subquery, Value, When
 from django.db.models.functions import Coalesce
@@ -127,12 +128,27 @@ class CandidatureFilter:
             return key if self.desc else f"-{key}"
         return key
 
+    def querystring(self, include_tri: bool = True) -> str:
+        """Paramètres d'URL reconstruits à partir de l'état validé (jamais des valeurs brutes)."""
+        params: list[tuple[str, str]] = [("statut", v) for v in self.statuts]
+        params += [("verdict", v) for v in self.verdicts]
+        if self.anomalies != ANOMALIES_TOUTES:
+            params.append(("anomalies", self.anomalies))
+        if self.q:
+            params.append(("q", self.q))
+        if include_tri and (self.tri, self.desc) != (DEFAULT_SORT, False):
+            params.append(("tri", self.tri_param))
+        if self.taille != DEFAULT_PAGE_SIZE:
+            params.append(("taille", str(self.taille)))
+        return urlencode(params)
+
     def as_metadata(self) -> dict:
         return {
             "statuts": self.statuts,
             "verdicts": self.verdicts,
             "anomalies": self.anomalies,
-            "recherche": self.q,
+            # Un nom n'est conservé que si la recherche s'applique réellement (≥ 2 caractères).
+            "recherche": self.q if self.search_tokens else "",
             "tri": self.tri_param,
             "page": self.page,
             "taille": self.taille,

@@ -4,6 +4,7 @@ Les attentes sont fondées sur la spécification ``docs/specs/KAN-10-liste-candi
 Toutes les données sont fictives (domaines example.com / example.org). Aucun appel IA.
 """
 
+import json
 import re
 from datetime import date, datetime, timedelta
 from html.parser import HTMLParser
@@ -247,7 +248,7 @@ def ref():
             sexe=sexe,
             date_naissance=naissance,
             email=f"{prenom.lower()}.fictif{i}@example.org",
-            telephone=f"+21266600{i:04d}",
+            telephone=f"+212600000{i:03d}",
             cin=f"QX77{i:04d}",
             ville=f"Villefictive{key.capitalize()}",
             region=f"Regionfictive{key.capitalize()}",
@@ -1467,3 +1468,51 @@ def test_pas_de_classes_d_alignement_figees():
         for cls_attr in re.findall(r'class="([^"]*)"', path.read_text(encoding="utf-8")):
             offenders += [(path.name, m.group(0)) for m in pattern.finditer(cls_attr)]
     assert not offenders, offenders
+
+
+# --- Relecture conformité : aucune donnée nominative hors du serveur ------------------
+
+
+def test_historique_htmx_sans_copie_locale(client, direction_user, ref):
+    """La copie des pages dans le localStorage par htmx est désactivée (spec : « pas de
+    localStorage ») : l'historique est toujours rechargé depuis le serveur."""
+    html = get(client, direction_user, ref).content.decode()
+    match = re.search(r'<meta name="htmx-config" content=\'([^\']+)\'', html)
+    assert match, "configuration htmx absente"
+    config = json.loads(match.group(1))
+    assert config["historyCacheSize"] == 0
+    assert config["refreshOnHistoryMiss"] is True
+
+
+def test_restauration_d_historique_renvoie_la_page_complete(client, direction_user, ref):
+    response = get(
+        client,
+        direction_user,
+        ref,
+        HTTP_HX_REQUEST="true",
+        HTTP_HX_HISTORY_RESTORE_REQUEST="true",
+    )
+    assert "<html" in response.content.decode()
+    assert "HX-Request" in response.headers["Vary"]
+
+
+def test_pages_connectees_jamais_mises_en_cache(client, direction_user, ref):
+    for extra in ({}, {"HTTP_HX_REQUEST": "true"}):
+        cache_control = get(client, direction_user, ref, **extra).headers["Cache-Control"]
+        assert "no-store" in cache_control and "private" in cache_control
+
+
+def test_recherche_d_un_caractere_non_conservee_dans_le_journal(client, direction_user, ref):
+    from apps.audit.models import AuditAction, JournalAudit
+
+    get(client, direction_user, ref, {"q": "a"})
+    entry = JournalAudit.objects.filter(action=AuditAction.VIEW).latest("id")
+    assert entry.metadata["recherche"] == ""
+
+
+def test_liens_construits_a_partir_des_parametres_valides(client, direction_user, ref):
+    html = get(
+        client, direction_user, ref, {"inconnu": "x<y", "statut": ["recue", "faux"]}
+    ).content.decode()
+    assert "inconnu" not in html
+    assert "faux" not in re.sub(r"<input[^>]+>", "", html)
