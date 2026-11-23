@@ -181,6 +181,11 @@ CELERY_TIMEZONE = TIME_ZONE
 SITE_SOURCE = env("SITE_SOURCE", default="fixture")
 SITE_SOURCE_FIXTURE_SEED = env.int("SITE_SOURCE_FIXTURE_SEED", default=20260101)
 # Visionneuse des pièces (KAN-12) : taille maximale lue en mémoire et délai de lecture (s).
+# Actions en lot (KAN-15) : plafond d'un lot, seuil de la relance synchrone, durée du jeton.
+LOT_TAILLE_MAX = env.int("LOT_TAILLE_MAX", default=500)
+LOT_ELIGIBILITE_SYNC_MAX = env.int("LOT_ELIGIBILITE_SYNC_MAX", default=50)
+LOT_JETON_DUREE = 30 * 60
+
 PIECE_VIEWER_MAX_BYTES = env.int("PIECE_VIEWER_MAX_BYTES", default=20 * 1024 * 1024)
 PIECE_SOURCE_TIMEOUT = env.float("PIECE_SOURCE_TIMEOUT", default=10.0)
 

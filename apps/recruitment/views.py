@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import parse_qsl
 
 from django.conf import settings
 from django.contrib import messages
@@ -60,6 +61,9 @@ def poste_candidatures(request, concours_pk: int, poste_pk: int):
         "anomalie_choices": ANOMALIE_CHOICES,
         "page_sizes": PAGE_SIZES,
         "querystring": flt.querystring(include_tri=True),
+        # Barre d'actions en lot (KAN-15) : paramètres validés et décisions permises en lot.
+        "lot_params": parse_qsl(flt.querystring(include_tri=True)),
+        "lot_decisions": [(d, Candidature.Statut(d).label) for d in decision_rules.DECISIONS_LOT],
         "querystring_sans_tri": flt.querystring(include_tri=False),
         "sort_headers": [
             {
