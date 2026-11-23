@@ -175,7 +175,11 @@ class OffreEmploi(SourceRefMixin, CriteresEligibiliteMixin, TimeStampedModel):
         Organisation, verbose_name="organisation", on_delete=models.PROTECT, related_name="offres"
     )
     entreprise_confidentielle = models.BooleanField(
-        "entreprise confidentielle", default=False, help_text="Affichée « Confidential Company »."
+        "entreprise confidentielle",
+        default=False,
+        help_text=(
+            "Affichée « Entreprise confidentielle » : le nom de l’organisation n’est jamais montré."
+        ),
     )
     intitule = models.CharField("intitulé", max_length=255)
     slug = models.SlugField("slug", max_length=255, blank=True)

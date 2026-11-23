@@ -67,6 +67,9 @@ ou `templates/components/verdict.html`.
 Statuts de concours : `badge-brouillon` (pointillé), `badge-ouvert` (émeraude),
 `badge-cloture` (neutre), `badge-en_evaluation` (ciel), `badge-termine` (pierre).
 
+Statuts d'offre d'emploi (KAN-38) : `badge-ouverte` (émeraude), `badge-fermee` (neutre),
+`badge-pourvue` (pierre).
+
 ### 2.4 Gravité des anomalies
 
 | Gravité | Classe | Couleurs | Liseré de carte |
@@ -174,9 +177,9 @@ sont dans `templates/components/`.
 | Badge de statut | `components/badge_statut.html` (`code`, `label`), `.badge .badge-<code>` | Pastille + libellé ; `.badge-plain` retire la pastille (gravité, compteur). |
 | Verdict | `components/verdict.html` (`code`, `label`) | Éligible / Non éligible / À vérifier / Non évaluée. |
 | Carte | `.card`, `.card-header`, `.card-body`, `.card-accent` | Blanche sur `ink-50` ; `.card-accent` = liseré rouge 4 px en haut, réservé à l'en-tête d'un objet (concours, candidature). |
-| Chiffre clé | `components/stat.html` (`label`, `value`, `icon`, `tone`) | `tone="attention"` passe la carte en ambre si la valeur est non nulle. |
+| Chiffre clé | `components/stat.html` (`label`, `value`, `hint`, `icon`, `tone`, `href`, `cta`) | `tone="attention"` passe la carte en ambre si la valeur est non nulle. Avec `href`, toute la carte est un lien unique (`.stat-link`, survol discret, focus rouge) et `cta` affiche un appel « Voir … → » ; une carte qui contient plusieurs liens (ventilation) n'est pas elle-même un lien (KAN-38). |
 | En-tête de page | `.page-eyebrow` + `.page-title` | Sur-titre = contexte (organisation, concours) ; un seul `h1`. |
-| Fil d'Ariane | `components/breadcrumb.html` (`concours`, `poste`, `current`, `current_poste`) | Toujours « Tableau de bord › … » ; page courante en `aria-current="page"`. |
+| Fil d'Ariane | `components/breadcrumb.html` (`concours`, `poste`, `offres`, `offre`, `current`, `current_poste`) | Toujours « Tableau de bord › … » ; page courante en `aria-current="page"`. |
 | Navigation | `.nav-link` + `aria-current` | Élément actif : fond `brand-50`, texte `brand-700`, soulignement rouge 2 px. |
 | Menu utilisateur | `<details class="user-menu">` | Sans JavaScript : avatar (initiale), nom, rôle, double authentification, déconnexion. |
 | Tableau | `.table-wrap` + `.table-data` | En-têtes en petites capitales grises, lignes 48 px, survol `ink-50`, défilement horizontal sur mobile. |

@@ -7,6 +7,8 @@
 {# Fil d'Ariane et retour à la liste #}
 {% if c.poste_concours %}
 {% include "components/breadcrumb.html" with concours=c.poste_concours.concours poste=c.poste_concours current=candidat only %}
+{% elif c.offre %}
+{% include "components/breadcrumb.html" with offre=c.offre current=candidat only %}
 {% else %}
 {% include "components/breadcrumb.html" with current=candidat only %}
 {% endif %}
@@ -24,7 +26,7 @@
             {{ c.poste_concours.concours.intitule }} · {{ c.poste_concours.concours.organisation }} ·
             {% if c.poste_concours.reference %}{{ c.poste_concours.reference }} — {% endif %}{{ c.poste_concours.intitule }}
           {% elif c.offre %}
-            {{ c.offre.intitule }} · {% if c.offre.entreprise_confidentielle %}Confidential Company{% else %}{{ c.offre.organisation }}{% endif %}
+            {{ c.offre.intitule }} · {% include "recruitment/_entreprise.html" with offre=c.offre %}
           {% endif %}
         </p>
       </div>

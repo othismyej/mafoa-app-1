@@ -14,26 +14,16 @@ from .permissions import DIRECTION_ROLES, role_required
 
 @role_required(*DIRECTION_ROLES)
 def dashboard(request):
-    from apps.recruitment.models import Candidature, Concours, OffreEmploi, PosteConcours
+    """Tableau de bord : chiffres clés cliquables, concours, offres (spec KAN-38)."""
+    from apps.recruitment.models import Concours
+    from apps.recruitment.selectors import offres_avec_compteurs, tableau_de_bord
 
-    concours_actifs = Concours.objects.exclude(
-        statut__in=[Concours.Statut.BROUILLON, Concours.Statut.TERMINE]
-    )
     context = {
-        # Concours publics (e-Concours) et offres d'emploi privées sont deux objets distincts :
-        # chacun est compté sur sa propre table, avec son détail (postes, offres ouvertes).
-        "concours_count": Concours.objects.count(),
-        "concours_actifs_count": concours_actifs.count(),
-        "postes_count": PosteConcours.objects.count(),
-        "offres_count": OffreEmploi.objects.count(),
-        "offres_ouvertes_count": OffreEmploi.objects.filter(
-            statut=OffreEmploi.Statut.OUVERTE
-        ).count(),
-        "candidatures_count": Candidature.objects.count(),
-        "a_verifier_count": Candidature.objects.filter(
-            statut=Candidature.Statut.A_VERIFIER
-        ).count(),
+        # Concours publics (e-Concours) et offres d'emploi privées sont deux familles
+        # distinctes, comptées et ventilées séparément (règles 1 et 20).
+        "stats": tableau_de_bord(),
         "concours": Concours.objects.select_related("organisation").order_by("-date_limite")[:10],
+        "offres": offres_avec_compteurs()[:10],
     }
     return render(request, "dashboard/index.html", context)
 

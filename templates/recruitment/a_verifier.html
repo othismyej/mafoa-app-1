@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block head_title %}{% translate "Dossiers à vérifier" %}{% endblock %}
+{% block content %}
+{% translate "Dossiers à vérifier" as courant %}
+{% include "components/breadcrumb.html" with current=courant only %}
+<header class="mb-6">
+  <p class="page-eyebrow">{% translate "Espace direction" %}</p>
+  <h1 class="page-title">{% translate "Dossiers à vérifier" %}</h1>
+  <p class="mt-1 max-w-3xl text-sm text-ink-600">{% translate "Candidatures pour lesquelles le moteur d’éligibilité a signalé un doute et qu’aucune décision humaine n’a encore tranchées, regroupées par poste de concours ou par offre d’emploi." %}</p>
+</header>
+<p class="mb-3 text-sm font-medium text-ink-800" data-compteur>{% blocktranslate count n=total %}{{ n }} dossier à vérifier{% plural %}{{ n }} dossiers à vérifier{% endblocktranslate %}</p>
+{% if lignes %}
+<div class="table-wrap">
+<table class="table-data">
+  <thead><tr><th>{% translate "Type" %}</th><th>{% translate "Recrutement" %}</th><th class="text-end">{% translate "Dossiers à vérifier" %}</th><th><span class="sr-only">{% translate "Action" %}</span></th></tr></thead>
+  <tbody>
+  {% for ligne in lignes %}
+    <tr data-cible="{% if ligne.est_offre %}offre{% else %}poste{% endif %}-{{ ligne.cible.pk }}">
+      <td class="whitespace-nowrap text-ink-700">{% if ligne.est_offre %}{% translate "Offre d’emploi" %}{% else %}{% translate "Concours public" %}{% endif %}</td>
+      <td>
+        {% if ligne.est_offre %}{% with offre=ligne.cible %}
+          <span class="font-medium text-ink-900">{{ offre.intitule }}</span>
+          <span class="block text-xs text-ink-600">{% include "recruitment/_entreprise.html" %}</span>
+        {% endwith %}{% else %}{% with poste=ligne.cible %}
+          <span class="font-medium text-ink-900">{% if poste.reference %}{{ poste.reference }} — {% endif %}{{ poste.intitule }}</span>
+          <span class="block text-xs text-ink-600">{{ poste.concours.intitule }}</span>
+        {% endwith %}{% endif %}
+      </td>
+      <td class="text-end"><span class="badge badge-a_verifier badge-plain tabular-nums" data-col="nombre">{{ ligne.nombre }}</span></td>
+      <td class="text-end">
+        {% if ligne.est_offre %}<a class="btn-secondary btn-sm" data-lien-dossiers href="{% url 'recruitment:offre_detail' ligne.cible.pk %}?statut=a_verifier">
+        {% else %}<a class="btn-secondary btn-sm" data-lien-dossiers href="{% url 'recruitment:poste_candidatures' ligne.cible.concours_id ligne.cible.pk %}?statut=a_verifier">{% endif %}{% translate "Voir les dossiers" %}<span class="sr-only"> : {{ ligne.libelle }}</span> <span aria-hidden="true" class="flip-rtl">→</span></a>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="card card-body flex flex-col items-center gap-2 py-10 text-center text-ink-600">
+  {% include "components/icon.html" with name="check" size="h-8 w-8 text-ink-500" %}
+  <p>{% translate "Aucun dossier à vérifier." %}</p>
+</div>
+{% endif %}
+{% endblock %}
