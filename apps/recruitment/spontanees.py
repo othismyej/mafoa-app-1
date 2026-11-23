@@ -14,11 +14,14 @@ from datetime import date, datetime, timedelta
 from urllib.parse import urlencode
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.db.models import (
     Case,
     Count,
+    DateField,
     DateTimeField,
     Exists,
+    Func,
     IntegerField,
     OuterRef,
     Q,
@@ -27,7 +30,7 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.functions import Coalesce, Greatest
+from django.db.models.functions import Coalesce, Greatest, TruncDate
 from django.http import QueryDict
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -381,7 +384,11 @@ def ajouter_mois(valeur, mois: int):
 
 
 def duree_conservation_mois() -> int:
-    return settings.RETENTION_CANDIDATURE_SPONTANEE_MOIS
+    mois = settings.RETENTION_CANDIDATURE_SPONTANEE_MOIS
+    if isinstance(mois, bool) or not isinstance(mois, int) or mois < 1:
+        # Garde-fou si le contrôle système (recruitment.E001) a été contourné.
+        raise ImproperlyConfigured("RETENTION_CANDIDATURE_SPONTANEE_MOIS doit être ≥ 1.")
+    return mois
 
 
 def debut_conservation(candidature: Candidature):
@@ -392,8 +399,24 @@ def debut_conservation(candidature: Candidature):
 
 
 def fin_conservation(candidature: Candidature, mois: int | None = None) -> date:
+    """Dernier jour de conservation (date locale) : début de conservation + ``mois`` mois."""
     debut = timezone.localtime(debut_conservation(candidature)).date()
     return ajouter_mois(debut, duree_conservation_mois() if mois is None else mois)
+
+
+class _AjouterMois(Func):
+    """``date + n mois`` en base. PostgreSQL ramène le jour à la fin du mois, comme
+    :func:`ajouter_mois`."""
+
+    output_field = DateField()
+
+    def __init__(self, expression, mois: int):
+        super().__init__(expression)
+        self.mois = int(mois)
+
+    def as_sql(self, compiler, connection, **extra_context):
+        sql, params = compiler.compile(self.source_expressions[0])
+        return f"(({sql}) + make_interval(months => %s))::date", [*params, self.mois]
 
 
 def conservation_depassee(
@@ -401,11 +424,13 @@ def conservation_depassee(
 ) -> QuerySet[Candidature]:
     """Candidatures spontanées dont la durée de conservation est dépassée à ``reference``.
 
-    Lecture seule : ne supprime ni ne modifie rien (la purge relève de KAN-31).
+    Même référence que :func:`fin_conservation` (date locale) : une candidature est concernée
+    dès le lendemain de sa date de fin de conservation, soit ``fin_conservation(c) < date
+    locale de reference``. Lecture seule : ne supprime ni ne modifie rien (la purge relève de
+    KAN-31).
     """
     mois = duree_conservation_mois() if mois is None else mois
-    reference = reference or timezone.now()
-    limite = ajouter_mois(reference, -mois)
+    aujourd_hui = timezone.localdate(reference or timezone.now())
     return (
         spontanees()
         .annotate(
@@ -415,6 +440,11 @@ def conservation_depassee(
                 output_field=DateTimeField(),
             )
         )
-        .filter(debut_conservation__lt=limite)
+        .annotate(
+            fin_conservation=_AjouterMois(
+                TruncDate("debut_conservation", tzinfo=timezone.get_current_timezone()), mois
+            )
+        )
+        .filter(fin_conservation__lt=aujourd_hui)
         .order_by("date_candidature", "id")
     )

@@ -32,7 +32,7 @@
   {% if details.consentement_vivier is not True %}
   <p class="alert alert-info mt-4" role="note" data-consentement-absent>{% include "components/icon.html" with name="info" size="alert-icon" %}<span>{% translate "Le consentement du candidat à la conservation dans le vivier n’est pas établi. La durée de conservation applicable sera revue par la politique de purge (loi 09-08)." %}</span></p>
   {% endif %}
-  <p class="meta mt-4">{% blocktranslate with n=duree_conservation %}Durée de conservation : {{ n }} mois à compter de la candidature (paramètre).{% endblocktranslate %}</p>
+  <p class="meta mt-4">{% blocktranslate with n=duree_conservation %}Durée de conservation : {{ n }} mois à compter de la candidature ou de sa dernière mise à jour sur le site (paramètre).{% endblocktranslate %}</p>
   </div>
 </section>
 

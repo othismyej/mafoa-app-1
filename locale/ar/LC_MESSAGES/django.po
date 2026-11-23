@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 21:20+0000\n"
+"POT-Creation-Date: 2026-11-23 21:40+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -146,49 +146,58 @@ msgstr ""
 msgid "Fiche"
 msgstr ""
 
-#: apps/evaluation/decisions.py:105
+#: apps/evaluation/decisions.py:109
 msgid "Le motif est obligatoire (10 caractères minimum)."
 msgstr ""
 
-#: apps/evaluation/decisions.py:108
+#: apps/evaluation/decisions.py:112
 #, python-format
 msgid "Le motif ne peut pas dépasser 2 000 caractères (%(n)d saisis)."
 msgstr ""
 
-#: apps/evaluation/decisions.py:120
+#: apps/evaluation/decisions.py:124
 #, python-format
 msgid "« %(d)s » n'est pas une décision possible."
 msgstr ""
 
-#: apps/evaluation/decisions.py:124
+#: apps/evaluation/decisions.py:128
 #, python-format
 msgid "La candidature est déjà %(s)s."
 msgstr ""
 
-#: apps/evaluation/decisions.py:128
+#: apps/evaluation/decisions.py:132
 #, python-format
 msgid "Transition interdite : %(a)s → %(b)s."
 msgstr ""
 
-#: apps/evaluation/decisions.py:188
+#: apps/evaluation/decisions.py:215
 #, python-format
 msgid "« %(d)s » ne peut pas être décidé en lot."
 msgstr ""
 
-#: apps/evaluation/decisions.py:193
+#: apps/evaluation/decisions.py:220
 msgid ""
 "Cette transition ne peut pas être traitée en lot : à faire depuis la fiche."
 msgstr ""
 
-#: apps/evaluation/decisions.py:200
+#: apps/evaluation/decisions.py:227
 msgid "Ce dossier a au moins une anomalie de gravité haute non résolue."
 msgstr ""
 
-#: apps/evaluation/decisions.py:203
+#: apps/evaluation/decisions.py:230
 msgid "Le nombre de postes à pourvoir est déjà atteint pour cette cible."
 msgstr ""
 
-#: apps/evaluation/decisions.py:206
+#: apps/evaluation/decisions.py:233
+msgid "Le candidat a refusé la conservation de son dossier au vivier."
+msgstr ""
+
+#: apps/evaluation/decisions.py:236
+msgid ""
+"Le consentement du candidat à la conservation au vivier n’est pas établi."
+msgstr ""
+
+#: apps/evaluation/decisions.py:239
 msgid ""
 "Ces dossiers n’ont pas été jugés éligibles par le moteur. En les déclarant "
 "éligibles en lot, vous attestez les avoir examinés."
@@ -429,7 +438,7 @@ msgstr ""
 msgid "À vérifier"
 msgstr ""
 
-#: apps/recruitment/filters.py:32 apps/recruitment/spontanees.py:55
+#: apps/recruitment/filters.py:32 apps/recruitment/spontanees.py:58
 msgid "Toutes"
 msgstr ""
 
@@ -677,16 +686,16 @@ msgstr ""
 msgid "Anomalies"
 msgstr ""
 
-#: apps/recruitment/spontanees.py:56
+#: apps/recruitment/spontanees.py:59
 msgid "Avec CV"
 msgstr ""
 
-#: apps/recruitment/spontanees.py:57
+#: apps/recruitment/spontanees.py:60
 #: templates/recruitment/_spontanees_resultats.html:43
 msgid "Sans CV"
 msgstr ""
 
-#: apps/recruitment/spontanees.py:75
+#: apps/recruitment/spontanees.py:78
 msgid "Non précisée"
 msgstr ""
 
@@ -1487,7 +1496,8 @@ msgstr ""
 #: templates/recruitment/_fiche_spontanee.html:35
 #, python-format
 msgid ""
-"Durée de conservation : %(n)s mois à compter de la candidature (paramètre)."
+"Durée de conservation : %(n)s mois à compter de la candidature ou de sa "
+"dernière mise à jour sur le site (paramètre)."
 msgstr ""
 
 #: templates/recruitment/_fiche_spontanee.html:41

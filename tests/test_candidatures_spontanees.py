@@ -1,6 +1,6 @@
 """Tests d'acceptation de KAN-39 — Candidatures spontanées (vivier).
 
-Les attentes sont fondées sur ``docs/specs/KAN-39-candidatures-spontanees.md`` (CA1 à CA63).
+Les attentes sont fondées sur ``docs/specs/KAN-39-candidatures-spontanees.md`` (CA1 à CA66).
 Toutes les données sont fictives (domaines example.com / example.org, CIN « ZZ »). Aucun appel IA.
 """
 
@@ -10,7 +10,7 @@ import hashlib
 import json
 import re
 from dataclasses import asdict, replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -18,13 +18,16 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
+from django.core.management.base import SystemCheckError
 from django.db import IntegrityError, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.http import QueryDict
 from django.test import Client
 from django.test.utils import CaptureQueriesContext, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from pypdf import PdfReader
 
 from apps.accounts.models import Role
@@ -34,6 +37,7 @@ from apps.evaluation.models import Anomalie, Decision, VerificationEligibilite
 from apps.evaluation.services import CandidatureSpontaneeError, record_decision, run_eligibility
 from apps.exports.candidatures import candidatures_concours, classeur_concours
 from apps.recruitment import spontanees as service
+from apps.recruitment.checks import check_retention_spontanees
 from apps.recruitment.models import (
     Candidat,
     Candidature,
@@ -213,7 +217,8 @@ def ref(dir1):
         candidat=candidat("Alaoui", "Karim", 6), offre=o1, date_candidature=at(2026, 11, 5, 12)
     )
     add_piece(o1c, "cv")
-    d1 = record_decision(s2, dir1, S.VIVIER, MOTIF)
+    # S2 : consentement inconnu → avertissement confirmé (règle 30 bis).
+    d1 = record_decision(s2, dir1, S.VIVIER, MOTIF, confirmer_avertissements=True)
     d0 = record_decision(s3, dir1, S.REJETEE, MOTIF)
     return Ref(
         S1=s1, S2=s2, S3=s3, S4=s4, S5=s5, S6=s6, C1=c1, O1=o1c, p1=p1, o1=o1,
@@ -580,7 +585,7 @@ def test_ca10_cible_inconnue_jamais_spontanee():
 def test_ca11_changement_de_type_a_la_source(dir1):
     sync_from_source(MiniSource([dto("SP-2", "U-2", type="spontanee")]), compute_hashes=False)
     s2 = Candidature.objects.get(source_id="SP-2")
-    decision = record_decision(s2, dir1, S.VIVIER, MOTIF)
+    decision = record_decision(s2, dir1, S.VIVIER, MOTIF, confirmer_avertissements=True)
     nouvelle_date = datetime(2026, 10, 20, tzinfo=UTC)
     report = sync_from_source(
         MiniSource([dto("SP-2", "U-2", type="offre", offre_source_id="O-M", date=nouvelle_date)]),
@@ -1279,7 +1284,9 @@ def test_ca53_revision_rejetee_vers_vivier(dir1, ref):
         record_decision(s3, dir1, S.VIVIER, MOTIF)
     assert exc.value.revision and exc.value.decision_remplacee_id == d0.pk
     assert s3.decisions.count() == 1
-    d = record_decision(s3, dir1, S.VIVIER, MOTIF, confirmer_revision=True)
+    d = record_decision(
+        s3, dir1, S.VIVIER, MOTIF, confirmer_revision=True, confirmer_avertissements=True
+    )
     assert Decision.objects.get(pk=d0.pk).decision == S.REJETEE
     entree = JournalAudit.objects.filter(
         action=AuditAction.DECISION, metadata__decision_id=d.pk
@@ -1311,7 +1318,11 @@ def test_ca54_refus_kan13(client, dir1, cons1, ref):
 
 
 def test_ca55_pas_d_avertissement_anomalie(dir1, ref):
-    record_decision(ref.S5, dir1, S.VIVIER, MOTIF)
+    # Seul l'avertissement de consentement (S5 : inconnu) est demandé, jamais « anomalie haute ».
+    with pytest.raises(ConfirmationRequise) as exc:
+        record_decision(ref.S5, dir1, S.VIVIER, MOTIF)
+    assert exc.value.avertissements == ["consentement_inconnu"]
+    record_decision(ref.S5, dir1, S.VIVIER, MOTIF, confirmer_avertissements=True)
     assert Candidature.objects.get(pk=ref.S5.pk).statut == S.VIVIER
 
 
@@ -1462,7 +1473,14 @@ def test_ca62_libelles_dans_le_catalogue():
                 msgid = re.sub(r"\{\{\s*(\w+)\s*\}\}", r"%(\1)s", part)
                 if msgid not in msgids:
                     missing.append(msgid)
-    for label in ("Conservée au vivier", "Candidature spontanée", "Non précisée", "Sans CV"):
+    for label in (
+        "Conservée au vivier",
+        "Candidature spontanée",
+        "Non précisée",
+        "Sans CV",
+        "Le candidat a refusé la conservation de son dossier au vivier.",
+        "Le consentement du candidat à la conservation au vivier n’est pas établi.",
+    ):
         if label not in msgids:
             missing.append(label)
     assert not missing, missing
@@ -1494,3 +1512,175 @@ def test_badge_vivier_dans_la_charte():
     assert "badge-vivier" in (BASE_DIR / "docs" / "design" / "charte.md").read_text(
         encoding="utf-8"
     )
+
+
+# --------------------------------------------------------------------------------------
+# Relecture conformité : consentement et « vivier » (règle 30 bis, CA64 à CA66)
+# --------------------------------------------------------------------------------------
+
+
+def _consentement(c, valeur):
+    DetailsSpontanee.objects.filter(candidature=c).update(consentement_vivier=valeur)
+
+
+def _audit_decision(c):
+    return JournalAudit.objects.filter(action=AuditAction.DECISION, object_id=str(c.pk)).get()
+
+
+@pytest.mark.parametrize(
+    ("valeur", "code", "etat"),
+    [(False, "consentement_refuse", "non"), (None, "consentement_inconnu", "inconnu")],
+)
+def test_ca64_vivier_sans_consentement_demande_confirmation(dir1, ref, valeur, code, etat):
+    s1 = ref.S1
+    _consentement(s1, valeur)
+    with pytest.raises(ConfirmationRequise) as exc:
+        record_decision(s1, dir1, S.VIVIER, MOTIF)
+    assert exc.value.avertissements == [code] and not exc.value.revision
+    # Confirmation absente : rien n'est enregistré.
+    assert not s1.decisions.exists() and Candidature.objects.get(pk=s1.pk).statut == S.RECUE
+    assert not JournalAudit.objects.filter(
+        action=AuditAction.DECISION, object_id=str(s1.pk)
+    ).exists()
+    record_decision(s1, dir1, S.VIVIER, MOTIF, confirmer_avertissements=True)
+    assert Candidature.objects.get(pk=s1.pk).statut == S.VIVIER
+    meta = _audit_decision(s1).metadata
+    assert meta["avertissements_confirmes"] == [code]
+    assert meta["consentement_vivier"] == etat
+
+
+def test_ca64_consentement_inconnu_sans_objet_de_souhaits(dir1, ref):
+    s1 = ref.S1
+    DetailsSpontanee.objects.filter(candidature=s1).delete()
+    with pytest.raises(ConfirmationRequise) as exc:
+        record_decision(s1, dir1, S.VIVIER, MOTIF)
+    assert exc.value.avertissements == ["consentement_inconnu"]
+
+
+def test_ca65_consentement_oui_sans_avertissement(dir1, ref):
+    s1 = ref.S1  # consentement « oui »
+    record_decision(s1, dir1, S.VIVIER, MOTIF)
+    meta = _audit_decision(s1).metadata
+    assert meta["consentement_vivier"] == "oui" and "avertissements_confirmes" not in meta
+
+
+def test_ca65_rejet_sans_avertissement_de_consentement(dir1, ref):
+    s4 = ref.S4  # consentement inconnu
+    record_decision(s4, dir1, S.REJETEE, MOTIF)
+    meta = _audit_decision(s4).metadata
+    assert meta["consentement_vivier"] == "inconnu" and "avertissements_confirmes" not in meta
+
+
+@pytest.mark.parametrize(
+    ("valeur", "libelle"),
+    [
+        (False, "Le candidat a refusé la conservation de son dossier au vivier."),
+        (None, "Le consentement du candidat à la conservation au vivier n’est pas établi."),
+    ],
+)
+def test_ca66_confirmation_dans_la_fiche(client, dir1, ref, valeur, libelle):
+    s1 = ref.S1
+    _consentement(s1, valeur)
+    client.force_login(dir1)
+    response = poster(client, s1, S.VIVIER)
+    assert response.status_code == 200
+    root = parse(response)
+    (bloc,) = by_attr(root, "data-decision-confirmation")
+    assert libelle in bloc.text()
+    (case,) = bloc.find_all(
+        lambda n: n.tag == "input" and n.attrs.get("name") == "confirmer_avertissements"
+    )
+    assert "checked" not in case.attrs  # rien de pré-coché
+    assert not s1.decisions.exists()
+    assert poster(client, s1, S.VIVIER, confirmer_avertissements="1").status_code == 302
+    assert Candidature.objects.get(pk=s1.pk).statut == S.VIVIER
+
+
+# --------------------------------------------------------------------------------------
+# Relecture conformité : conservation (règle 36)
+# --------------------------------------------------------------------------------------
+
+
+def test_ca46_libelle_de_conservation(client, dir1, ref):
+    texte = get(client, dir1, fiche(ref.S1)).content.decode()
+    assert (
+        "Durée de conservation : 24 mois à compter de la candidature ou de sa dernière mise à "
+        "jour sur le site (paramètre)." in texte
+    )
+
+
+@pytest.mark.parametrize(
+    ("debut", "mois"),
+    [
+        # 00:30 à Casablanca = veille en UTC : la référence est la date locale.
+        ((2026, 11, 3, 0, 30), 3),
+        ((2026, 3, 31, 0, 30), 1),  # fin de mois ramenée au 30 avril
+        ((2026, 2, 28, 23, 45), 1),  # 31 mars - 1 mois serait ramené au 28 février
+        ((2026, 1, 31, 12, 0), 1),
+    ],
+)
+def test_ca60_coherence_fin_et_depassement_en_limite_de_jour(dir1, debut, mois):
+    c = spontanee(candidat("Limite", "Jour", 7), at(*debut))
+    c = Candidature.objects.select_related("details_spontanee").get(pk=c.pk)
+    fin = service.fin_conservation(c, mois)
+    tz = timezone.get_current_timezone()
+    for jour in range(-3, 4):
+        d = fin + timedelta(days=jour)
+        for hh, mm in ((0, 0), (0, 30), (23, 59)):
+            reference = datetime(d.year, d.month, d.day, hh, mm, tzinfo=tz)
+            depassee = service.conservation_depassee(mois, reference).filter(pk=c.pk).exists()
+            assert depassee == (fin < d), (reference, fin)
+
+
+@pytest.mark.parametrize("valeur", [0, -1])
+def test_retention_inferieure_a_un_mois_refusee(valeur):
+    with override_settings(RETENTION_CANDIDATURE_SPONTANEE_MOIS=valeur):
+        (erreur,) = check_retention_spontanees()
+        assert erreur.id == "recruitment.E001"
+        with pytest.raises(SystemCheckError):
+            call_command("check")
+        with pytest.raises(ImproperlyConfigured):
+            service.duree_conservation_mois()
+    with override_settings(RETENTION_CANDIDATURE_SPONTANEE_MOIS=1):
+        assert check_retention_spontanees() == []
+    assert check_retention_spontanees() == []
+
+
+# --------------------------------------------------------------------------------------
+# Relecture conformité : synchronisation et immuabilité du type (règle 14)
+# --------------------------------------------------------------------------------------
+
+
+def test_ca11_dto_devenu_incoherent_compte_comme_conflit():
+    sync_from_source(MiniSource([dto("SP-7", type="spontanee")]), compute_hashes=False)
+    c = Candidature.objects.get(source_id="SP-7")
+    report = sync_from_source(
+        MiniSource([dto("SP-7", type="spontanee", poste_source_id="P-M")]), compute_hashes=False
+    )
+    assert [r["source_id"] for r in report.refusees] == ["SP-7"]
+    attendu = [{"candidature_id": c.pk, "source_id": "SP-7", "motif": "dto_incoherent"}]
+    assert report.conflits_type == attendu
+    c2 = Candidature.objects.get(pk=c.pk)
+    assert (c2.type, c2.poste_concours, c2.statut) == (T.SPONTANEE, None, S.RECUE)
+    meta = audit_sync().metadata
+    assert meta["refusees"] == 1
+    assert meta["conflits_type"] == 1 and meta["conflits_type_detail"] == attendu
+
+
+def test_dto_incoherent_nouveau_refuse_sans_conflit():
+    report = sync_from_source(
+        MiniSource([dto("SP-8", type="spontanee", poste_source_id="P-M")]), compute_hashes=False
+    )
+    assert len(report.refusees) == 1 and report.conflits_type == []
+
+
+def test_type_immuable_seulement_par_l_application(ref):
+    """Limite connue : l'immuabilité du type (règle 14) est garantie par la synchronisation et
+    le service, pas par la base. Un ``update()`` cohérent (type et cible changés ensemble) passe
+    les contraintes ``CHECK``. Un déclencheur en base fera l'objet d'un ticket dédié ; ce test
+    devra alors être inversé."""
+    s1 = ref.S1
+    n = Candidature.objects.filter(pk=s1.pk).update(type=T.OFFRE, offre=ref.o1)
+    assert n == 1
+    c = Candidature.objects.get(pk=s1.pk)
+    assert (c.type, c.offre) == (T.OFFRE, ref.o1)

@@ -258,6 +258,7 @@ def record_decision(
             metadata["mode"] = "lot"
         if c.type == Candidature.Type.SPONTANEE:
             metadata["type_candidature"] = c.type  # KAN-39, règle 39
+            metadata["consentement_vivier"] = decisions.etat_consentement(c)  # règle 30 bis
         log(
             AuditAction.DECISION,
             actor=auteur,

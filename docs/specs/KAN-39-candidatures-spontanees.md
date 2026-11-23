@@ -193,6 +193,17 @@ Contrôle de rôle côté serveur sur chaque vue **et** chaque fragment HTMX.
     `sync` (identifiant interne et `source_id`, sans nom). Le traitement de ces conflits est
     humain (QS5). Les autres champs importés (date, données déclarées, souhaits, pièces) restent
     mis à jour.
+
+    **14 bis (amendement relecture conformité, 2026-11-23).** Si le DTO d'une candidature
+    **déjà importée** devient incohérent (règle 12), il est refusé (rien n'est modifié, compté
+    dans `refusees`) **et** compté comme conflit (`conflits_type`, avec `motif =
+    "dto_incoherent"`), pour qu'un humain le voie dans l'audit `sync`. Un DTO incohérent pour
+    une candidature inconnue de l'application reste un simple refus.
+
+    *Limite connue* : l'immuabilité du type et de la cible est garantie par la synchronisation
+    et le service, **pas par la base** (un `update()` ORM ou SQL cohérent — type et cible changés
+    ensemble — passe les contraintes). Un déclencheur en base fera l'objet d'un ticket dédié ;
+    un test documente la limite actuelle.
 15. **Souhaits.** À chaque synchronisation, l'objet de souhaits d'une candidature spontanée est
     créé ou mis à jour à partir du DTO (le site reste la source de vérité) ; `souhaits` absent
     = tous les champs vides. Une `fonction_souhaitee` hors des valeurs de `Fonction` est stockée
@@ -334,6 +345,22 @@ Contrôle de rôle côté serveur sur chaque vue **et** chaque fragment HTMX.
     (`metadata.revision`, `decision_remplacee_id`), ajout seul. Les avertissements « anomalie
     haute » et « quota » ne s'appliquent pas (aucune décision de sélection). La règle « concours
     terminé » est sans objet.
+
+    **30 bis (amendement relecture conformité, 2026-11-23). Consentement et décision
+    « vivier ».** Pour une candidature spontanée, la décision « Conservée au vivier » déclenche
+    un **avertissement non bloquant** (même mécanisme que KAN-13 : `ConfirmationRequise`,
+    confirmation explicite `confirmer_avertissements`, case jamais pré-cochée) lorsque le
+    consentement à la conservation (règle 7) est :
+    - **refusé** (`False`) : « Le candidat a refusé la conservation de son dossier au vivier. »
+      (code `consentement_refuse`) ;
+    - **inconnu** (nul, ou objet de souhaits absent) : « Le consentement du candidat à la
+      conservation au vivier n'est pas établi. » (code `consentement_inconnu`).
+
+    Sans confirmation, rien n'est enregistré. Un consentement « oui » ne déclenche aucun
+    avertissement ; la décision « Rejetée » n'en déclenche jamais. L'entrée d'audit `decision`
+    d'une candidature spontanée porte l'état du consentement au moment de la décision
+    (`metadata.consentement_vivier` : `oui`, `non` ou `inconnu`) et, le cas échéant, les
+    avertissements confirmés (`metadata.avertissements_confirmes`). Libellés traduisibles.
 31. **Pas de rattachement à une offre ou à un poste** dans cette story (vague 2) : aucune action
     ne transforme une candidature spontanée en candidature à une offre.
 32. **Pas de décision en lot** sur les candidatures spontanées ; le point d'entrée des lots
@@ -358,7 +385,13 @@ Contrôle de rôle côté serveur sur chaque vue **et** chaque fragment HTMX.
 36. **Durée de conservation configurable** propre aux candidatures spontanées (paramètre, nom
     indicatif `RETENTION_CANDIDATURE_SPONTANEE_MOIS`, défaut **24 mois** à compter de la date de
     candidature, ou de la dernière mise à jour à la source si le site la fournit, QS3). La date
-    de fin de conservation est calculée et affichée sur la fiche. La **purge** effective, le
+    de fin de conservation est calculée et affichée sur la fiche, avec le libellé « Durée de
+    conservation : N mois à compter de la candidature ou de sa dernière mise à jour sur le site
+    (paramètre). » La fin de conservation et le sélecteur « dépassée » utilisent la **même
+    référence** : date locale (fuseau de l'application) du début de conservation + N mois ; une
+    candidature est « dépassée » à partir du lendemain de sa date de fin. Le paramètre doit être
+    un entier ≥ 1 : toute autre valeur est refusée au démarrage (contrôle système Django
+    `recruitment.E001`) *(amendement relecture conformité, 2026-11-23)*. La **purge** effective, le
     droit d'accès et le droit de suppression relèvent de **KAN-31** ; cette story ne supprime
     rien mais fournit un sélecteur testable « candidatures spontanées dont la durée est
     dépassée ».
@@ -463,7 +496,11 @@ Utilisateurs : `admin1@mafoa.test` (admin), `dir1@mafoa.test` (direction), `cons
   source la renvoie ensuite avec `type = "offre"` et une offre connue, alors S2 reste spontanée,
   sans offre, au statut « conservée au vivier », sa décision est inchangée, et le rapport ainsi
   que l'entrée `sync` comptent un conflit de type portant l'identifiant interne et le
-  `source_id` de S2.
+  `source_id` de S2. *(Règle 14 bis)* Étant donné une spontanée déjà importée, quand la source
+  la renvoie avec un DTO incohérent (ex. `type = "spontanee"` et un `poste_source_id`), alors
+  elle est inchangée, le DTO est compté refusé **et** en conflit (`motif = "dto_incoherent"`)
+  dans le rapport et l'entrée `sync` ; un DTO incohérent inconnu de l'application n'est qu'un
+  refus. Un test documente que l'immuabilité du type n'est pas garantie par la base.
 - **CA12** — Étant donné S1 synchronisée, quand la source modifie son secteur souhaité, alors le
   secteur est mis à jour à la synchronisation suivante et le statut de S1 est inchangé.
 - **CA13** — Étant donné un DTO spontané dont la fonction souhaitée est « Data scientist », alors
@@ -588,7 +625,8 @@ Utilisateurs : `admin1@mafoa.test` (admin), `dir1@mafoa.test` (direction), `cons
   candidature ».
 - **CA46** — Étant donné la fiche de S1, alors elle affiche « Données conservées jusqu'au
   02/11/2028 » (24 mois, paramètre par défaut) ; avec le paramètre fixé à 12 mois dans le test,
-  « 02/11/2027 ».
+  « 02/11/2027 ». La fiche affiche « Durée de conservation : 24 mois à compter de la candidature
+  ou de sa dernière mise à jour sur le site (paramètre). »
 - **CA47** — Étant donné S1 avec 30 pièces, 30 anomalies, 20 décisions et 25 autres candidatures
   du même candidat, alors le nombre de requêtes SQL de la fiche est identique (à une constante
   près fixée par le test) à celui de S1 avec une pièce, une anomalie, une décision et une autre
@@ -597,6 +635,19 @@ Utilisateurs : `admin1@mafoa.test` (admin), `dir1@mafoa.test` (direction), `cons
   échappé sur la fiche et n'apparaît pas dans la liste.
 
 **Décisions**
+
+- **CA64** *(règle 30 bis)* — Étant donné S1 dont le consentement est « Non » (resp. inconnu),
+  quand `dir1` décide « Conservée au vivier » sans confirmation, alors une demande de
+  confirmation est renvoyée avec l'avertissement `consentement_refuse` (resp.
+  `consentement_inconnu`), et ni décision, ni changement de statut, ni entrée d'audit ne sont
+  enregistrés ; avec confirmation, la décision est enregistrée et l'entrée `decision` porte
+  `avertissements_confirmes` et `consentement_vivier = "non"` (resp. `"inconnu"`).
+- **CA65** *(règle 30 bis)* — Étant donné S1 (consentement « Oui »), « Conservée au vivier » est
+  enregistrée sans avertissement et l'audit porte `consentement_vivier = "oui"` ; étant donné S4
+  (consentement inconnu), « Rejetée » est enregistrée sans avertissement.
+- **CA66** *(règle 30 bis)* — Étant donné la fiche, l'envoi de « Conservée au vivier » sans
+  consentement établi affiche le libellé de l'avertissement et une case de confirmation non
+  cochée ; l'envoi avec la case cochée enregistre la décision.
 
 - **CA49** — Étant donné S1 (reçue) et `dir1`, quand il décide « Conservée au vivier » avec un
   motif valide, alors une `Decision` est créée, le statut devient « Conservée au vivier » et une
@@ -643,6 +694,10 @@ Utilisateurs : `admin1@mafoa.test` (admin), `dir1@mafoa.test` (direction), `cons
 - **CA60** — Étant donné le jeu de référence et la date de référence du 15/12/2026, quand le
   sélecteur « durée de conservation dépassée » est appelé avec une durée de 3 mois, alors il
   renvoie S3 et S6 seulement (S2, du 15/10/2026, n'est pas concernée) ; il ne supprime ni ne modifie aucune donnée.
+  En limite de jour (candidature à 00 h 30 heure locale, fin de mois), une candidature est
+  « dépassée » à une date de référence si et seulement si sa date de fin de conservation
+  affichée est antérieure à la date locale de référence. Une durée < 1 mois est refusée au
+  démarrage (`recruitment.E001`).
 - **CA61** — Étant donné la liste des candidatures du poste P1 (KAN-10), alors le filtre statut ne
   propose pas « Conservée au vivier ».
 - **CA62** — Étant donné la langue active `ar`, quand la liste et la fiche de S1 sont affichées,

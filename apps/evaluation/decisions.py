@@ -58,6 +58,10 @@ MOTIF_MIN, MOTIF_MAX = 10, 2000
 CODES_REFUS_JOURNALISES = {"transition_interdite", "valeur_interdite"}
 AVERTISSEMENT_ANOMALIE = "anomalie_haute"
 AVERTISSEMENT_QUOTA = "quota_atteint"
+# Candidature spontanée (KAN-39, règle 30 bis) : « vivier » sans consentement établi.
+AVERTISSEMENT_CONSENTEMENT_REFUSE = "consentement_refuse"
+AVERTISSEMENT_CONSENTEMENT_INCONNU = "consentement_inconnu"
+CONSENTEMENT_OUI, CONSENTEMENT_NON, CONSENTEMENT_INCONNU = "oui", "non", "inconnu"
 
 
 class DecisionError(Exception):
@@ -131,12 +135,35 @@ def verifier_transition(statut: str, decision: str, type_candidature: str | None
         )
 
 
+def etat_consentement(candidature: Candidature) -> str:
+    """Consentement à la conservation au vivier : « oui », « non » ou « inconnu » (KAN-39)."""
+    try:
+        details = candidature.details_spontanee
+    except Candidature.details_spontanee.RelatedObjectDoesNotExist:
+        details = None
+    valeur = details.consentement_vivier if details else None
+    if valeur is True:
+        return CONSENTEMENT_OUI
+    if valeur is False:
+        return CONSENTEMENT_NON
+    return CONSENTEMENT_INCONNU
+
+
 def avertissements(candidature: Candidature, decision: str) -> list[str]:
     """Avertissements non bloquants (règle 10) : confirmation requise.
 
-    Sans objet pour une candidature spontanée (KAN-39, règle 30 : aucune décision de sélection).
+    Candidature spontanée (KAN-39) : ni « anomalie haute » ni « quota » (règle 30 : aucune
+    décision de sélection) ; « vivier » sans consentement établi demande une confirmation
+    (règle 30 bis).
     """
     if candidature.type == SPONTANEE:
+        if decision != S.VIVIER:
+            return []
+        etat = etat_consentement(candidature)
+        if etat == CONSENTEMENT_NON:
+            return [AVERTISSEMENT_CONSENTEMENT_REFUSE]
+        if etat == CONSENTEMENT_INCONNU:
+            return [AVERTISSEMENT_CONSENTEMENT_INCONNU]
         return []
     result = []
     if (
@@ -201,6 +228,12 @@ AVERTISSEMENT_LIBELLES = {
     ),
     AVERTISSEMENT_QUOTA: gettext_noop(
         "Le nombre de postes à pourvoir est déjà atteint pour cette cible."
+    ),
+    AVERTISSEMENT_CONSENTEMENT_REFUSE: gettext_noop(
+        "Le candidat a refusé la conservation de son dossier au vivier."
+    ),
+    AVERTISSEMENT_CONSENTEMENT_INCONNU: gettext_noop(
+        "Le consentement du candidat à la conservation au vivier n’est pas établi."
     ),
     AVERTISSEMENT_VERDICT: gettext_noop(
         "Ces dossiers n’ont pas été jugés éligibles par le moteur. En les déclarant éligibles "

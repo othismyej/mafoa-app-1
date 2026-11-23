@@ -153,7 +153,8 @@ def _sync_candidatures(source, report, now, candidats, postes, offres) -> dict[s
     """Import des candidatures (KAN-39, règles 11 à 16).
 
     - le type est explicite (ou déduit d'une cible, jamais « spontanée » par défaut) ; un DTO
-      incohérent est refusé et compté ;
+      incohérent est refusé et compté ; s'il concerne une candidature déjà importée, il compte
+      aussi comme conflit (règle 14 bis) ;
     - une cible inconnue fait échouer la synchronisation (comportement inchangé, règle 13) ;
     - le type, la cible et le statut d'une candidature existante ne sont jamais modifiés : un
       changement à la source est compté comme conflit (règle 14) ;
@@ -167,6 +168,17 @@ def _sync_candidatures(source, report, now, candidats, postes, offres) -> dict[s
         resolu = spontanees.resoudre_type(a)
         if resolu.refus:
             report.refusees.append({"source_id": a.source_id, "motif": resolu.refus})
+            deja = existantes.get(a.source_id)
+            if deja is not None:
+                # DTO devenu incohérent pour une candidature déjà importée : refusé (rien n'est
+                # modifié) ET compté comme conflit, pour qu'un humain le voie dans l'audit.
+                report.conflits_type.append(
+                    {
+                        "candidature_id": deja.pk,
+                        "source_id": a.source_id,
+                        "motif": "dto_incoherent",
+                    }
+                )
             continue
         type_ = resolu.type
         poste = offre = None
