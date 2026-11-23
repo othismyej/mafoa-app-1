@@ -231,7 +231,7 @@
         </div>
       </div>
       {# Sans JavaScript : la pièce s'ouvre dans un nouvel onglet (KAN-12, règle 19). #}
-      <a href="{% url 'recruitment:piece_contenu' c.pk p.pk %}" target="_blank" rel="noopener" hx-get="{% url 'recruitment:piece_visionneuse' c.pk p.pk %}" hx-target="#visionneuse" class="btn-secondary btn-sm min-h-10 shrink-0" data-consulter="{{ p.pk }}">{% translate "Consulter" %}<span class="sr-only"> : {{ p.get_type_display }}</span></a>
+      <a href="{% url 'recruitment:piece_contenu' c.pk p.pk %}{% if p.pk in pieces_telechargement %}?telechargement=1{% endif %}" target="_blank" rel="noopener" hx-get="{% url 'recruitment:piece_visionneuse' c.pk p.pk %}" hx-target="#visionneuse" class="btn-secondary btn-sm min-h-10 shrink-0" data-consulter="{{ p.pk }}">{% translate "Consulter" %}<span class="sr-only"> : {{ p.get_type_display }}</span></a>
     </li>
     {% endfor %}
   </ul>

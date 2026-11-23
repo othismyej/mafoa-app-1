@@ -1111,3 +1111,14 @@ def test_nom_accentue_garde_un_repli_lisible():
     from apps.recruitment.pieces import content_disposition
 
     assert 'filename="diplome.pdf"' in content_disposition("inline", "diplôme.pdf")
+
+
+def test_sans_js_piece_non_affichable_lien_de_telechargement(client, direction_user, cand):
+    """Revue Codex : sans JavaScript, le lien « Consulter » d'une pièce non affichable mène au
+    téléchargement (pas à l'aperçu, qui répondrait 415)."""
+    docx = piece(cand, nom="lettre_fictive.docx", content_type="application/msword")
+    pdf = piece(cand, nom="cv_fictif.pdf", content_type="application/pdf")
+    client.force_login(direction_user)
+    html = client.get(reverse("recruitment:candidature_detail", args=[cand.pk])).content.decode()
+    assert f'{contenu_url(docx)}?telechargement=1"' in html
+    assert f'{contenu_url(pdf)}"' in html

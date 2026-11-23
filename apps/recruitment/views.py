@@ -142,7 +142,11 @@ def _fiche_context(candidature: Candidature, form: dict | None = None) -> dict:
     return {
         "c": candidature,
         "candidat": candidature.candidat,
-        "pieces": list(candidature.pieces.all()),
+        "pieces": (pieces := list(candidature.pieces.all())),
+        # Sans JavaScript, une pièce non affichable s'ouvre directement en téléchargement.
+        "pieces_telechargement": {
+            p.pk for p in pieces if pieces_service.mode_affichage(p.content_type) == "aucun"
+        },
         "pieces_en_anomalie": {a.piece_id for a in anomalies if a.piece_id and not a.resolue},
         "anomalies": anomalies,
         "nb_anomalies_non_resolues": sum(1 for a in anomalies if not a.resolue),
