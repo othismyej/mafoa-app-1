@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 01:16+0000\n"
+"POT-Creation-Date: 2026-11-23 01:31+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,39 +18,39 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 
-#: apps/recruitment/filters.py:23 apps/recruitment/models.py:274
+#: apps/recruitment/filters.py:24 apps/recruitment/models.py:274
 #: templates/recruitment/_candidatures_resultats.html:32
 #: templates/recruitment/candidature_detail.html:160
 msgid "Éligible"
 msgstr ""
 
-#: apps/recruitment/filters.py:24 apps/recruitment/models.py:275
+#: apps/recruitment/filters.py:25 apps/recruitment/models.py:275
 #: templates/recruitment/_candidatures_resultats.html:33
 #: templates/recruitment/candidature_detail.html:160
 msgid "Non éligible"
 msgstr ""
 
-#: apps/recruitment/filters.py:25 apps/recruitment/models.py:276
+#: apps/recruitment/filters.py:26 apps/recruitment/models.py:276
 #: templates/recruitment/_candidatures_resultats.html:34
 #: templates/recruitment/candidature_detail.html:160
 #: templates/recruitment/concours_detail.html:38
 msgid "À vérifier"
 msgstr ""
 
-#: apps/recruitment/filters.py:26
+#: apps/recruitment/filters.py:27
 #: templates/recruitment/_candidatures_resultats.html:35
 msgid "Non évaluée"
 msgstr ""
 
-#: apps/recruitment/filters.py:30
+#: apps/recruitment/filters.py:31
 msgid "Toutes"
 msgstr ""
 
-#: apps/recruitment/filters.py:31
+#: apps/recruitment/filters.py:32
 msgid "Avec anomalie non résolue"
 msgstr ""
 
-#: apps/recruitment/filters.py:32
+#: apps/recruitment/filters.py:33
 msgid "Sans anomalie non résolue"
 msgstr ""
 
@@ -86,27 +86,27 @@ msgstr ""
 msgid "en cours"
 msgstr ""
 
-#: apps/recruitment/views.py:77
+#: apps/recruitment/views.py:85
 msgid "Candidat"
 msgstr ""
 
-#: apps/recruitment/views.py:78
+#: apps/recruitment/views.py:86
 msgid "Date de candidature"
 msgstr ""
 
-#: apps/recruitment/views.py:79
+#: apps/recruitment/views.py:87
 #: templates/recruitment/candidature_detail.html:33
 #: templates/recruitment/concours_detail.html:16
 #: templates/recruitment/poste_candidatures.html:33
 msgid "Statut"
 msgstr ""
 
-#: apps/recruitment/views.py:80
+#: apps/recruitment/views.py:88
 #: templates/recruitment/poste_candidatures.html:39
 msgid "Verdict d’éligibilité"
 msgstr ""
 
-#: apps/recruitment/views.py:81
+#: apps/recruitment/views.py:89
 #: templates/recruitment/candidature_detail.html:35
 #: templates/recruitment/candidature_detail.html:191
 #: templates/recruitment/poste_candidatures.html:45
@@ -126,21 +126,21 @@ msgstr ""
 msgid "Send me a sign-in code"
 msgstr ""
 
-#: templates/base.html:19 templates/recruitment/candidature_detail.html:7
+#: templates/base.html:22 templates/recruitment/candidature_detail.html:7
 #: templates/recruitment/concours_detail.html:7
 #: templates/recruitment/poste_candidatures.html:6
 msgid "Tableau de bord"
 msgstr ""
 
-#: templates/base.html:20
+#: templates/base.html:23
 msgid "Administration"
 msgstr ""
 
-#: templates/base.html:21
+#: templates/base.html:24
 msgid "Sécurité"
 msgstr ""
 
-#: templates/base.html:24
+#: templates/base.html:27
 msgid "Déconnexion"
 msgstr ""
 
@@ -206,6 +206,11 @@ msgstr ""
 
 #: templates/recruitment/_date_affichee.html:1
 msgid "Date illisible"
+msgstr ""
+
+#: templates/recruitment/candidature_detail.html:3
+#, python-format
+msgid "Fiche candidature n° %(pk)s"
 msgstr ""
 
 #: templates/recruitment/candidature_detail.html:6

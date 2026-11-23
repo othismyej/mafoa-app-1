@@ -1165,3 +1165,72 @@ def test_gabarit_proprietes_logiques_rtl():
     detail = (base / "templates" / "recruitment" / "candidature_detail.html").read_text("utf-8")
     assert "{% load i18n %}" in detail
     assert "{% translate" in detail or "{% blocktranslate" in detail
+
+
+# --- Relecture conformité KAN-11 ------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "details",
+    [
+        [{"libelle": "Niveau", "verdict": "eligible"}],  # sans clé « critere »
+        "pas une liste",
+        {"critere": "niveau_etudes"},
+        [None, 3, {"critere": "experience", "verdict": "a_verifier"}],
+    ],
+)
+def test_details_mal_formes_sans_erreur_500(client, direction_user, cand, details):
+    verification(cand, "a_verifier", at(2026, 3, 1, 10), details=details)
+    response = ok(client, direction_user, cand)
+    assert "data-criteres" in response.content.decode()
+
+
+def test_pas_de_bandeau_quand_statut_favorable_et_verdict_eligible(client, direction_user, cand):
+    decision(cand, direction_user, "convoquee", "Convocation à l'oral du 12/04", at(2026, 3, 2, 9))
+    Candidature.objects.filter(pk=cand.pk).update(statut="convoquee")
+    verification(cand, "eligible", at(2026, 3, 3, 9))
+    assert "data-ecart" not in ok(client, direction_user, cand).content.decode()
+
+
+def test_consultation_journalisee_sans_nom(client, direction_user, cand):
+    ok(client, direction_user, cand)
+    entry = view_entries().latest("id")
+    assert entry.object_repr == f"Candidature #{cand.pk}"
+    assert cand.candidat.nom.upper() not in entry.object_repr.upper()
+
+
+def test_titre_de_page_sans_nom(client, direction_user, cand):
+    html = ok(client, direction_user, cand).content.decode()
+    title = re.search(r"<title>(.*?)</title>", html, re.S).group(1)
+    assert cand.candidat.nom.upper() not in title.upper()
+    assert str(cand.pk) in title
+
+
+def test_donnees_importees_echappees(client, direction_user, poste):
+    xss = "<script>alert(1)</script>"
+    c = new_candidature(
+        poste=poste,
+        donnees_declarees={
+            "formation": [{"intitule": xss, "specialite": xss}],
+            "experiences": [{"employeur": xss, "poste": xss, "debut": xss}],
+        },
+    )
+    verification(
+        c,
+        "a_verifier",
+        at(2026, 3, 1, 9),
+        details=[
+            {
+                "critere": xss,
+                "libelle": xss,
+                "verdict": "a_verifier",
+                "attendu": xss,
+                "constate": xss,
+                "raison": xss,
+            }
+        ],
+    )
+    piece(c, Piece.Type.CV, f"cv{xss}.pdf")
+    html = ok(client, direction_user, c).content.decode()
+    assert xss not in html
+    assert "&lt;script&gt;" in html

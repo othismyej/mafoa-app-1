@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block head_title %}{{ candidat }}{% endblock %}
+{% block head_title %}{% blocktranslate with pk=c.pk %}Fiche candidature n° {{ pk }}{% endblocktranslate %}{% endblock %}
 {% block content %}
 {# Fil d'Ariane et retour à la liste #}
 <nav class="mb-4 text-sm text-slate-500" aria-label="{% translate 'Fil d’Ariane' %}">
@@ -153,9 +153,9 @@
       </tr>
     </thead>
     <tbody>
-      {% for d in v.details %}
+      {% for d in criteres %}
       <tr class="border-t align-top" data-critere="{{ d.critere }}">
-        <td class="p-2">{{ d.libelle|default:d.critere }}</td>
+        <td class="p-2">{% firstof d.libelle d.critere "—" %}</td>
         <td class="p-2 whitespace-nowrap">
           {% if d.verdict == "eligible" %}{% translate "Éligible" %}{% elif d.verdict == "non_eligible" %}{% translate "Non éligible" %}{% elif d.verdict == "a_verifier" %}<span class="font-semibold text-amber-700">{% translate "À vérifier" %}</span>{% else %}{{ d.verdict|default:"—" }}{% endif %}
         </td>

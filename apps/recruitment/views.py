@@ -123,7 +123,9 @@ def candidature_detail(request, pk: int):
     decisions = list(candidature.decisions.all())
     anomalies = list(candidature.anomalies.all())
     derniere = verifications[0] if verifications else None
-    ecart = bool(decisions and derniere and derniere.resultat != candidature.statut)
+    ecart = presenters.ecart_verdict_decision(
+        candidature.statut, derniere.resultat if derniere else None, bool(decisions)
+    )
     donnees = candidature.donnees_declarees or {}
     context = {
         "c": candidature,
@@ -135,11 +137,18 @@ def candidature_detail(request, pk: int):
         "derniere_verification": derniere,
         "verifications_precedentes": verifications[1:],
         "sources": presenters.source_labels(derniere.sources) if derniere else [],
+        "criteres": presenters.criteres(derniere.details) if derniere else [],
         "ecart": ecart,
         "decisions": decisions,
         "formations": presenters.formations(donnees),
         "experiences": presenters.experiences(donnees),
     }
     # Point d'accroche unique de la journalisation des consultations (KAN-14).
-    log(AuditAction.VIEW, obj=candidature, request=request)
+    # Libellé sans nom : le journal, en ajout seul, ne doit pas multiplier les données nominatives.
+    log(
+        AuditAction.VIEW,
+        obj=candidature,
+        request=request,
+        object_repr=f"Candidature #{candidature.pk}",
+    )
     return render(request, "recruitment/candidature_detail.html", context)
