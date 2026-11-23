@@ -1098,3 +1098,21 @@ def test_export_sans_terme_de_recherche(client, admin1):
 
 def test_neutralize_espaces_de_tete():
     assert exports.neutralize("  =1+1") == "'  =1+1"
+
+
+def test_export_du_journal_visible_par_defaut(client, admin1):
+    """Revue Codex : seules les consultations du journal sont masquées par défaut ; un export
+    du journal (action ``export``, ``vue = journal_export``) reste visible dans la liste."""
+    export = entree(
+        action=AuditAction.EXPORT,
+        object_repr="Journal d'audit",
+        metadata={"vue": "journal_export", "format": "csv"},
+    )
+    consultation = entree(
+        action=AuditAction.VIEW, object_repr="Journal d'audit", metadata={"vue": "journal_liste"}
+    )
+    from apps.audit.filters import exclude_journal_views
+
+    visibles = set(exclude_journal_views(JournalAudit.objects.all()).values_list("pk", flat=True))
+    assert export.pk in visibles
+    assert consultation.pk not in visibles

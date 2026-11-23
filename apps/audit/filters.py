@@ -197,10 +197,11 @@ def with_dossier_alias(qs: QuerySet) -> QuerySet:
 
 
 def exclude_journal_views(qs: QuerySet) -> QuerySet:
-    """Masque les consultations du journal lui-même (``metadata.vue`` = ``journal_*``)."""
+    """Masque les **consultations** du journal lui-même (``view`` avec ``metadata.vue`` =
+    ``journal_*``). Les exports du journal (``export``) restent toujours visibles."""
     return qs.alias(
         meta_vue=Coalesce(KT("metadata__vue"), Value(""), output_field=TextField())
-    ).exclude(meta_vue__startswith="journal_")
+    ).exclude(action=AuditAction.VIEW, meta_vue__startswith="journal_")
 
 
 def _bounds(flt: JournalFilters) -> tuple[datetime, datetime]:
