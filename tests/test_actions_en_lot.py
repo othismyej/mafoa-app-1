@@ -330,8 +330,13 @@ def test_ca3_consultant_client_refuses_et_journalises(client, ref, role, htmx, e
     assert response.status_code == 403
     assert not Decision.objects.filter(lot_id__isnull=False).exists()
     assert statut(ref.B) == S.ELIGIBLE
-    entree = refus("droits").get()
+    # Aligné sur KAN-14 règle 8 : refus de droits en ``access_denied``, pas en ``update``.
+    assert not refus("droits").exists()
+    entree = JournalAudit.objects.get(action=AuditAction.ACCESS_DENIED)
     assert entree.metadata["poste_id"] == ref.p1.pk
+    assert entree.metadata["chemin"] == url
+    assert entree.metadata["etape"] == ("recapitulatif" if etape == "recap" else "execution")
+    assert entree.object_repr == f"Poste de concours #{ref.p1.pk}"
     assert entree.actor == user
 
 
@@ -990,7 +995,14 @@ def test_ca39_relance_asynchrone(client, direction_user, ref, settings):
     token = jeton(recap(client, direction_user, ref.p1, "relance_eligibilite", cands))
     with mock.patch("apps.evaluation.tasks.relancer_eligibilite_lot.delay") as delay:
         response = executer(client, ref.p1, token, "relance_eligibilite")
-    assert exact(texte(response), "Relance lancée en arrière-plan pour 5 candidatures")
+    t = texte(response)
+    assert exact(t, "Relance lancée en arrière-plan pour 5 candidatures")
+    # Aucun rafraîchissement automatique promis (Q11) : il faut recharger la liste.
+    assert "au fur et à mesure" not in t
+    assert "rechargez la liste dans quelques instants" in t
+    doc = parse(response.content.decode())
+    lien = fa(doc, attrs={"data-lot-retour": True})[0]
+    assert lien.text().strip() == "Recharger la liste"
     kwargs = delay.call_args.kwargs
     payload = lots.lire_jeton(token, user=direction_user, poste=ref.p1)
     assert kwargs["lot_id"] == payload["lot"]
@@ -1025,9 +1037,86 @@ def test_tache_relivree_entree_de_fin_unique(direction_user, ref):
         "meta": {"lot_id": None},
     }
     kwargs["meta"]["lot_id"] = kwargs["lot_id"]
-    relancer_eligibilite_lot(**kwargs)
-    relancer_eligibilite_lot(**kwargs)
+    avant = VerificationEligibilite.objects.filter(candidature=ref.B).count()
+    premier = relancer_eligibilite_lot(**kwargs)
+    second = relancer_eligibilite_lot(**kwargs)
     assert len(entrees_lot(kwargs["lot_id"])) == 1
+    # Relance idempotente par (lot, candidature) : ni 2e vérification ni 2e entrée ``update``.
+    assert VerificationEligibilite.objects.filter(candidature=ref.B).count() == avant + 1
+    updates = JournalAudit.objects.filter(
+        action=AuditAction.UPDATE, metadata__lot_id=kwargs["lot_id"]
+    )
+    assert updates.count() == 1
+    assert updates.get().object_id == str(ref.B.pk)
+    assert premier["succes_ids"] == second["succes_ids"] == [ref.B.pk]
+
+
+def test_tache_utilisateur_desactive_ne_relance_rien(direction_user, ref):
+    """La tâche revérifie l'utilisateur à l'exécution : compte désactivé → lot clos en erreur."""
+    from apps.evaluation.tasks import relancer_eligibilite_lot
+
+    lot_id = str(uuid.uuid4())
+    direction_user.is_active = False
+    direction_user.save(update_fields=["is_active"])
+    avant = VerificationEligibilite.objects.count()
+    relancer_eligibilite_lot(
+        lot_id=lot_id,
+        user_id=direction_user.pk,
+        poste_id=ref.p1.pk,
+        candidature_ids=[ref.B.pk, ref.C.pk],
+        meta={"lot_id": lot_id},
+    )
+    assert VerificationEligibilite.objects.count() == avant
+    assert not JournalAudit.objects.filter(
+        action=AuditAction.UPDATE, metadata__lot_id=lot_id
+    ).exists()
+    (fin,) = entrees_lot(lot_id)
+    assert fin.metadata["etape"] == "termine"
+    assert fin.metadata["cause"] == "utilisateur_non_autorise"
+    assert fin.metadata["nb_succes"] == 0
+    assert sorted(fin.metadata["echecs_ids"]["erreur_technique"]) == sorted(ids(ref.B, ref.C))
+
+
+def test_tache_role_retire_ne_relance_rien(direction_user, ref):
+    from apps.evaluation.tasks import relancer_eligibilite_lot
+
+    lot_id = str(uuid.uuid4())
+    direction_user.role = Role.CONSULTANT
+    direction_user.save(update_fields=["role"])
+    avant = VerificationEligibilite.objects.count()
+    relancer_eligibilite_lot(
+        lot_id=lot_id,
+        user_id=direction_user.pk,
+        poste_id=ref.p1.pk,
+        candidature_ids=[ref.B.pk],
+        meta={"lot_id": lot_id},
+    )
+    assert VerificationEligibilite.objects.count() == avant
+    (fin,) = entrees_lot(lot_id)
+    assert fin.metadata["cause"] == "utilisateur_non_autorise"
+
+
+def test_broker_indisponible_lot_clos_sans_erreur_500(client, direction_user, ref, settings):
+    settings.LOT_ELIGIBILITE_SYNC_MAX = 3
+    cands = [ref.A, ref.B, ref.C, ref.E, ref.F]
+    token = jeton(recap(client, direction_user, ref.p1, "relance_eligibilite", cands))
+    avant = VerificationEligibilite.objects.count()
+    with mock.patch(
+        "apps.evaluation.tasks.relancer_eligibilite_lot.delay",
+        side_effect=ConnectionError("broker indisponible"),
+    ):
+        response = executer(client, ref.p1, token, "relance_eligibilite", htmx=True)
+    assert response.status_code == 503
+    assert "service de file indisponible" in texte(response)
+    assert VerificationEligibilite.objects.count() == avant
+    lot_id = lots.lire_jeton(token, user=direction_user, poste=ref.p1)["lot"]
+    etapes = [e.metadata["etape"] for e in entrees_lot(lot_id)]
+    assert etapes == ["lance", "termine"]
+    fin = entrees_lot(lot_id)[1]
+    assert fin.metadata["cause"] == "file_indisponible"
+    assert sorted(fin.metadata["echecs_ids"]["erreur_technique"]) == sorted(c.pk for c in cands)
+    # Le même jeton ne peut pas être rejoué : le lot est clos.
+    assert executer(client, ref.p1, token, "relance_eligibilite").status_code == 409
 
 
 def test_ca40_une_entree_update_par_candidature(client, direction_user, ref):
@@ -1127,6 +1216,41 @@ def test_ca44_aucune_donnee_personnelle_dans_les_entrees_lot(client, direction_u
     for c in Candidat.objects.filter(candidatures__poste_concours=ref.p1):
         for valeur in (c.nom, c.prenom, c.email, c.telephone, c.cin):
             assert valeur.lower() not in serialise
+
+
+def test_jeton_sans_terme_de_recherche(client, direction_user, ref):
+    """Le jeton est signé, pas chiffré : il ne porte pas le terme recherché (règle 29)."""
+    from django.core import signing
+
+    response = recap(
+        client, direction_user, ref.p1, "eligible", mode="filtre", params={"q": "amrani"}
+    )
+    token = jeton(response)
+    decode = signing.loads(token, salt=lots.JETON_SALT)
+    assert "amrani" not in json.dumps(decode).lower()
+    assert decode["q"] is True
+    # Le résumé et le lien de retour reprennent la recherche depuis le formulaire.
+    t = texte(response)
+    assert "Recherche : « amrani »" in t
+    doc = parse(response.content.decode())
+    assert fa(doc, attrs={"name": "lot_q", "value": "amrani"})
+    assert "q=amrani" in fa(doc, attrs={"data-lot-retour": True})[0].attrs["href"]
+    # Exécution : URL de retour avec la recherche du POST, pas du jeton.
+    reponse = client.post(
+        url_exec(ref.p1),
+        {
+            "jeton": token,
+            "action": "eligible",
+            "motif": MOTIF,
+            "confirmer": "1",
+            "lot_q": "amrani",
+            **{f"choix_{t}": "exclure" for t in decode["w"]},
+        },
+    )
+    assert reponse.status_code == 200
+    assert 'data-lot-etat="rapport"' in reponse.content.decode()
+    lien = fa(parse(reponse.content.decode()), attrs={"data-lot-retour": True})[0]
+    assert "q=amrani" in lien.attrs["href"]
 
 
 # --------------------------------------------------------------------------------------

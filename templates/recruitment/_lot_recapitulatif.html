@@ -41,6 +41,7 @@
   {% csrf_token %}
   <input type="hidden" name="jeton" value="{{ jeton }}">
   <input type="hidden" name="action" value="{{ action }}">
+  {% if recherche %}<input type="hidden" name="lot_q" value="{{ recherche }}">{% endif %}
   {% if executable %}
   {% for a in avertissements %}
   <fieldset class="rounded-card border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900" data-lot-avertissement="{{ a.type }}">

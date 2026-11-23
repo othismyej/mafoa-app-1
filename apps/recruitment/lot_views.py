@@ -7,7 +7,6 @@ Les refus sont **renvoyés** (jamais levés) pour que leur trace persiste.
 
 from __future__ import annotations
 
-from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import QueryDict
 from django.shortcuts import get_object_or_404, render
@@ -16,17 +15,16 @@ from django.utils.cache import patch_vary_headers
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
-from django.views.defaults import permission_denied
 
 from apps.accounts.permissions import DIRECTION_ROLES
 from apps.audit.models import AuditAction
-from apps.audit.services import log, log_consultation
+from apps.audit.services import deny, log, log_consultation
 from apps.evaluation import decisions as rules
 from apps.evaluation import lots
 from apps.evaluation.decisions import DecisionError
 
 from . import lot_presenters as presenters
-from .filters import CandidatureFilter, filter_candidatures
+from .filters import SEARCH_MAX_LENGTH, CandidatureFilter, filter_candidatures
 from .models import Candidature, Concours, PosteConcours
 
 MESSAGE_JETON = gettext_lazy(
@@ -42,6 +40,27 @@ def _journaliser_refus(request, poste_pk: int, refus: str, etape: str, **metadat
         request=request,
         metadata={"refus": refus, "poste_id": poste_pk, "etape": etape, **metadata},
     )
+
+
+def _refuser_droits(request, poste_pk: int, etape: str):
+    """Refus de droits (403) : entrée ``access_denied`` puis réponse renvoyée (KAN-14 règle 8,
+    le récapitulatif étant un écran nominatif)."""
+    return deny(
+        request, object_repr=f"Poste de concours #{poste_pk}", poste_id=poste_pk, etape=etape
+    )
+
+
+def _recherche(data) -> str:
+    """Terme de recherche repris du formulaire (jamais du jeton, règle 29)."""
+    return (data.get(f"{PREFIXE_FILTRE}q") or "")[:SEARCH_MAX_LENGTH]
+
+
+def _retour(payload: dict, recherche: str) -> str:
+    """Paramètres de l'URL de retour : filtres du jeton + terme de recherche du formulaire."""
+    params = QueryDict(payload["r"], mutable=True)
+    if recherche:
+        params["q"] = recherche
+    return CandidatureFilter.from_querydict(params).querystring(include_tri=True)
 
 
 def _autorise(request) -> bool:
@@ -130,8 +149,7 @@ def _refus_action(request, poste_pk, exc: lots.LotError, etape: str, valeur: str
 def lot_recapitulatif(request, concours_pk: int, poste_pk: int):
     """Récapitulatif d'une action en lot (règles 5 à 16) : aucune écriture métier."""
     if not _autorise(request):
-        _journaliser_refus(request, poste_pk, "droits", "recapitulatif")
-        return permission_denied(request, PermissionDenied())
+        return _refuser_droits(request, poste_pk, "recapitulatif")
     poste = _poste(concours_pk, poste_pk)
     data = request.POST
     flt = CandidatureFilter.from_querydict(_params_filtre(data))
@@ -194,8 +212,10 @@ def lot_recapitulatif(request, concours_pk: int, poste_pk: int):
         nb_selectionnees=payload["n"],
     )
     noms = {c.pk: str(c.candidat) for c in candidatures}
-    context = presenters.contexte_recapitulatif(payload, noms, jeton=lots.signer_jeton(payload))
-    context["retour_url"] = _url_liste(poste, payload["r"])
+    context = presenters.contexte_recapitulatif(
+        payload, noms, jeton=lots.signer_jeton(payload), recherche=flt.q
+    )
+    context["retour_url"] = _url_liste(poste, retour)
     return _rendre(request, poste, context)
 
 
@@ -210,10 +230,11 @@ def _reafficher(request, poste, payload: dict, jeton: str, form: dict):
         nb_selectionnees=payload["n"],
         reaffichage=True,
     )
+    recherche = _recherche(request.POST)
     context = presenters.contexte_recapitulatif(
-        payload, _noms(lots.ids_selection(payload)), jeton=jeton, form=form
+        payload, _noms(lots.ids_selection(payload)), jeton=jeton, form=form, recherche=recherche
     )
-    context["retour_url"] = _url_liste(poste, payload["r"])
+    context["retour_url"] = _url_liste(poste, _retour(payload, recherche))
     return _rendre(request, poste, context, status=400)
 
 
@@ -225,8 +246,7 @@ def lot_executer(request, concours_pk: int, poste_pk: int):
     Hors ``ATOMIC_REQUESTS`` : chaque candidature est validée dans sa propre transaction.
     """
     if not _autorise(request):
-        _journaliser_refus(request, poste_pk, "droits", "execution")
-        return permission_denied(request, PermissionDenied())
+        return _refuser_droits(request, poste_pk, "execution")
     poste = _poste(concours_pk, poste_pk)
     data = request.POST
     valeur = data.get("action", "")
@@ -247,7 +267,7 @@ def lot_executer(request, concours_pk: int, poste_pk: int):
     if attendu is not None and attendu != (payload["op"], payload["d"]):
         _journaliser_refus(request, poste.pk, "jeton_invalide", "execution")
         return _erreur(request, poste, MESSAGE_JETON)
-    retour = payload["r"]
+    retour = _retour(payload, _recherche(data))
     deja = _("Ce lot a déjà été exécuté.")
     if lots.lot_deja_journalise(payload["lot"]):
         return _erreur(request, poste, deja, 409, retour=retour)
@@ -266,13 +286,13 @@ def lot_executer(request, concours_pk: int, poste_pk: int):
 
     try:
         if payload["op"] == lots.OPERATION_DECISION:
-            return _executer_decisions(request, poste, payload, jeton)
-        return _executer_relance(request, poste, payload)
+            return _executer_decisions(request, poste, payload, jeton, retour)
+        return _executer_relance(request, poste, payload, retour)
     except lots.LotDejaExecute:
         return _erreur(request, poste, deja, 409, retour=retour)
 
 
-def _executer_decisions(request, poste, payload: dict, jeton: str):
+def _executer_decisions(request, poste, payload: dict, jeton: str, retour: str):
     data = request.POST
     choix = {t: data.get(f"choix_{t}", "") for t in payload["w"]}
     form = {
@@ -295,12 +315,23 @@ def _executer_decisions(request, poste, payload: dict, jeton: str):
         payload, poste=poste, user=request.user, motif=motif, choix=choix, request=request
     )
     context = presenters.contexte_rapport(payload, rapport, _noms(presenters.ids_rapport(rapport)))
-    context["retour_url"] = _url_liste(poste, payload["r"])
+    context["retour_url"] = _url_liste(poste, retour)
     return _rendre(request, poste, context, rafraichir=True)
 
 
-def _executer_relance(request, poste, payload: dict):
+def _executer_relance(request, poste, payload: dict, retour: str):
     resultat = lots.executer_relance(payload, poste=poste, user=request.user, request=request)
+    if resultat.echec_file:
+        return _erreur(
+            request,
+            poste,
+            _(
+                "Le calcul en arrière-plan n’a pas pu être lancé (service de file indisponible). "
+                "Aucun verdict n’a été recalculé ; réessayez dans quelques minutes."
+            ),
+            503,
+            retour=retour,
+        )
     if resultat.asynchrone:
         context = {
             "etat": "lance",
@@ -313,5 +344,5 @@ def _executer_relance(request, poste, payload: dict):
         context = presenters.contexte_rapport(
             payload, rapport, _noms(presenters.ids_rapport(rapport))
         )
-    context["retour_url"] = _url_liste(poste, payload["r"])
+    context["retour_url"] = _url_liste(poste, retour)
     return _rendre(request, poste, context, rafraichir=True)

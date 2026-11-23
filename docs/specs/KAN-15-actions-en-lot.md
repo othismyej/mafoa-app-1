@@ -60,11 +60,11 @@ une décision humaine, motivée et tracée pour chaque dossier.
 |---|---|
 | admin | Sélection, récapitulatif et exécution des deux actions en lot. |
 | direction | Idem admin. |
-| consultant, client (vague 2, non attribuables) | Refusé : 403, rien n'est fait, refus journalisé (règle 30). |
+| consultant, client (vague 2, non attribuables) | Refusé : 403, rien n'est fait, refus journalisé en `access_denied` (règle 30). |
 | utilisateur inactif / session expirée | Redirection vers la connexion ; rien n'est fait. |
 | connecté sans TOTP actif | Redirection vers l'activation du TOTP (middleware existant). |
 | non connecté | Redirection vers la connexion ; rien n'est fait. |
-| processus automatique (tâche, moteur, IA, synchronisation) | Ne déclenche jamais un lot de décisions ; la tâche Celery de relance (règle 24) n'agit qu'au nom de l'utilisateur qui l'a lancée et ne crée jamais de `Decision`. |
+| processus automatique (tâche, moteur, IA, synchronisation) | Ne déclenche jamais un lot de décisions ; la tâche Celery de relance (règle 24) n'agit qu'au nom de l'utilisateur qui l'a lancée, revérifie à l'exécution qu'il est toujours actif et `direction` / `admin` (sinon le lot est clos en erreur technique, sans relance, règle 25), et ne crée jamais de `Decision`. |
 
 Contrôle côté serveur sur chaque point d'entrée (récapitulatif, exécution) et chaque réponse
 partielle HTMX.
@@ -172,7 +172,9 @@ partielle HTMX.
 16. **Gel de la sélection** : le récapitulatif fige l'ensemble traité. Il produit un identifiant
     de lot (UUID) et un jeton signé (`django.core.signing`, durée de validité 30 minutes)
     contenant : identifiant de lot, utilisateur, poste, action, décision, mode, résumé des
-    filtres, et pour chaque candidature concernée son identifiant, son **statut affiché** et
+    filtres **sans le terme de recherche** (le jeton est signé mais non chiffré : seul un booléen
+    « recherche appliquée » y figure ; l'URL de retour reprend le terme depuis le formulaire), et
+    pour chaque candidature concernée son identifiant, son **statut affiché** et
     l'identifiant de sa **dernière décision connue**, ainsi que l'ensemble des identifiants
     signalés par un avertissement. L'exécution ne traite **que** les candidatures de ce jeton,
     même si les filtres donneraient entre-temps un autre résultat.
@@ -235,9 +237,23 @@ partielle HTMX.
     **50** par défaut, Q6), la relance s'exécute dans la requête et le rapport s'affiche
     directement. Au-delà, une tâche Celery est mise en file avec l'identifiant de lot,
     l'identifiant de l'utilisateur, l'IP et le navigateur de la requête ; l'écran affiche « Relance
-    lancée en arrière-plan pour N candidatures (lot <8 premiers caractères de l'UUID>). Les
-    verdicts apparaîtront dans la liste au fur et à mesure. » La tâche applique les mêmes règles
-    (une transaction par candidature, erreurs comptées sans interrompre).
+    lancée en arrière-plan pour N candidatures (lot <8 premiers caractères de l'UUID>). Le calcul
+    se poursuit en arrière-plan : rechargez la liste dans quelques instants pour voir les verdicts
+    à jour. » avec un bouton « Recharger la liste » qui conserve les filtres (aucun rafraîchissement
+    automatique à la fin de la tâche, Q11). La tâche applique les mêmes règles (une transaction
+    par candidature, erreurs comptées sans interrompre) et :
+    - revérifie au moment de l'exécution que l'utilisateur est actif et a le rôle `direction` ou
+      `admin` ; sinon elle ne relance rien et écrit l'entrée `lot` de fin avec toutes les
+      candidatures en « erreur technique » (`metadata.cause = "utilisateur_non_autorise"`) ;
+    - est idempotente par candidature : sous un verrou consultatif PostgreSQL (lot, candidature)
+      pris dans la transaction de la candidature, une candidature ayant déjà une entrée `update`
+      portant ce `lot_id` est comptée comme traitée sans nouveau calcul (ni seconde
+      `VerificationEligibilite`, ni seconde entrée `update`) ;
+    - si la mise en file échoue (broker indisponible), l'entrée `lot` de fin est écrite
+      immédiatement, toutes les candidatures en « erreur technique »
+      (`metadata.cause = "file_indisponible"`), et l'écran affiche « Le calcul en arrière-plan n'a
+      pas pu être lancé (service de file indisponible). Aucun verdict n'a été recalculé ;
+      réessayez dans quelques minutes. » (réponse 503, jamais d'erreur 500).
 26. Toutes les candidatures sélectionnées sont concernées par la relance, sauf si le concours est
     terminé (règle 27) ; les candidatures déjà décidées sont recalculées (historique) et signalées
     au récapitulatif.
@@ -274,10 +290,16 @@ partielle HTMX.
       avertissements confirmés, et à la fin succès / échecs par raison ;
       identifiants des candidatures (traitées, en échec) ;
     - **aucun nom, prénom ni autre donnée personnelle de candidat** dans ces entrées.
-30. **Refus journalisés** (même politique que KAN-13 Q6) : refus de droits (403), valeur de
-    décision interdite en lot, identifiants hors poste, jeton falsifié → entrée `update` avec
-    `metadata.refus` (`droits`, `valeur_interdite_en_lot`, `ids_hors_poste`, `jeton_invalide`),
-    l'identifiant du poste, sans nom ni motif saisi. Les erreurs de saisie (motif trop court,
+30. **Refus journalisés** :
+    - refus de droits (403) → entrée `access_denied` (aligné sur KAN-14 règle 8, le
+      récapitulatif étant un écran nominatif) : acteur, IP, navigateur, `object_repr`
+      « Poste de concours #<id> », `metadata.chemin`, `metadata.poste_id`, `metadata.etape`
+      (`recapitulatif` / `execution`) ; la réponse 403 est renvoyée (non levée) pour que l'entrée
+      survive à `ATOMIC_REQUESTS` ;
+    - refus métier (même politique que KAN-13 Q6) : valeur de décision interdite en lot,
+      identifiants hors poste, jeton falsifié → entrée `update` avec `metadata.refus`
+      (`valeur_interdite_en_lot`, `ids_hors_poste`, `jeton_invalide`), l'identifiant du poste,
+      sans nom ni motif saisi. Les erreurs de saisie (motif trop court,
     case de confirmation absente, sélection vide, plafond dépassé) ne sont pas journalisées.
 31. **Consultation** : l'affichage du récapitulatif crée une entrée `view` sur le poste
     (`metadata` : `lot_id`, `operation`, nombre sélectionnées), car il présente une liste
@@ -341,7 +363,8 @@ Motif valide de référence : « Convocation à l'épreuve orale du 12/03/2026 �
 - **CA3** — Étant donné un utilisateur `consultant` ou `client`, quand il envoie un `POST` de
   récapitulatif ou d'exécution (avec ou sans `HX-Request: true`), alors la réponse est 403, aucune
   `Decision` ni `VerificationEligibilite` n'est créée, aucun statut ne change, et une entrée
-  d'audit `update` avec `metadata.refus = "droits"` est créée.
+  d'audit `access_denied` est créée (`metadata.poste_id`, `metadata.chemin`, `object_repr`
+  « Poste de concours #<id> » ; aligné sur KAN-14 règle 8).
 - **CA4** — Étant donné un utilisateur non connecté, quand il envoie ces `POST`, alors il est
   redirigé vers la connexion et rien n'est fait ; étant donné un utilisateur `direction` sans
   TOTP actif, alors il est redirigé vers l'activation du TOTP.
@@ -548,9 +571,12 @@ Motif valide de référence : « Convocation à l'épreuve orale du 12/03/2026 �
     candidature décidée (KAN-13, à vérifier dans `integrations/site_source/sync.py`).
 - **Double clic sur « Exécuter »** : second envoi refusé par la règle 19 ou, en cas de
   simultanéité, par le contrôle de concurrence par candidature.
-- **Tâche Celery relivrée** (`CELERY_TASK_ACKS_LATE`) : des vérifications peuvent être créées deux
-  fois pour une même candidature ; accepté (historique, statut calculé de façon idempotente),
-  l'entrée `lot` de fin n'est écrite qu'une fois (vérification de l'existence avant écriture).
+- **Tâche Celery relivrée** (`CELERY_TASK_ACKS_LATE`) : chaque candidature n'est relancée
+  qu'une fois par lot (verrou consultatif et entrée `update` existante, règle 25) : ni seconde
+  vérification ni seconde entrée `update` ; l'entrée `lot` de fin n'est écrite qu'une fois
+  (vérification de l'existence avant écriture).
+- **Broker Celery indisponible** au lancement d'une relance asynchrone : lot clos en erreur
+  technique, message clair, pas d'erreur 500 (règle 25).
 - **Tâche Celery en échec global** (worker arrêté) : pas d'entrée `lot` de fin ; les entrées par
   candidature permettent de savoir ce qui a été fait. Pas de reprise automatique dans le MVP.
 - **Session expirée entre récapitulatif et exécution** : redirection vers la connexion ; le motif

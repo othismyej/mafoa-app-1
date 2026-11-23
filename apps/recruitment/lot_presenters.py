@@ -74,11 +74,17 @@ def _noms(ids, noms: dict[int, str]) -> dict:
     }
 
 
-def resume_filtres(payload: dict) -> list[str]:
-    """Résumé lisible des filtres du mode « résultats du filtre » (écran uniquement)."""
+def resume_filtres(payload: dict, recherche: str = "") -> list[str]:
+    """Résumé lisible des filtres du mode « résultats du filtre » (écran uniquement).
+
+    ``recherche`` vient du formulaire : le jeton ne porte pas le terme recherché (règle 29).
+    """
     if payload["m"] != "filtre":
         return []
-    flt = CandidatureFilter.from_querydict(QueryDict(payload["r"]))
+    params = QueryDict(payload["r"], mutable=True)
+    if recherche:
+        params["q"] = recherche
+    flt = CandidatureFilter.from_querydict(params)
     resume = []
     if flt.statuts:
         resume.append(
@@ -95,7 +101,12 @@ def resume_filtres(payload: dict) -> list[str]:
 
 
 def contexte_recapitulatif(
-    payload: dict, noms: dict[int, str], *, jeton: str, form: dict | None = None
+    payload: dict,
+    noms: dict[int, str],
+    *,
+    jeton: str,
+    form: dict | None = None,
+    recherche: str = "",
 ) -> dict:
     form = form or {}
     operation, decision = payload["op"], payload["d"]
@@ -129,7 +140,8 @@ def contexte_recapitulatif(
         "decision_libelle": libelle_statut(decision) if decision else "",
         "nb_selectionnees": payload["n"],
         "mode": payload["m"],
-        "filtres": resume_filtres(payload),
+        "filtres": resume_filtres(payload, recherche),
+        "recherche": recherche,
         "repartition": [
             (libelle_statut(code), nb)
             for code, nb in sorted(

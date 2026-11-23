@@ -196,7 +196,9 @@ def preparer_lot(
         "op": operation,
         "d": decision if operation == OPERATION_DECISION else "",
         "m": mode,
-        "r": flt.querystring(include_tri=True),
+        # Filtres pour l'URL de retour, sans le terme de recherche : le jeton est signé mais
+        # lisible par quiconque le détient (règle 29).
+        "r": flt.querystring(include_tri=True, include_q=False),
         "f": filtres_sans_recherche(flt) if mode == "filtre" else None,
         "q": bool(flt.search_tokens) if mode == "filtre" else False,
         "n": len(candidatures),
@@ -315,7 +317,9 @@ def journaliser_lancement(poste, user, request, meta: dict) -> None:
         )
 
 
-def journaliser_fin(poste, user, request, meta: dict, rapport: Rapport) -> None:
+def journaliser_fin(poste, user, request, meta: dict, rapport: Rapport, *, cause: str = "") -> None:
+    """Entrée ``lot`` de fin. ``cause`` : lot clos sans traitement (``file_indisponible``,
+    ``utilisateur_non_autorise``), toutes les candidatures étant en erreur technique."""
     with transaction.atomic():
         with connection.cursor() as cursor:
             cursor.execute(
@@ -329,7 +333,12 @@ def journaliser_fin(poste, user, request, meta: dict, rapport: Rapport) -> None:
             actor=user,
             obj=poste,
             request=request,
-            metadata={**meta, "etape": "termine", **rapport.as_metadata()},
+            metadata={
+                **meta,
+                "etape": "termine",
+                **rapport.as_metadata(),
+                **({"cause": cause} if cause else {}),
+            },
         )
 
 
@@ -448,9 +457,47 @@ def executer_decisions(
     return rapport
 
 
+def _relance_deja_faite(lot_id: str, candidature_id: int) -> JournalAudit | None:
+    """Entrée ``update`` déjà écrite pour cette candidature et ce lot (tâche relivrée)."""
+    return (
+        JournalAudit.objects.filter(
+            action=AuditAction.UPDATE,
+            content_type__app_label="recruitment",
+            content_type__model="candidature",
+            object_id=str(candidature_id),
+            metadata__lot_id=str(lot_id),
+        )
+        .only("id", "metadata")
+        .first()
+    )
+
+
+def _relancer_une(pk: int, *, poste_id: int, lot_id: str, contexte) -> bool | None:
+    """Relance une candidature dans sa propre transaction ; idempotente par (lot, candidature).
+
+    Renvoie ``statut_modifie``. Le verrou consultatif (lot, candidature) sérialise deux
+    exécutions concurrentes de la même tâche (``CELERY_TASK_ACKS_LATE``) : la seconde voit
+    l'entrée ``update`` de la première et ne recalcule pas (ni 2e vérification, ni 2e entrée).
+    """
+    from .services import run_eligibility
+
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"lot-relance:{lot_id}:{pk}"]
+            )
+        deja = _relance_deja_faite(lot_id, pk)
+        if deja is not None:
+            return bool(deja.metadata.get("statut_modifie"))
+        candidature = Candidature.objects.select_related("poste_concours", "offre").get(
+            pk=pk, poste_concours_id=poste_id
+        )
+        return run_eligibility(candidature, lot=contexte).statut_modifie
+
+
 def relancer(ids: list[int], *, poste_id: int, lot_id: str, user, request) -> Rapport:
     """Relance le moteur pour chaque candidature (règle 24), une transaction chacune."""
-    from .services import ContexteLot, run_eligibility
+    from .services import ContexteLot
 
     contexte = ContexteLot(lot_id=lot_id, acteur=user, request=request)
     rapport = Rapport(OPERATION_RELANCE)
@@ -460,10 +507,7 @@ def relancer(ids: list[int], *, poste_id: int, lot_id: str, user, request) -> Ra
             if Concours.objects.filter(pk=concours_id, statut=Concours.Statut.TERMINE).exists():
                 rapport.echecs[ECHEC_CONCOURS_TERMINE].append(pk)
                 continue
-            candidature = Candidature.objects.select_related("poste_concours", "offre").get(
-                pk=pk, poste_concours_id=poste_id
-            )
-            verification = run_eligibility(candidature, lot=contexte)
+            statut_modifie = _relancer_une(pk, poste_id=poste_id, lot_id=lot_id, contexte=contexte)
         except Candidature.DoesNotExist:
             rapport.echecs[ECHEC_MODIFIEE].append(pk)
         except Exception:  # noqa: BLE001 — une erreur n'interrompt jamais le lot (règle 20)
@@ -471,7 +515,7 @@ def relancer(ids: list[int], *, poste_id: int, lot_id: str, user, request) -> Ra
             rapport.echecs[ECHEC_TECHNIQUE].append(pk)
         else:
             rapport.succes.append(pk)
-            if verification.statut_modifie:
+            if statut_modifie:
                 rapport.statuts_modifies.append(pk)
     return rapport
 
@@ -481,6 +525,8 @@ class ResultatRelance:
     rapport: Rapport | None
     asynchrone: bool
     nb: int
+    #: La tâche n'a pas pu être mise en file (broker indisponible) : rien n'a été relancé.
+    echec_file: bool = False
 
 
 def executer_relance(payload: dict, *, poste, user, request) -> ResultatRelance:
@@ -492,15 +538,22 @@ def executer_relance(payload: dict, *, poste, user, request) -> ResultatRelance:
     if len(ids) > seuil_synchrone():
         from .tasks import relancer_eligibilite_lot
 
-        relancer_eligibilite_lot.delay(
-            lot_id=payload["lot"],
-            user_id=user.pk,
-            poste_id=poste.pk,
-            candidature_ids=ids,
-            meta=meta,
-            ip=meta_ip(request),
-            user_agent=request.META.get("HTTP_USER_AGENT", "")[:255] if request else "",
-        )
+        try:
+            relancer_eligibilite_lot.delay(
+                lot_id=payload["lot"],
+                user_id=user.pk,
+                poste_id=poste.pk,
+                candidature_ids=ids,
+                meta=meta,
+                ip=meta_ip(request),
+                user_agent=request.META.get("HTTP_USER_AGENT", "")[:255] if request else "",
+            )
+        except Exception:  # noqa: BLE001 — broker indisponible : lot clos en erreur technique
+            logger.exception("Lot %s : mise en file de la relance impossible", payload["lot"])
+            rapport = Rapport(OPERATION_RELANCE)
+            rapport.echecs[ECHEC_TECHNIQUE].extend(ids)
+            journaliser_fin(poste, user, request, meta, rapport, cause="file_indisponible")
+            return ResultatRelance(rapport, False, len(ids), echec_file=True)
         return ResultatRelance(None, True, len(ids))
     rapport = relancer(ids, poste_id=poste.pk, lot_id=payload["lot"], user=user, request=request)
     journaliser_fin(poste, user, request, meta, rapport)
@@ -519,9 +572,18 @@ def relancer_en_tache(
     """Corps de la tâche Celery : agit au nom de l'utilisateur, ne crée jamais de décision."""
     from django.contrib.auth import get_user_model
 
+    from apps.accounts.permissions import DIRECTION_ROLES
+
     user = get_user_model().objects.get(pk=user_id)
     poste = PosteConcours.objects.get(pk=poste_id)
     request = _requete_differee(user, ip, user_agent)
+    if not (user.is_active and user.has_role(*DIRECTION_ROLES)):
+        # Compte désactivé ou rôle retiré depuis le lancement : rien n'est relancé.
+        logger.warning("Lot %s : utilisateur #%s plus autorisé, relance annulée", lot_id, user_id)
+        rapport = Rapport(OPERATION_RELANCE)
+        rapport.echecs[ECHEC_TECHNIQUE].extend(sorted(candidature_ids))
+        journaliser_fin(poste, user, request, meta, rapport, cause="utilisateur_non_autorise")
+        return rapport
     rapport = relancer(
         list(candidature_ids), poste_id=poste_id, lot_id=lot_id, user=user, request=request
     )

@@ -51,12 +51,13 @@
     }
   });
 
-  // Les refus (400 : saisie incomplète, sélection vide ; 409 : lot déjà exécuté) renvoient le
-  // panneau avec son message : on l'affiche, limité au panneau des lots.
+  // Les refus (400 : saisie incomplète, sélection vide ; 409 : lot déjà exécuté ; 503 : file de
+  // tâches indisponible) renvoient le panneau avec son message : on l'affiche, limité au
+  // panneau des lots.
   document.addEventListener("htmx:beforeSwap", function (evt) {
     var status = evt.detail.xhr.status;
     var cible = evt.detail.target;
-    if ((status === 400 || status === 409) && cible && cible.id === "lot-panneau") {
+    if ((status === 400 || status === 409 || status === 503) && cible && cible.id === "lot-panneau") {
       evt.detail.shouldSwap = true;
       evt.detail.isError = false;
     }
