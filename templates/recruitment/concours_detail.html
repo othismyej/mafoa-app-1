@@ -12,7 +12,10 @@
         <p class="page-eyebrow">{{ c.organisation }}</p>
         <h1 class="page-title">{{ c.intitule }}</h1>
       </div>
-      {% include "components/badge_statut.html" with code=c.statut label=c.get_statut_display %}
+      <div class="flex flex-wrap items-center gap-3">
+        {% include "components/badge_statut.html" with code=c.statut label=c.get_statut_display %}
+        <a class="btn-secondary btn-sm" href="{% url 'exports:concours_xlsx' c.pk %}" download data-export="concours">{% include "components/icon.html" with name="file" size="h-4 w-4" %}{% translate "Exporter le concours en Excel" %}</a>
+      </div>
     </div>
     <dl class="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-ink-100 pt-5 text-sm sm:grid-cols-3 lg:grid-cols-6">
       <div><dt class="text-ink-600">{% translate "Organisation" %}</dt><dd class="mt-1 font-medium text-ink-900">{{ c.organisation }}</dd></div>

@@ -126,6 +126,8 @@ ALLAUTH_TRUSTED_PROXY_COUNT = TRUSTED_PROXY_COUNT
 # --- Journal d'audit (KAN-14) ----------------------------------------------
 # Plafond de lignes d'un export du journal : au-delà, aucun fichier n'est produit.
 AUDIT_EXPORT_MAX_ROWS = env.int("AUDIT_EXPORT_MAX_ROWS", default=50_000)
+# Plafond de candidatures par fichier Excel (export par poste ou par concours, KAN-37).
+EXPORT_CANDIDATURES_MAX_ROWS = env.int("EXPORT_CANDIDATURES_MAX_ROWS", default=20_000)
 
 # --- Sessions et cookies ----------------------------------------------------
 SESSION_COOKIE_AGE = env.int("SESSION_COOKIE_AGE", default=8 * 3600)
