@@ -88,3 +88,43 @@ def source_labels(sources) -> list[str]:
         key = s.get("type") if isinstance(s, dict) else s
         labels.append(SOURCE_LABELS.get(str(key), str(key)))
     return labels
+
+
+CRITERE_KEYS = ("critere", "libelle", "verdict", "attendu", "constate", "raison")
+
+
+def criteres(details) -> list[dict]:
+    """Lignes du tableau des critères, robustes à des ``details`` mal formés."""
+    if not isinstance(details, list):
+        return []
+    return [{k: _text(d, k) for k in CRITERE_KEYS} for d in details if isinstance(d, dict)]
+
+
+# Statut de la candidature ramené à un verdict d'éligibilité (bandeau d'écart, règle 10).
+STATUT_VERS_ELIGIBILITE = {
+    "eligible": "eligible",
+    "preselectionnee": "eligible",
+    "convoquee": "eligible",
+    "retenue": "eligible",
+    "non_eligible": "non_eligible",
+}
+
+
+def ecart_verdict_decision(
+    statut: str,
+    verdict: str | None,
+    a_une_decision: bool,
+    derniere_decision: str | None = None,
+) -> bool:
+    """Le moteur contredit-il la décision humaine en vigueur ?
+
+    On compare le verdict à l'éligibilité impliquée par le statut courant et par la dernière
+    décision humaine (règle 10 de KAN-11).
+    """
+    if not (a_une_decision and verdict):
+        return False
+    attendus = {
+        STATUT_VERS_ELIGIBILITE.get(statut),
+        STATUT_VERS_ELIGIBILITE.get(derniere_decision or ""),
+    } - {None}
+    return any(verdict != a for a in attendus)

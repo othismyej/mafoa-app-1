@@ -93,6 +93,9 @@ SORT_HEADERS = [
 ]
 
 
+HISTORIQUE_VERIFICATIONS = 20
+
+
 def _fiche_queryset():
     return Candidature.objects.select_related(
         "candidat",
@@ -107,10 +110,6 @@ def _fiche_queryset():
             ).order_by("resolue", "-created_at", "-id"),
         ),
         Prefetch(
-            "verifications_eligibilite",
-            queryset=VerificationEligibilite.objects.order_by("-created_at", "-id"),
-        ),
-        Prefetch(
             "decisions",
             queryset=Decision.objects.select_related("auteur").order_by("-created_at", "-id"),
         ),
@@ -118,7 +117,15 @@ def _fiche_queryset():
 
 
 def _fiche_context(candidature: Candidature, form: dict | None = None) -> dict:
-    verifications = list(candidature.verifications_eligibilite.all())
+    # Historique borné : la dernière vérification + les 20 précédentes (la page ne grossit pas
+    # indéfiniment avec les réévaluations), et le nombre total pour information.
+    verifs_qs = VerificationEligibilite.objects.filter(candidature=candidature).order_by(
+        "-created_at", "-id"
+    )
+    verifications = list(verifs_qs[: HISTORIQUE_VERIFICATIONS + 1])
+    total_verifications = (
+        verifs_qs.count() if len(verifications) > HISTORIQUE_VERIFICATIONS else len(verifications)
+    )
     decisions_list = list(candidature.decisions.all())
     anomalies = list(candidature.anomalies.all())
     derniere = verifications[0] if verifications else None
@@ -132,8 +139,15 @@ def _fiche_context(candidature: Candidature, form: dict | None = None) -> dict:
         "nb_anomalies_non_resolues": sum(1 for a in anomalies if not a.resolue),
         "derniere_verification": derniere,
         "verifications_precedentes": verifications[1:],
+        "verifications_masquees": max(0, total_verifications - len(verifications)),
         "sources": presenters.source_labels(derniere.sources) if derniere else [],
-        "ecart": bool(decisions_list and derniere and derniere.resultat != candidature.statut),
+        "criteres": presenters.criteres(derniere.details) if derniere else [],
+        "ecart": presenters.ecart_verdict_decision(
+            candidature.statut,
+            derniere.resultat if derniere else None,
+            bool(decisions_list),
+            decisions_list[0].decision if decisions_list else None,
+        ),
         "decisions": decisions_list,
         "formations": presenters.formations(donnees),
         "experiences": presenters.experiences(donnees),
@@ -165,7 +179,13 @@ def candidature_detail(request, pk: int):
     """Fiche candidature en lecture seule (spec KAN-11) ; formulaire de décision (KAN-13)."""
     candidature = get_object_or_404(_fiche_queryset(), pk=pk)
     # Point d'accroche unique de la journalisation des consultations (KAN-14).
-    log(AuditAction.VIEW, obj=candidature, request=request)
+    # Libellé sans nom : le journal, en ajout seul, ne doit pas multiplier les données nominatives.
+    log(
+        AuditAction.VIEW,
+        obj=candidature,
+        request=request,
+        object_repr=f"Candidature #{candidature.pk}",
+    )
     return render(request, "recruitment/candidature_detail.html", _fiche_context(candidature))
 
 

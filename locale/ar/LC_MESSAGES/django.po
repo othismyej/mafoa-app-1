@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 01:28+0000\n"
+"POT-Creation-Date: 2026-11-23 09:13+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -145,12 +145,12 @@ msgstr ""
 
 #: apps/recruitment/views.py:92
 #: templates/recruitment/candidature_detail.html:35
-#: templates/recruitment/candidature_detail.html:191
+#: templates/recruitment/candidature_detail.html:192
 #: templates/recruitment/poste_candidatures.html:45
 msgid "Anomalies"
 msgstr ""
 
-#: apps/recruitment/views.py:211 apps/recruitment/views.py:213
+#: apps/recruitment/views.py:229 apps/recruitment/views.py:231
 msgid "Décision enregistrée."
 msgstr ""
 
@@ -298,6 +298,11 @@ msgstr ""
 
 #: templates/recruitment/_decisions.html:55
 msgid "Aucune décision enregistrée"
+msgstr ""
+
+#: templates/recruitment/candidature_detail.html:3
+#, python-format
+msgid "Fiche candidature n° %(pk)s"
 msgstr ""
 
 #: templates/recruitment/candidature_detail.html:6
@@ -491,36 +496,47 @@ msgstr[5] ""
 msgid "moteur"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:184
+#: templates/recruitment/candidature_detail.html:181
+#, python-format
+msgid "%(n)s vérification plus ancienne n’est pas affichée."
+msgid_plural "%(n)s vérifications plus anciennes ne sont pas affichées."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/candidature_detail.html:185
 msgid "Éligibilité non encore vérifiée"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:186
+#: templates/recruitment/candidature_detail.html:187
 msgid "Score sur grille : non disponible"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:198
+#: templates/recruitment/candidature_detail.html:199
 #, python-format
 msgid "Résolue par %(qui)s le %(quand)s"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:201
+#: templates/recruitment/candidature_detail.html:202
 msgid "Détectée le"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:202
+#: templates/recruitment/candidature_detail.html:203
 msgid "Pièce"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:204
+#: templates/recruitment/candidature_detail.html:205
 msgid "Voir la candidature liée"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:205
+#: templates/recruitment/candidature_detail.html:206
 msgid "candidature liée indisponible"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:212
+#: templates/recruitment/candidature_detail.html:213
 msgid "Aucune anomalie"
 msgstr ""
 
