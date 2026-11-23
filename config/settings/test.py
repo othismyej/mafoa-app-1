@@ -14,6 +14,8 @@ STORAGES = {
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 CELERY_TASK_ALWAYS_EAGER = True
+# Les tests vérifient le comportement de production : jamais lu depuis .env.
+MFA_REQUIRED = True
 ACCOUNT_RATE_LIMITS = False
 ANTHROPIC_API_KEY = ""
 # WhiteNoise inutile en test (et STATIC_ROOT n'existe pas avant collectstatic).
