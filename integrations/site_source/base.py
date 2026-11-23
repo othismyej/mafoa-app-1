@@ -44,8 +44,16 @@ class SiteSource(ABC):
     def list_pieces(self, since: datetime | None = None) -> Iterable[PieceDTO]: ...
 
     @abstractmethod
-    def read_piece(self, storage_key: str) -> bytes:
-        """Lit le contenu d'une pièce à la demande (aucune copie permanente)."""
+    def read_piece(
+        self, storage_key: str, *, max_bytes: int | None = None, timeout: float | None = None
+    ) -> bytes:
+        """Lit le contenu d'une pièce à la demande (aucune copie permanente).
+
+        ``max_bytes`` : les implémentations réseau (Spaces, API) ne doivent pas charger plus que
+        cette taille (lever une erreur ou renvoyer plus de ``max_bytes`` octets pour signaler le
+        dépassement). ``timeout`` (secondes) : délai de lecture ; un dépassement lève
+        ``TimeoutError``. ``FileNotFoundError`` si la clé est inconnue de la source.
+        """
 
 
 class UnavailableSource(SiteSource):
