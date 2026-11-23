@@ -20,7 +20,8 @@ croisé, préparation des listes de présélection, réponse à un recours. Le b
 
 Existant dans le code (à réutiliser, ne pas recréer) :
 
-- **Liste des candidatures d'un poste** (KAN-10) : vue `poste_candidatures`, filtrage unique
+- **Liste des candidatures d'un poste** (KAN-10) : vue `poste_candidatures` (sa règle 29,
+  « ni export », est levée par la présente story pour un simple lien GET), filtrage unique
   `apps/recruitment/filters.py` — `filter_candidatures(poste, params)` renvoie
   `(queryset, CandidatureFilter)` annoté (`dernier_verdict`, `nb_anomalies`, `gravite_max`) ;
   `CandidatureFilter.querystring()` reconstruit les paramètres validés.
@@ -97,8 +98,9 @@ justifier chaque résultat en cas de recours.
      la liste est vide.
 7. **Expérience calculée (années)** : nombre décimal (2 décimales) calculé par le code
    déterministe du moteur (`compute_experience`) à la date de référence du poste (date limite du
-   poste, sinon du concours) ; cellule vide si les expériences ne sont pas renseignées ou
-   illisibles. Aucune nouvelle règle de calcul.
+   poste, sinon du concours) ; cellule vide si les expériences ne sont pas renseignées ou si
+   leur structure est inexploitable ; une période à date illisible n'est pas comptée, comme dans
+   le moteur. Aucune nouvelle règle de calcul.
 8. **Résultat — décision humaine en vigueur** (choix du PO) : Statut actuel de la candidature,
    Décision humaine (libellé), Motif, Auteur (email de l'utilisateur), Date de la décision. Sans
    décision : « Aucune décision humaine » dans la colonne Décision, les trois autres vides.
