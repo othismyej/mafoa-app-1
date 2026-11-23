@@ -2,7 +2,7 @@
 
 - **Ticket** : https://othmane-smyej.atlassian.net/browse/KAN-11
 - **Epic** : E2 — Écrans concours et éligibilité
-- **Statut** : brouillon
+- **Statut** : validée le 2026-11-23 par le Product Owner (réponses par défaut retenues pour toutes les questions ouvertes ; à revoir quand l'accès aux données et aux modèles du site sera disponible, voir KAN-24 et KAN-25)
 
 ## Contexte
 
@@ -268,19 +268,21 @@ HTMX qu'elle charge (aucun fragment ne doit être accessible sans contrôle de r
 
 ## Questions ouvertes
 
-- [ ] **Q1 — Date de naissance affichée ?** Elle sert à l'identification (CIN, doublons) mais
+Toutes tranchées le 2026-11-23 : la proposition par défaut est retenue pour chaque question.
+
+- [x] **Q1 — Date de naissance affichée ?** Elle sert à l'identification (CIN, doublons) mais
   permet de déduire l'âge, critère interdit. *Proposition par défaut* : l'afficher (sans âge
   calculé), car elle est nécessaire pour vérifier l'identité en cas de recours. *Conséquence
   alternative* : la masquer par défaut avec un bouton « Afficher » journalisé, ce qui alourdit
   KAN-14.
-- [ ] **Q2 — Fiche des candidatures à une offre privée** dans cette story ? *Proposition par
+- [x] **Q2 — Fiche des candidatures à une offre privée** dans cette story ? *Proposition par
   défaut* : oui, même écran (en-tête adapté, CA8), puisque le modèle est commun ; les éléments
   propres au recrutement privé (score d'adéquation, CU5) viendront plus tard.
-- [ ] **Q3 — Activation avant KAN-14** : peut-on fusionner KAN-11 avant KAN-14 ? *Proposition par
+- [x] **Q3 — Activation avant KAN-14** : peut-on fusionner KAN-11 avant KAN-14 ? *Proposition par
   défaut* : oui, la fusion est permise tant que seules des données fictives sont chargées ;
   la mise en production avec données réelles exige KAN-14.
-- [ ] **Q4 — CIN et téléphone en clair** pour tous les membres de la direction ? *Proposition
+- [x] **Q4 — CIN et téléphone en clair** pour tous les membres de la direction ? *Proposition
   par défaut* : oui (outil réservé au top management) ; sinon prévoir un masquage partiel
   (`AB12****`).
-- [ ] **Q5 — Historique des vérifications** : toutes les vérifications ou seulement les N
+- [x] **Q5 — Historique des vérifications** : toutes les vérifications ou seulement les N
   dernières ? *Proposition par défaut* : toutes, chargées à la demande en fragment HTMX.

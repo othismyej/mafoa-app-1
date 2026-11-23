@@ -2,7 +2,7 @@
 
 - **Ticket** : https://othmane-smyej.atlassian.net/browse/KAN-9
 - **Epic** : E2 — Écrans concours et éligibilité
-- **Statut** : brouillon (rédigée le 2026-11-23, en attente de validation par le Product Owner)
+- **Statut** : validée le 2026-11-23 par le Product Owner (réponses par défaut retenues pour toutes les questions ouvertes ; à revoir quand l'accès aux données et aux modèles du site sera disponible, voir KAN-24 et KAN-25)
 
 ## Contexte
 
@@ -225,7 +225,9 @@ Nord 2026 » (organisation « SRM Région Fictive Nord », date limite 2026-03-3
 
 ## Questions ouvertes
 
-- [ ] **Q1 — Source du verdict** : la répartition doit-elle suivre le dernier verdict du moteur
+Toutes tranchées le 2026-11-23 : la proposition par défaut est retenue pour chaque question.
+
+- [x] **Q1 — Source du verdict** : la répartition doit-elle suivre le dernier verdict du moteur
   (`VerificationEligibilite`) ou le statut courant de la candidature, qui peut avoir été changé
   par une décision humaine ? **Proposition par défaut** : dernier verdict du moteur (règle 5),
   car le statut mêle verdict et étapes ultérieures (présélectionnée, convoquée…). Conséquence :
@@ -233,17 +235,17 @@ Nord 2026 » (organisation « SRM Région Fictive Nord », date limite 2026-03-3
   si c'est gênant, ajouter en complément une colonne « décision humaine prise » (petit surcoût).
   À noter : le compteur « Dossiers à vérifier » du tableau de bord se base aujourd'hui sur le
   statut ; les deux chiffres peuvent différer. À harmoniser dans un ticket séparé si souhaité.
-- [ ] **Q2 — Colonnes supplémentaires** : faut-il afficher aussi le nombre de candidatures avec
+- [x] **Q2 — Colonnes supplémentaires** : faut-il afficher aussi le nombre de candidatures avec
   anomalies non résolues par poste ? **Proposition par défaut** : non dans ce ticket (le ticket
   ne le demande pas) ; ajout simple ultérieurement, au même coût de requête.
-- [ ] **Q3 — Accès aux concours au-delà des 10 du tableau de bord** : faut-il une liste complète
+- [x] **Q3 — Accès aux concours au-delà des 10 du tableau de bord** : faut-il une liste complète
   des concours ? **Proposition par défaut** : hors périmètre ; créer un ticket dédié (liste
   paginée avec filtre par statut). Conséquence : tant qu'il n'existe pas, les concours anciens
   ne sont accessibles que par URL directe.
-- [ ] **Q4 — Ordre des postes** : l'ordre lexicographique des références (« P-10 » avant « P-2 »)
+- [x] **Q4 — Ordre des postes** : l'ordre lexicographique des références (« P-10 » avant « P-2 »)
   convient-il ? **Proposition par défaut** : oui, les références fictives et observées sont à
   longueur fixe (P-01, P-02…). Un tri « naturel » serait à spécifier si des références réelles
   l'exigent.
-- [ ] **Q5 — Journalisation d'une vue sans donnée personnelle** : faut-il journaliser la
+- [x] **Q5 — Journalisation d'une vue sans donnée personnelle** : faut-il journaliser la
   consultation d'une fiche qui n'affiche que des agrégats ? **Proposition par défaut** : oui
   (règle simple « toute consultation est journalisée », coût négligeable).

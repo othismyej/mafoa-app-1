@@ -2,7 +2,7 @@
 
 - **Ticket** : https://othmane-smyej.atlassian.net/browse/KAN-13
 - **Epic** : E2 — Écrans concours et éligibilité
-- **Statut** : brouillon
+- **Statut** : validée le 2026-11-23 par le Product Owner (réponses par défaut retenues pour toutes les questions ouvertes ; à revoir quand l'accès aux données et aux modèles du site sera disponible, voir KAN-24 et KAN-25)
 
 ## Contexte
 
@@ -273,37 +273,39 @@ décision soit humaine, motivée et tracée dans le journal d'audit.
 
 ## Questions ouvertes
 
-- [ ] **Q1 — Table des transitions (règle 4)** : la valider telle quelle. *Proposition par
+Toutes tranchées le 2026-11-23 : la proposition par défaut est retenue pour chaque question.
+
+- [x] **Q1 — Table des transitions (règle 4)** : la valider telle quelle. *Proposition par
   défaut* : adopter la table ; en particulier « convoquée » directement depuis « éligible » est
   permis (concours sans étape de présélection publiée). *Conséquence* : si le PO veut imposer
   la présélection, retirer « convoquée » de la ligne « éligible ».
-- [ ] **Q2 — « Non éligible » décidé par un humain est-il une élimination définitive ?**
+- [x] **Q2 — « Non éligible » décidé par un humain est-il une élimination définitive ?**
   *Proposition par défaut* : non ; « non éligible » reste un statut d'éligibilité, la clôture
   définitive est « rejetée ». Les listes officielles des non retenus s'appuient sur « rejetée »
   et « non éligible ». *Alternative* : supprimer « non éligible » des décisions et ne garder que
   « rejetée ».
-- [ ] **Q3 — Décisions après la fin du concours** : bloquer quand le concours est « Terminé »
+- [x] **Q3 — Décisions après la fin du concours** : bloquer quand le concours est « Terminé »
   (règle 11) ? *Proposition par défaut* : oui pour `direction`, et aussi pour `admin` ; un
   recours après clôture se traite en repassant d'abord le concours en « En évaluation »
   (action admin tracée). *Alternative* : autoriser l'admin seul, avec révision obligatoire.
-- [ ] **Q4 — Qui peut revenir sur une décision « retenue » ou « rejetée »** ? *Proposition par
+- [x] **Q4 — Qui peut revenir sur une décision « retenue » ou « rejetée »** ? *Proposition par
   défaut* : `admin` et `direction`, avec confirmation de révision et motif. *Alternative* :
   réserver les révisions de « retenue » et « rejetée » à `admin`.
-- [ ] **Q5 — Longueur minimale du motif** : 10 caractères ? *Proposition par défaut* : 10
+- [x] **Q5 — Longueur minimale du motif** : 10 caractères ? *Proposition par défaut* : 10
   (évite « ok », « non ») ; maximum 2 000.
-- [ ] **Q6 — Journaliser les tentatives refusées** (transition interdite, conflit de
+- [x] **Q6 — Journaliser les tentatives refusées** (transition interdite, conflit de
   concurrence) ? *Proposition par défaut* : non pour les erreurs de saisie (motif trop court),
   oui pour les refus de droits (403) et les transitions interdites envoyées directement
   (signal d'un usage anormal), via une action d'audit existante (`update`) avec
   `metadata.refus`. *Conséquence* : ajout d'une valeur `AuditAction` dédiée si le PO préfère.
-- [ ] **Q7 — Quota `nombre_postes` (règle 10)** : avertir ou bloquer ? *Proposition par défaut* :
+- [x] **Q7 — Quota `nombre_postes` (règle 10)** : avertir ou bloquer ? *Proposition par défaut* :
   avertir (les listes d'attente et désistements existent) ; bloquer obligerait à gérer une
   liste complémentaire.
-- [ ] **Q8 — Anomalie haute non résolue (règle 10)** : avertir ou bloquer la présélection ?
+- [x] **Q8 — Anomalie haute non résolue (règle 10)** : avertir ou bloquer la présélection ?
   *Proposition par défaut* : avertir avec confirmation tracée.
-- [ ] **Q9 — Candidatures à une offre privée** : même table de transitions ? *Proposition par
+- [x] **Q9 — Candidatures à une offre privée** : même table de transitions ? *Proposition par
   défaut* : oui ; « convoquée » vaut « convoquée en entretien ».
-- [ ] **Q10 — Ajout de décision depuis l'administration Django** : le supprimer (règle 14) ?
+- [x] **Q10 — Ajout de décision depuis l'administration Django** : le supprimer (règle 14) ?
   *Proposition par défaut* : oui, la fiche devient le seul point d'entrée ; l'administration
   reste en lecture seule pour les décisions. *Alternative* : le garder pour l'admin, soumis aux
   mêmes règles du service mais sans confirmation de révision ni contrôle de concurrence.

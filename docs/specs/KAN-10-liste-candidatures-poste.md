@@ -2,7 +2,7 @@
 
 - **Ticket** : https://othmane-smyej.atlassian.net/browse/KAN-10
 - **Epic** : E2 — Écrans concours et éligibilité
-- **Statut** : brouillon (rédigée le 2026-11-23, en attente de validation par le Product Owner)
+- **Statut** : validée le 2026-11-23 par le Product Owner (réponses par défaut retenues pour toutes les questions ouvertes ; à revoir quand l'accès aux données et aux modèles du site sera disponible, voir KAN-24 et KAN-25)
 
 ## Contexte
 
@@ -359,29 +359,31 @@ Jeu de données de référence (fictif) : concours C1, poste P1 (référence « 
 
 ## Questions ouvertes
 
-- [ ] **Q1 — Tri par défaut** : date de candidature croissante (premier arrivé, premier traité),
+Toutes tranchées le 2026-11-23 : la proposition par défaut est retenue pour chaque question.
+
+- [x] **Q1 — Tri par défaut** : date de candidature croissante (premier arrivé, premier traité),
   décroissante (plus récentes d'abord, cohérent avec l'ordre du modèle) ou nom alphabétique
   (habituel des listes publiées) ? **Proposition par défaut** : date croissante. Conséquence
   nulle sur le coût ; seul l'ordre initial change.
-- [ ] **Q2 — Score** : le brief cite un filtre par score sur cet écran. **Proposition par
+- [x] **Q2 — Score** : le brief cite un filtre par score sur cet écran. **Proposition par
   défaut** : hors périmètre tant que le scoring (E3) n'est pas livré ; un ticket ajoutera la
   colonne, le filtre (note minimale) et le tri. Conséquence : la liste devra être étendue, ce
   que la règle 28 facilite.
-- [ ] **Q3 — Recherche par CIN ou email** : utile pour retrouver un candidat qui appelle.
+- [x] **Q3 — Recherche par CIN ou email** : utile pour retrouver un candidat qui appelle.
   **Proposition par défaut** : non dans ce ticket (le ticket demande « par nom », et la
   minimisation CNDP plaide pour ne pas l'étendre) ; à réévaluer avec la fiche candidature.
   Si oui : correspondance exacte uniquement, sans afficher la valeur dans la liste.
-- [ ] **Q4 — Terme de recherche dans le journal d'audit** : le conserver (traçabilité de « qui a
+- [x] **Q4 — Terme de recherche dans le journal d'audit** : le conserver (traçabilité de « qui a
   cherché qui ») ou le masquer (minimisation) ? **Proposition par défaut** : le conserver, le
   journal étant en ajout seul et réservé à `admin`. Conséquence : le journal contient des noms
   de candidats, à couvrir par la politique de conservation et de purge (CNDP).
-- [ ] **Q5 — Volume de journalisation** : une entrée par fragment HTMX (chaque changement de
+- [x] **Q5 — Volume de journalisation** : une entrée par fragment HTMX (chaque changement de
   filtre, de page ou de recherche) peut générer des dizaines d'entrées par séance de travail.
   **Proposition par défaut** : oui, une entrée par réponse servie (règle simple et complète) ;
   alternative : n'enregistrer que les pages complètes et les changements de page.
-- [ ] **Q6 — Colonne « dernière décision »** : faut-il afficher l'auteur et la date de la
+- [x] **Q6 — Colonne « dernière décision »** : faut-il afficher l'auteur et la date de la
   dernière décision humaine ? **Proposition par défaut** : non (le statut suffit pour trier le
   travail ; le détail est sur la fiche candidature).
-- [ ] **Q7 — Statuts par défaut** : faut-il masquer par défaut les candidatures déjà tranchées
+- [x] **Q7 — Statuts par défaut** : faut-il masquer par défaut les candidatures déjà tranchées
   (retenue, rejetée) ? **Proposition par défaut** : non, aucun filtre par défaut, pour que le
   compteur corresponde aux chiffres de la fiche concours (KAN-9).
