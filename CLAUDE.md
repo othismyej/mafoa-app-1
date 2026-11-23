@@ -179,3 +179,10 @@ mafoa-ai/
 - Organisation des fichiers dans le bucket Spaces (chemins des CV et pièces).
 - Possibilité de créer un utilisateur base de données en lecture seule et une clé Spaces en lecture seule.
 - Accord pour ajouter au site une API en lecture seule et un webhook à la création d'une candidature.
+
+## 11. Organisation du travail
+
+- Suivi dans Jira : https://othmane-smyej.atlassian.net, projet **Mafoa AI** (clé `KAN`). Epics E1 à E8.
+- Rôles, parcours d'un ticket (Idea → To Do → In Progress → In Review → Done), définitions de « Prêt » et de « Terminé », conventions de branches (`feat/KAN-12-...`) : voir `docs/organisation.md`.
+- Agents Claude Code dans `.claude/agents/` : `specificateur`, `testeur`, `relecteur-conformite`.
+- Une spécification validée par story dans `docs/specs/` (modèle : `docs/specs/_modele.md`) avant tout développement.
