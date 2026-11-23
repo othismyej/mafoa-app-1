@@ -6,6 +6,7 @@ Toutes les données sont fictives (domaines example.org). Aucun appel IA.
 
 import re
 from datetime import date
+from html import unescape
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -600,3 +601,103 @@ def test_ca25_libelles_dans_le_catalogue():
                 if msgid not in msgids:
                     missing.append(msgid)
     assert not missing, missing
+
+
+# --------------------------------------------------------------------------------------
+# Relecture conformité : confidentialité de l'entreprise (S2), échappement (S3)
+# --------------------------------------------------------------------------------------
+
+SECRET = "Groupe Fictif Secret"
+
+
+def test_s2_nom_d_entreprise_confidentielle_jamais_affiche(client, direction_user, ref):
+    org = Organisation.objects.create(nom=SECRET, type=Organisation.Type.PRIVE)
+    offre = OffreEmploi.objects.create(
+        organisation=org,
+        intitule="Analyste fictif",
+        entreprise_confidentielle=True,
+        statut=OffreEmploi.Statut.OUVERTE,
+        date_publication=date(2026, 11, 20),
+        fiche_de_poste="Analyser des données fictives.",
+    )
+    cand = candidature(offre, S.A_VERIFIER, "Secretnom", "Test")
+    add_verif(cand, Verdict.A_VERIFIER)
+    urls = [
+        offres_url(),
+        offre_url(offre),
+        reverse("recruitment:a_verifier"),
+        reverse("dashboard"),
+        reverse("recruitment:candidature_detail", args=[cand.pk]),
+    ]
+    client.force_login(direction_user)
+    for url in urls:
+        response = client.get(url)
+        assert response.status_code == 200, url
+        html = response.content.decode()
+        # Recherche sur le HTML brut et désentité (attributs, <title>, scripts compris).
+        for variante in (html, unescape(html)):
+            assert SECRET.lower() not in variante.lower(), url
+    page_offre = parse(client.get(offre_url(offre)))
+    assert by_attr(page_offre, "data-entreprise")[0].text() == "Entreprise confidentielle"
+
+
+XSS = "<script>alert('xss')</script>"
+
+
+def test_s3_champs_d_offre_echappes(client, direction_user, ref):
+    org = ref["o1"].organisation
+    courte = OffreEmploi.objects.create(
+        organisation=org,
+        intitule=f"Offre {XSS}",
+        statut=OffreEmploi.Statut.OUVERTE,
+        date_publication=date(2026, 11, 21),
+        fiche_de_poste=f"Fiche courte {XSS}",
+        competences=[f"Compétence {XSS}"],
+        salaire=f"Salaire {XSS}",
+    )
+    longue = OffreEmploi.objects.create(
+        organisation=org,
+        intitule=f"Offre longue {XSS}",
+        statut=OffreEmploi.Statut.OUVERTE,
+        date_publication=date(2026, 11, 22),
+        fiche_de_poste=f"Début {XSS} " + "Mission fictive détaillée. " * 80 + XSS,
+    )
+    client.force_login(direction_user)
+    for url in (offre_url(courte), offre_url(longue), offres_url(), reverse("dashboard")):
+        html = client.get(url).content.decode()
+        assert "<script>alert" not in html, url
+    html = client.get(offre_url(courte)).content.decode()
+    echappe = "&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;"
+    for attendu in (
+        f"Offre {echappe}",
+        f"Fiche courte {echappe}",
+        f"Compétence {echappe}",
+        f"Salaire {echappe}",
+    ):
+        assert attendu in html
+    html_longue = client.get(offre_url(longue)).content.decode()
+    assert "Lire la fiche complète" in unescape(html_longue)
+    assert html_longue.count(echappe) >= 3  # intitulé + début (résumé et fiche complète) + fin
+    liste = client.get(offres_url()).content.decode()
+    assert f"Offre {echappe}" in liste and f"Offre longue {echappe}" in liste
+
+
+# --------------------------------------------------------------------------------------
+# Export Excel (KAN-37) : poste de concours seulement
+# --------------------------------------------------------------------------------------
+
+
+def test_bouton_export_excel_poste_seulement(client, direction_user, ref):
+    client.force_login(direction_user)
+    html_offre = client.get(offre_url(ref["o1"])).content.decode()
+    assert ref["co"]["sara"].pk in row_ids(parse(html_offre))
+    assert "data-export" not in html_offre
+    assert "Exporter en Excel" not in unescape(html_offre)
+    p1 = ref["p1"]
+    liste = reverse("recruitment:poste_candidatures", args=[p1.concours_id, p1.pk])
+    root = parse(client.get(liste))
+    (bouton,) = by_attr(root, "data-export", "poste")
+    assert urlparse(bouton.attrs["href"]).path == reverse(
+        "exports:poste_candidatures_xlsx", args=[p1.concours_id, p1.pk]
+    )
+    assert bouton.text().strip() == "Exporter en Excel (filtres appliqués)"
