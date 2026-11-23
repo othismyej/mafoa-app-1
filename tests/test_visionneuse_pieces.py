@@ -251,7 +251,9 @@ def test_ca4_role_insuffisant(client, cand, no_source, role):
         assert b"%PDF" not in body(r)
         assert b"cv_alaoui" not in body(r)
     assert not no_source.called
-    entry = view_entries().get()
+    assert not view_entries().exists()
+    # Branché sur KAN-14 : un refus est une entrée « access_denied », pas une consultation.
+    entry = JournalAudit.objects.get(action=AuditAction.ACCESS_DENIED)
     assert entry.metadata["refus"] == "droits"
     assert entry.actor == user
     assert entry.object_id == ""
@@ -270,7 +272,8 @@ def test_ca5_piece_d_une_autre_candidature(client, direction_user, cand, poste, 
     assert response.status_code == 404
     assert b"%PDF" not in body(response)
     assert not no_source.called
-    entry = view_entries().get()
+    assert not view_entries().exists()
+    entry = JournalAudit.objects.get(action=AuditAction.ACCESS_DENIED)
     assert entry.metadata["refus"] == "piece_hors_candidature"
     assert entry.metadata["candidature_id"] == autre.pk
     assert entry.metadata["piece_id"] == p.pk
@@ -965,6 +968,7 @@ def test_ca36_entree_de_journal_apercu(client, direction_user, cand):
     assert entry.user_agent == "NavigateurFictif/1.0"
     content = FixtureSource(seed=settings.SITE_SOURCE_FIXTURE_SEED).read_piece(FIXTURE_KEY)
     assert entry.metadata == {
+        "vue": "piece",  # format commun KAN-14
         "candidature_id": cand.pk,
         "piece_id": p.pk,
         "type_piece": "cv",

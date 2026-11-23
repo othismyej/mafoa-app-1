@@ -1,0 +1,61 @@
+{% load i18n %}
+{% if flt.messages %}
+<ul class="mb-4 space-y-2" data-filtres-messages>
+  {% for m in flt.messages %}<li>{% include "components/alert.html" with message=m tone="warning" role="alert" %}</li>{% endfor %}
+</ul>
+{% endif %}
+<div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+  <p class="text-sm font-medium text-ink-800" data-compteur>
+    {% blocktranslate count n=page.paginator.count %}{{ n }} entrée{% plural %}{{ n }} entrées{% endblocktranslate %}
+    <span class="font-normal text-ink-600">· {% blocktranslate with du=flt.du|date:"d/m/Y" au=flt.au|date:"d/m/Y" %}du {{ du }} au {{ au }}{% endblocktranslate %}</span>
+  </p>
+  <div class="flex flex-wrap gap-2" data-export>
+    <a class="btn-secondary btn-sm" href="{% url 'audit:journal_export' 'csv' %}?{{ querystring }}" download>{% include "components/icon.html" with name="file" size="h-4 w-4" %}{% translate "Exporter en CSV" %}</a>
+    <a class="btn-secondary btn-sm" href="{% url 'audit:journal_export' 'xlsx' %}?{{ querystring }}" download>{% include "components/icon.html" with name="file" size="h-4 w-4" %}{% translate "Exporter en Excel" %}</a>
+  </div>
+</div>
+{% if rows %}
+<div class="table-wrap">
+<table class="table-data">
+  <caption class="sr-only">{% translate "Entrées du journal d’audit, de la plus récente à la plus ancienne" %}</caption>
+  <thead>
+    <tr>
+      <th scope="col">{% translate "Horodatage" %}</th>
+      <th scope="col">{% translate "Acteur" %}</th>
+      <th scope="col">{% translate "Action" %}</th>
+      <th scope="col">{% translate "Objet" %}</th>
+      <th scope="col">{% translate "Adresse IP" %}</th>
+      <th scope="col"><span class="sr-only">{% translate "Détail" %}</span></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in rows %}{% with e=r.e %}
+    <tr data-entree="{{ e.pk }}">
+      <td class="whitespace-nowrap tabular-nums text-ink-700" data-col="horodatage">{{ e.timestamp|date:"d/m/Y H:i:s" }}</td>
+      <td class="max-w-xs truncate" title="{{ r.acteur }}" data-col="acteur">{{ r.acteur }}</td>
+      <td data-col="action"><span class="badge badge-plain badge-neutre" data-action="{{ e.action }}">{{ e.get_action_display }}</span></td>
+      <td class="max-w-xs truncate" title="{{ e.object_repr }}" data-col="objet">{% if r.lien %}<a href="{{ r.lien }}" class="link">{{ e.object_repr }}</a>{% else %}{{ e.object_repr|default:"—" }}{% endif %}</td>
+      <td class="whitespace-nowrap tabular-nums" dir="ltr" data-col="ip">{{ e.ip_address|default:"—" }}</td>
+      <td class="whitespace-nowrap text-end"><a href="{% url 'audit:journal_detail' e.pk %}" class="link">{% translate "Détail" %}<span class="sr-only"> — {% blocktranslate with id=e.pk %}entrée n° {{ id }}{% endblocktranslate %}</span></a></td>
+    </tr>
+  {% endwith %}{% endfor %}
+  </tbody>
+</table>
+</div>
+{% if page.paginator.num_pages > 1 %}
+<nav class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="{% translate 'Pagination' %}" data-pagination
+     hx-boost="true" hx-target="#journal-resultats" hx-swap="innerHTML" hx-push-url="true">
+  <span class="text-ink-600">{% blocktranslate with num=page.number total=page.paginator.num_pages %}Page {{ num }} sur {{ total }}{% endblocktranslate %}</span>
+  <span class="flex gap-2">
+  {% if page.has_previous %}<a class="btn-secondary btn-sm" href="?{{ querystring }}&amp;page={{ page.previous_page_number }}">{% translate "Précédente" %}</a>{% endif %}
+  {% if page.has_next %}<a class="btn-secondary btn-sm" href="?{{ querystring }}&amp;page={{ page.next_page_number }}">{% translate "Suivante" %}</a>{% endif %}
+  </span>
+</nav>
+{% endif %}
+{% else %}
+<div class="card card-body flex flex-col items-center gap-3 py-10 text-center text-ink-600">
+  {% include "components/icon.html" with name="search" size="h-8 w-8 text-ink-500" %}
+  <p data-vide>{% translate "Aucune entrée pour ces critères." %}</p>
+  <a href="{% url 'audit:journal_liste' %}" class="btn-secondary btn-sm">{% translate "Réinitialiser" %}</a>
+</div>
+{% endif %}

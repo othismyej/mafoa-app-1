@@ -1,0 +1,19 @@
+{% load i18n %}
+<div data-consultations-dossier="{{ c.pk }}">
+  <p class="text-sm font-medium text-ink-900" data-consultations-total>{% blocktranslate count n=total %}{{ n }} consultation{% plural %}{{ n }} consultations{% endblocktranslate %} {% blocktranslate count n=personnes %}par {{ n }} personne{% plural %}par {{ n }} personnes{% endblocktranslate %}</p>
+  {% if rows %}
+  <ul class="mt-3 divide-y divide-ink-100 text-sm">
+    {% for r in rows %}
+    <li class="py-2" data-consultation="{{ r.e.pk }}">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <span class="break-all font-medium text-ink-800">{{ r.acteur }}</span>
+        <span class="meta tabular-nums">{{ r.e.timestamp|date:"d/m/Y H:i:s" }}</span>
+      </div>
+      <div class="meta">{{ r.nature }} · <span class="tabular-nums" dir="ltr">{{ r.e.ip_address|default:"—" }}</span></div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if total > rows|length %}<p class="mt-2 hint">{% blocktranslate count n=rows|length %}{{ n }} consultation la plus récente affichée.{% plural %}{{ n }} consultations les plus récentes affichées.{% endblocktranslate %}</p>{% endif %}
+  {% endif %}
+  <p class="mt-3"><a href="{{ lien_journal }}" class="link" data-lien-journal>{% translate "Voir dans le journal d’audit" %}</a></p>
+</div>

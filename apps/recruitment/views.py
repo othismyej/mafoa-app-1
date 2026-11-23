@@ -15,7 +15,7 @@ from django.views.defaults import permission_denied
 
 from apps.accounts.permissions import DIRECTION_ROLES, role_required
 from apps.audit.models import AuditAction
-from apps.audit.services import log
+from apps.audit.services import log, log_access_denied, log_consultation, role_required_logged
 from apps.evaluation import decisions as decision_rules
 from apps.evaluation.decisions import ConfirmationRequise, DecisionError
 from apps.evaluation.models import Anomalie, Decision, VerificationEligibilite
@@ -187,18 +187,15 @@ def _decision_form_context(candidature, decisions_list, form: dict) -> dict:
 
 
 @require_GET
-@role_required(*DIRECTION_ROLES)
+@role_required_logged(*DIRECTION_ROLES, candidature_kwarg="pk")
 def candidature_detail(request, pk: int):
-    """Fiche candidature en lecture seule (spec KAN-11) ; formulaire de décision (KAN-13)."""
+    """Fiche candidature en lecture seule (spec KAN-11) ; formulaire de décision (KAN-13).
+
+    Consultation journalisée (KAN-14) ; un refus d'accès est tracé en ``access_denied``.
+    """
     candidature = get_object_or_404(_fiche_queryset(), pk=pk)
-    # Point d'accroche unique de la journalisation des consultations (KAN-14).
-    # Libellé sans nom : le journal, en ajout seul, ne doit pas multiplier les données nominatives.
-    log(
-        AuditAction.VIEW,
-        obj=candidature,
-        request=request,
-        object_repr=f"Candidature #{candidature.pk}",
-    )
+    # Journalisé avant le rendu : si l'écriture échoue, rien n'est servi (KAN-14, règle 6).
+    log_consultation(request, candidature, "fiche")
     return render(request, "recruitment/candidature_detail.html", _fiche_context(candidature))
 
 
@@ -273,7 +270,7 @@ def decision_enregistrer(request, pk: int):
     if htmx:
         return render(request, "recruitment/_decisions.html", context, status=status)
     # Sans JavaScript, la fiche complète est réaffichée : c'est une consultation (§5).
-    log(AuditAction.VIEW, obj=candidature, request=request, object_repr=f"Candidature #{pk}")
+    log_consultation(request, candidature, "fiche_apres_decision")
     return render(request, "recruitment/candidature_detail.html", context, status=status)
 
 
@@ -342,17 +339,31 @@ def _journaliser_piece(
     piece: Piece | None = None,
     **metadata,
 ) -> None:
-    """Point d'accroche unique de la journalisation des consultations de pièces (KAN-14).
+    """Point d'accroche unique de la journalisation des pièces, branché sur KAN-14.
 
-    Une entrée ``view`` par réponse de la vue de contenu ; refus (``metadata.refus``) sans
-    objet. Libellé sans nom : ni ``nom_fichier`` ni ``storage_key`` ne sont journalisés.
+    - refus (``metadata.refus`` : droits, pièce hors candidature) → ``access_denied`` ;
+    - toute autre réponse de la vue de contenu → consultation ``view`` (``vue = piece``).
+
+    Libellé sans nom : ni ``nom_fichier`` ni ``storage_key`` ne sont journalisés.
     """
-    log(
-        AuditAction.VIEW,
-        obj=piece,
-        request=request,
-        object_repr=f"Pièce #{piece_pk} (Candidature #{candidature_pk})",
-        metadata={"candidature_id": candidature_pk, "piece_id": piece_pk, **metadata},
+    object_repr = f"Pièce #{piece_pk} (Candidature #{candidature_pk})"
+    if "refus" in metadata:
+        log_access_denied(
+            request,
+            candidature_id=candidature_pk,
+            object_repr=object_repr,
+            piece_id=piece_pk,
+            **metadata,
+        )
+        return
+    log_consultation(
+        request,
+        piece,
+        "piece",
+        object_repr=object_repr,
+        candidature_id=candidature_pk,
+        piece_id=piece_pk,
+        **metadata,
     )
 
 

@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from apps.audit.admin_mixins import ConsultationLoggingAdminMixin
+
 from .models import (
     Anomalie,
     Critere,
@@ -25,7 +27,7 @@ class GrilleEvaluationAdmin(admin.ModelAdmin):
 
 
 @admin.register(VerificationEligibilite)
-class VerificationEligibiliteAdmin(admin.ModelAdmin):
+class VerificationEligibiliteAdmin(ConsultationLoggingAdminMixin, admin.ModelAdmin):
     list_display = ("candidature", "resultat", "moteur_version", "created_at")
     list_filter = ("resultat",)
     raw_id_fields = ("candidature",)
@@ -45,7 +47,7 @@ class ScoreCritereInline(admin.TabularInline):
 
 
 @admin.register(Score)
-class ScoreAdmin(admin.ModelAdmin):
+class ScoreAdmin(ConsultationLoggingAdminMixin, admin.ModelAdmin):
     list_display = ("candidature", "grille", "note_globale", "origine", "created_at")
     list_filter = ("origine",)
     raw_id_fields = ("candidature",)
@@ -53,7 +55,7 @@ class ScoreAdmin(admin.ModelAdmin):
 
 
 @admin.register(Anomalie)
-class AnomalieAdmin(admin.ModelAdmin):
+class AnomalieAdmin(ConsultationLoggingAdminMixin, admin.ModelAdmin):
     list_display = ("candidature", "type", "gravite", "resolue", "created_at")
     list_filter = ("type", "gravite", "resolue")
     raw_id_fields = ("candidature", "candidature_liee", "piece")
@@ -61,7 +63,7 @@ class AnomalieAdmin(admin.ModelAdmin):
 
 
 @admin.register(Decision)
-class DecisionAdmin(admin.ModelAdmin):
+class DecisionAdmin(ConsultationLoggingAdminMixin, admin.ModelAdmin):
     """Consultation seule : la fiche candidature est le seul point d'entrée des décisions."""
 
     list_display = ("candidature", "decision", "auteur", "created_at")

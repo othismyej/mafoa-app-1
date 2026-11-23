@@ -242,6 +242,19 @@
   <div id="visionneuse" aria-live="polite" data-kan12></div>
   </div>
 </section>
+
+{% if user.is_admin %}
+{# Consultations de ce dossier (KAN-14) : admin seulement, chargé à la demande (jamais au survol). #}
+<section class="card" aria-labelledby="titre-consultations">
+  <div class="card-header">
+    <h2 id="titre-consultations" class="section-title flex items-center gap-2">{% include "components/icon.html" with name="history" size="h-5 w-5 text-ink-500" %}{% translate "Consultations de ce dossier" %}</h2>
+  </div>
+  <div class="card-body" id="consultations-dossier" aria-live="polite">
+    <a href="{% url 'audit:journal_liste' %}?dossier={{ c.pk }}" class="btn-secondary btn-sm" data-voir-consultations
+       hx-get="{% url 'audit:consultations_dossier' c.pk %}" hx-target="#consultations-dossier" hx-swap="innerHTML" hx-push-url="false">{% translate "Voir qui a consulté ce dossier" %}</a>
+  </div>
+</section>
+{% endif %}
 </div>
 </div>
 {% endblock %}
