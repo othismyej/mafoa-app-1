@@ -278,7 +278,8 @@ def test_ca3_identite_formation_experiences(client, dir1, ref):
     assert a["Date de naissance"] == datetime(1991, 7, 13)
     assert a["Email"] == "salma.fictive@example.org"
     # Neutralisation : le « + » de tête est préfixé (règle 16).
-    assert a["Téléphone"] == "'+212600000001"
+    # Un numéro « +212… » reste lisible (texte, pas de formule possible dans un .xlsx).
+    assert a["Téléphone"] == "+212600000001"
     assert a["Ville"] == "Villefictive"
     assert (
         "Diplôme d'ingénieur d'État — Bac+5 — Génie civil — École fictive — 2014"
@@ -600,3 +601,14 @@ def test_donnees_declarees_mal_formees(client, dir1, ref):
     assert lignes[-2]["Formations déclarées"] == "Aucune formation déclarée"
     assert lignes[-1]["Verdict du moteur (pas une décision)"] == "À vérifier"
     assert lignes[-1]["Niveau d'études — raison"] is None
+
+
+def test_telephone_non_numerique_reste_neutralise():
+    """Une valeur de téléphone qui n'est pas un numéro est neutralisée comme les autres."""
+    from openpyxl import Workbook
+
+    from apps.exports.candidatures import PHONE, Colonne, _cell
+
+    ws = Workbook(write_only=True).create_sheet()
+    cell = _cell(ws, "=HYPERLINK(1)", Colonne("Téléphone", 16, PHONE))
+    assert cell.value == "'=HYPERLINK(1)"

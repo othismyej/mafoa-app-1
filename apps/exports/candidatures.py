@@ -45,6 +45,10 @@ CRITERES_EXPORTES = ("niveau_etudes", "specialite", "experience")
 # --------------------------------------------------------------------------------------
 
 TEXT, WRAP, DATE, DATETIME, NUMBER, INT = "text", "wrap", "date", "datetime", "number", "int"
+PHONE = "phone"
+# Numéro de téléphone « +212 6… » : écrit tel quel (cellule texte, jamais une formule dans un
+# .xlsx), sans l'apostrophe de neutralisation qui le rendrait illisible.
+_PHONE_RE = re.compile(r"^\+?[0-9][0-9 .\-()]*$")
 
 
 @dataclass(frozen=True)
@@ -67,7 +71,7 @@ def colonnes() -> list[Colonne]:
         Colonne(_("Date de naissance"), 13, DATE),
         # Contexte : sans lui, le catalogue français de Django traduit « Email » en « Courriel ».
         Colonne(pgettext("colonne d'export", "Email"), 28),
-        Colonne(_("Téléphone"), 16),
+        Colonne(_("Téléphone"), 16, PHONE),
         Colonne(_("Ville"), 14),
         Colonne(_("Formations déclarées"), 45, WRAP),
         Colonne(_("Expériences déclarées"), 45, WRAP),
@@ -326,9 +330,15 @@ def _fill_for(col: Colonne, code: str | None) -> PatternFill | None:
 
 
 def _cell(ws, value, col: Colonne, fill=None, font=None):
+    texte_brut = False
     if isinstance(value, str):
-        value = sanitize(value) if value else None
+        if col.kind == PHONE and _PHONE_RE.match(value):
+            texte_brut = True  # chiffres et « + » seulement : aucune formule possible
+        else:
+            value = sanitize(value) if value else None
     cell = WriteOnlyCell(ws, value=value)
+    if texte_brut:
+        cell.data_type = "s"
     if col.kind in FORMATS and value is not None:
         cell.number_format = FORMATS[col.kind]
     cell.alignment = ALIGN_WRAP if col.kind == WRAP else ALIGN_TOP
