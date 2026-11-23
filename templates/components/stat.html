@@ -1,9 +1,10 @@
 {% comment %}
-Carte de chiffre clé. Paramètres : label, value, icon (nom pour components/icon.html), tone (« attention » pour mettre en avant).
+Carte de chiffre clé. Paramètres : label, value, hint (détail facultatif), icon (nom pour components/icon.html), tone (« attention » pour mettre en avant).
 {% endcomment %}<div class="stat{% if tone == 'attention' and value %} border-amber-300 bg-amber-50/60{% endif %}">
   <div class="flex items-start justify-between gap-3">
     <p class="stat-label">{{ label }}</p>
     <span class="stat-icon{% if tone == 'attention' and value %} bg-amber-100 text-amber-800{% endif %}">{% include "components/icon.html" with name=icon %}</span>
   </div>
   <p class="stat-value{% if tone == 'attention' and value %} text-amber-800{% endif %}">{{ value }}</p>
+  {% if hint %}<p class="mt-1 text-xs text-ink-600" data-stat-hint>{{ hint }}</p>{% endif %}
 </div>

@@ -11,8 +11,8 @@
 </header>
 
 <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-  {% translate "Concours" as l_concours %}{% include "components/stat.html" with label=l_concours value=concours_count icon="trophy" %}
-  {% translate "Offres d'emploi" as l_offres %}{% include "components/stat.html" with label=l_offres value=offres_count icon="briefcase" %}
+  {% translate "Concours publics" as l_concours %}{% blocktranslate count n=postes_count asvar h_concours %}{{ n }} poste{% plural %}{{ n }} postes{% endblocktranslate %}{% blocktranslate count n=concours_actifs_count asvar h_actifs %}{{ n }} en cours{% plural %}{{ n }} en cours{% endblocktranslate %}{% with hint=h_concours|add:" · "|add:h_actifs %}{% include "components/stat.html" with label=l_concours value=concours_count hint=hint icon="trophy" %}{% endwith %}
+  {% translate "Offres d'emploi (privé)" as l_offres %}{% blocktranslate count n=offres_ouvertes_count asvar h_offres %}{{ n }} ouverte{% plural %}{{ n }} ouvertes{% endblocktranslate %}{% include "components/stat.html" with label=l_offres value=offres_count hint=h_offres icon="briefcase" %}
   {% translate "Candidatures" as l_cand %}{% include "components/stat.html" with label=l_cand value=candidatures_count icon="users" %}
   {% translate "Dossiers à vérifier" as l_verif %}{% include "components/stat.html" with label=l_verif value=a_verifier_count icon="alert" tone="attention" %}
 </div>

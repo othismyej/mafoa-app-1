@@ -14,11 +14,21 @@ from .permissions import DIRECTION_ROLES, role_required
 
 @role_required(*DIRECTION_ROLES)
 def dashboard(request):
-    from apps.recruitment.models import Candidature, Concours, OffreEmploi
+    from apps.recruitment.models import Candidature, Concours, OffreEmploi, PosteConcours
 
+    concours_actifs = Concours.objects.exclude(
+        statut__in=[Concours.Statut.BROUILLON, Concours.Statut.TERMINE]
+    )
     context = {
+        # Concours publics (e-Concours) et offres d'emploi privées sont deux objets distincts :
+        # chacun est compté sur sa propre table, avec son détail (postes, offres ouvertes).
         "concours_count": Concours.objects.count(),
+        "concours_actifs_count": concours_actifs.count(),
+        "postes_count": PosteConcours.objects.count(),
         "offres_count": OffreEmploi.objects.count(),
+        "offres_ouvertes_count": OffreEmploi.objects.filter(
+            statut=OffreEmploi.Statut.OUVERTE
+        ).count(),
         "candidatures_count": Candidature.objects.count(),
         "a_verifier_count": Candidature.objects.filter(
             statut=Candidature.Statut.A_VERIFIER
