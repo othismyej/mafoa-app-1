@@ -110,6 +110,10 @@
   @apply inline-flex min-h-9 cursor-pointer select-none items-center gap-2 rounded-full border border-ink-300 bg-white px-3 py-1 text-sm text-ink-800 transition-colors hover:border-ink-400 hover:bg-ink-50;
 }
 .chip input { @apply h-4 w-4 shrink-0; }
+/* Case de sélection d'une ligne (actions en lot, KAN-15) : cible de 36 px autour de la case. */
+.lot-case { @apply inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-control hover:bg-ink-100; }
+.lot-case:has(:focus-visible) { @apply outline outline-2 outline-offset-2 outline-brand-600; }
+.lot-check { @apply h-4 w-4 shrink-0 cursor-pointer accent-brand-600; }
 .chip:has(:checked) { @apply border-brand-600 bg-brand-50 font-medium text-brand-800; }
 .chip:has(:focus-visible) { @apply outline outline-2 outline-offset-2 outline-brand-600; }
 

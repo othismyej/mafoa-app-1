@@ -621,12 +621,15 @@ def test_nom_mene_a_la_fiche_candidature(client, direction_user, ref):
 
 
 def test_liste_en_lecture_seule(client, direction_user, ref):
-    """Règle 29 — Aucune action de modification proposée : pas de formulaire POST ni de bouton
-    de décision, de changement de statut, de relance ou d'export dans la page."""
+    """Règle 29, modifiée par KAN-15 — La seule action de modification est la barre d'actions
+    en lot (formulaire POST ``#lot`` vers le récapitulatif, sans écriture directe) : ni export,
+    ni changement de statut ou suppression dans la page."""
     html = main_html(get(client, direction_user, ref).content.decode())
-    assert not re.search(r"<form[^>]*method=[\"']?post", html, re.I)
-    assert "hx-post" not in html.lower()
-    for word in ("Décider", "Exporter", "Relancer", "Changer le statut", "Supprimer"):
+    forms = re.findall(r"<form[^>]*method=[\"']?post[^>]*>", html, re.I)
+    assert len(forms) == 1 and 'id="lot"' in forms[0]
+    recap = reverse("recruitment:lot_recapitulatif", args=[ref["concours"].pk, ref["p1"].pk])
+    assert re.findall(r'hx-post="([^"]+)"', html) == [recap]
+    for word in ("Décider", "Exporter", "Changer le statut", "Supprimer"):
         assert word not in html
 
 

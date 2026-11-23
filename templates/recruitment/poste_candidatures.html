@@ -1,6 +1,7 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {% block head_title %}{% if poste.reference %}{{ poste.reference }} — {% endif %}{{ poste.intitule }}{% endblock %}
+{% block extra_head %}<script src="{% static 'js/lot.js' %}" defer></script>{% endblock %}
 {% block content %}
 {% include "components/breadcrumb.html" with concours=concours poste=None current_poste=poste only %}
 
@@ -67,6 +68,10 @@
 </form>
 {% endif %}
 
+{# Récapitulatif et rapport des actions en lot (KAN-15), insérés par HTMX. #}
+<div id="lot-panneau" class="empty:hidden mb-6" data-lot-panneau></div>
+{# Après exécution d'un lot (en-tête HX-Trigger), la liste est rechargée avec les filtres courants. #}
+<div hidden hx-get="{{ request.path }}" hx-trigger="lot-execute from:body" hx-include="#filtres" hx-target="#resultats" hx-swap="innerHTML" hx-push-url="false" data-lot-rafraichir></div>
 <div id="resultats" hx-boost="true" hx-target="#resultats" hx-swap="innerHTML" hx-push-url="true">
   {% include "recruitment/_candidatures_resultats.html" %}
 </div>

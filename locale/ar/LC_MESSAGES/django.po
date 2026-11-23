@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 14:51+0000\n"
+"POT-Creation-Date: 2026-11-23 15:12+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -26,7 +26,7 @@ msgstr ""
 msgid "Pièce"
 msgstr ""
 
-#: apps/audit/filters.py:35 apps/recruitment/views.py:97
+#: apps/audit/filters.py:35 apps/recruitment/views.py:101
 msgid "Candidat"
 msgstr ""
 
@@ -168,24 +168,40 @@ msgstr ""
 msgid "Transition interdite : %(a)s → %(b)s."
 msgstr ""
 
-#: apps/evaluation/decisions.py:138
+#: apps/evaluation/decisions.py:162
+#, python-format
+msgid "« %(d)s » ne peut pas être décidé en lot."
+msgstr ""
+
+#: apps/evaluation/decisions.py:167
+msgid ""
+"Cette transition ne peut pas être traitée en lot : à faire depuis la fiche."
+msgstr ""
+
+#: apps/evaluation/decisions.py:174
 msgid "Ce dossier a au moins une anomalie de gravité haute non résolue."
 msgstr ""
 
-#: apps/evaluation/decisions.py:141
+#: apps/evaluation/decisions.py:177
 msgid "Le nombre de postes à pourvoir est déjà atteint pour cette cible."
 msgstr ""
 
-#: apps/evaluation/services.py:146
+#: apps/evaluation/decisions.py:180
+msgid ""
+"Ces dossiers n’ont pas été jugés éligibles par le moteur. En les déclarant "
+"éligibles en lot, vous attestez les avoir examinés."
+msgstr ""
+
+#: apps/evaluation/services.py:198
 msgid "Une décision est toujours prise par un utilisateur identifié."
 msgstr ""
 
-#: apps/evaluation/services.py:161
+#: apps/evaluation/services.py:213
 msgid ""
 "Une autre décision a été enregistrée entre-temps. La fiche a été actualisée."
 msgstr ""
 
-#: apps/evaluation/services.py:166
+#: apps/evaluation/services.py:218
 msgid "Le concours est terminé : aucune décision n'est possible."
 msgstr ""
 
@@ -221,6 +237,152 @@ msgstr ""
 msgid "Sans anomalie non résolue"
 msgstr ""
 
+#: apps/recruitment/lot_presenters.py:32
+#: templates/recruitment/_lot_barre.html:15
+msgid "Relancer le calcul d’éligibilité"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:33
+#: templates/recruitment/_lot_barre.html:17
+#, python-format
+msgid "Décision : %(d)s"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:38
+#, python-format
+msgid "Transition interdite depuis %(s)s"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:40
+#, python-format
+msgid "Déjà %(s)s"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:42
+msgid "Révision : à faire depuis la fiche"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:43
+msgid "Concours terminé"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:48
+msgid "Modifiée entre-temps"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:49
+msgid "Transition devenue interdite"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:50
+msgid "Concours terminé entre-temps"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:51
+msgid "Nouvel avertissement non confirmé"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:52
+msgid "Erreur technique"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:58
+msgid "Anomalie de gravité haute"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:59
+msgid "Ces dossiers ont au moins une anomalie de gravité haute non résolue."
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:62
+msgid "Verdict du moteur non favorable"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:85
+#, python-format
+msgid "Statut : %(v)s"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:89
+#, python-format
+msgid "Verdict : %(v)s"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:91
+#, python-format
+msgid "Anomalies : %(v)s"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:93
+#, python-format
+msgid "Recherche : « %(v)s »"
+msgstr ""
+
+#: apps/recruitment/lot_presenters.py:94
+msgid "Aucun filtre : toutes les candidatures du poste"
+msgstr ""
+
+#: apps/recruitment/lot_views.py:33
+msgid ""
+"Le récapitulatif a expiré ou n’est plus valide. Recommencez la sélection."
+msgstr ""
+
+#: apps/recruitment/lot_views.py:93
+#, python-format
+msgid ""
+"La décision « %(d)s » ne peut pas être prise en lot : elle se prend dossier "
+"par dossier, depuis la fiche."
+msgstr ""
+
+#: apps/recruitment/lot_views.py:99
+msgid "Choisissez une action."
+msgstr ""
+
+#: apps/recruitment/lot_views.py:100
+msgid "Action inconnue."
+msgstr ""
+
+#: apps/recruitment/lot_views.py:147
+msgid "Mode de sélection inconnu."
+msgstr ""
+
+#: apps/recruitment/lot_views.py:154 apps/recruitment/lot_views.py:158
+msgid "Sélection invalide."
+msgstr ""
+
+#: apps/recruitment/lot_views.py:164
+msgid "Sélectionnez au moins une candidature."
+msgstr ""
+
+#: apps/recruitment/lot_views.py:170
+#, python-format
+msgid ""
+"La sélection compte %(n)d candidatures, au-delà du plafond de %(max)d par "
+"lot. Affinez les filtres."
+msgstr ""
+
+#: apps/recruitment/lot_views.py:251
+msgid "Ce lot a déjà été exécuté."
+msgstr ""
+
+#: apps/recruitment/lot_views.py:259
+#: templates/recruitment/_lot_recapitulatif.html:34
+msgid "Le concours est terminé : aucune action en lot n’est possible."
+msgstr ""
+
+#: apps/recruitment/lot_views.py:264
+#: templates/recruitment/_lot_recapitulatif.html:36
+msgid "Aucune candidature concernée : rien à exécuter."
+msgstr ""
+
+#: apps/recruitment/lot_views.py:289
+msgid "Indiquez si les dossiers signalés sont exclus ou inclus."
+msgstr ""
+
+#: apps/recruitment/lot_views.py:291
+msgid "Cochez la case de confirmation pour enregistrer les décisions."
+msgstr ""
+
 #: apps/recruitment/models.py:272
 msgid "Reçue"
 msgstr ""
@@ -253,65 +415,65 @@ msgstr ""
 msgid "en cours"
 msgstr ""
 
-#: apps/recruitment/views.py:98
+#: apps/recruitment/views.py:102
 msgid "Date de candidature"
 msgstr ""
 
-#: apps/recruitment/views.py:99 templates/dashboard/index.html:27
+#: apps/recruitment/views.py:103 templates/dashboard/index.html:27
 #: templates/recruitment/candidature_detail.html:33
 #: templates/recruitment/concours_detail.html:19
-#: templates/recruitment/poste_candidatures.html:33
+#: templates/recruitment/poste_candidatures.html:34
 msgid "Statut"
 msgstr ""
 
-#: apps/recruitment/views.py:100
-#: templates/recruitment/poste_candidatures.html:41
+#: apps/recruitment/views.py:104
+#: templates/recruitment/poste_candidatures.html:42
 msgid "Verdict d’éligibilité"
 msgstr ""
 
-#: apps/recruitment/views.py:101
+#: apps/recruitment/views.py:105
 #: templates/recruitment/candidature_detail.html:35
 #: templates/recruitment/candidature_detail.html:161
-#: templates/recruitment/poste_candidatures.html:49
+#: templates/recruitment/poste_candidatures.html:50
 msgid "Anomalies"
 msgstr ""
 
-#: apps/recruitment/views.py:264 apps/recruitment/views.py:266
+#: apps/recruitment/views.py:268 apps/recruitment/views.py:270
 msgid "Décision enregistrée."
 msgstr ""
 
-#: apps/recruitment/views.py:308
+#: apps/recruitment/views.py:312
 msgid ""
 "La source des pièces est momentanément indisponible. Réessayez dans quelques "
 "instants."
 msgstr ""
 
-#: apps/recruitment/views.py:310
+#: apps/recruitment/views.py:314
 msgid "Fichier introuvable à la source."
 msgstr ""
 
-#: apps/recruitment/views.py:311
+#: apps/recruitment/views.py:315
 msgid "Le fichier reçu est vide."
 msgstr ""
 
-#: apps/recruitment/views.py:313
+#: apps/recruitment/views.py:317
 msgid ""
 "Aperçu impossible : le contenu ne correspond pas à un type affichable. "
 "Utilisez « Télécharger »."
 msgstr ""
 
-#: apps/recruitment/views.py:317
+#: apps/recruitment/views.py:321
 msgid ""
 "Le fichier a été modifié à la source depuis sa réception (empreinte "
 "différente). Une anomalie a été enregistrée. Vous pouvez le télécharger pour "
 "l’examiner."
 msgstr ""
 
-#: apps/recruitment/views.py:320
+#: apps/recruitment/views.py:324
 msgid "Pièce introuvable."
 msgstr ""
 
-#: apps/recruitment/views.py:405
+#: apps/recruitment/views.py:423
 #, python-format
 msgid ""
 "Pièce trop volumineuse pour la visionneuse (taille : %(taille)s Mo ; "
@@ -424,6 +586,7 @@ msgstr ""
 
 #: templates/audit/_journal_resultats.html:25
 #: templates/audit/journal_detail.html:26 templates/audit/journal_liste.html:51
+#: templates/recruitment/_lot_recapitulatif.html:10
 msgid "Action"
 msgstr ""
 
@@ -448,23 +611,23 @@ msgid "entrée n° %(id)s"
 msgstr ""
 
 #: templates/audit/_journal_resultats.html:46
-#: templates/recruitment/_candidatures_resultats.html:48
+#: templates/recruitment/_candidatures_resultats.html:49
 msgid "Pagination"
 msgstr ""
 
 #: templates/audit/_journal_resultats.html:48
-#: templates/recruitment/_candidatures_resultats.html:49
+#: templates/recruitment/_candidatures_resultats.html:50
 #, python-format
 msgid "Page %(num)s sur %(total)s"
 msgstr ""
 
 #: templates/audit/_journal_resultats.html:50
-#: templates/recruitment/_candidatures_resultats.html:51
+#: templates/recruitment/_candidatures_resultats.html:52
 msgid "Précédente"
 msgstr ""
 
 #: templates/audit/_journal_resultats.html:51
-#: templates/recruitment/_candidatures_resultats.html:52
+#: templates/recruitment/_candidatures_resultats.html:53
 msgid "Suivante"
 msgstr ""
 
@@ -474,8 +637,8 @@ msgstr ""
 
 #: templates/audit/_journal_resultats.html:59
 #: templates/audit/journal_liste.html:62
-#: templates/recruitment/_candidatures_resultats.html:60
-#: templates/recruitment/poste_candidatures.html:64
+#: templates/recruitment/_candidatures_resultats.html:61
+#: templates/recruitment/poste_candidatures.html:65
 msgid "Réinitialiser"
 msgstr ""
 
@@ -602,7 +765,7 @@ msgid "Inclure les consultations du journal"
 msgstr ""
 
 #: templates/audit/journal_liste.html:61
-#: templates/recruitment/poste_candidatures.html:63
+#: templates/recruitment/poste_candidatures.html:64
 msgid "Filtrer"
 msgstr ""
 
@@ -708,7 +871,7 @@ msgstr ""
 #: templates/dashboard/index.html:27
 #: templates/recruitment/concours_detail.html:21
 #: templates/recruitment/concours_detail.html:41
-#: templates/recruitment/poste_candidatures.html:14
+#: templates/recruitment/poste_candidatures.html:15
 msgid "Date limite"
 msgstr ""
 
@@ -744,19 +907,28 @@ msgid ""
 "décision."
 msgstr ""
 
-#: templates/recruitment/_candidatures_resultats.html:39
+#: templates/recruitment/_candidatures_resultats.html:22
+msgid "Sélectionner toutes les candidatures de la page"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:33
+#, python-format
+msgid "Sélectionner %(nom)s"
+msgstr ""
+
+#: templates/recruitment/_candidatures_resultats.html:40
 msgid "haute"
 msgstr ""
 
-#: templates/recruitment/_candidatures_resultats.html:39
+#: templates/recruitment/_candidatures_resultats.html:40
 msgid "moyenne"
 msgstr ""
 
-#: templates/recruitment/_candidatures_resultats.html:39
+#: templates/recruitment/_candidatures_resultats.html:40
 msgid "info"
 msgstr ""
 
-#: templates/recruitment/_candidatures_resultats.html:59
+#: templates/recruitment/_candidatures_resultats.html:60
 msgid "Aucune candidature ne correspond à ces critères."
 msgstr ""
 
@@ -815,8 +987,329 @@ msgstr ""
 msgid "en vigueur"
 msgstr ""
 
-#: templates/recruitment/_decisions.html:70
+#: templates/recruitment/_decisions.html:63
+#: templates/recruitment/_lot_panneau.html:7
+#, python-format
+msgid "Lot %(id)s"
+msgstr ""
+
+#: templates/recruitment/_decisions.html:63
+msgid "décision prise en lot"
+msgstr ""
+
+#: templates/recruitment/_decisions.html:71
 msgid "Aucune décision enregistrée"
+msgstr ""
+
+#: templates/recruitment/_lot_barre.html:8
+msgid "Actions en lot"
+msgstr ""
+
+#: templates/recruitment/_lot_barre.html:12
+#: templates/recruitment/_lot_panneau.html:6
+#: templates/recruitment/lot_page.html:3 templates/recruitment/lot_page.html:6
+msgid "Action en lot"
+msgstr ""
+
+#: templates/recruitment/_lot_barre.html:14
+msgid "— Choisir une action —"
+msgstr ""
+
+#: templates/recruitment/_lot_barre.html:16
+msgid "Enregistrer une décision"
+msgstr ""
+
+#: templates/recruitment/_lot_barre.html:22
+#, python-format
+msgid "%%n candidature sélectionnée"
+msgstr ""
+
+#: templates/recruitment/_lot_barre.html:22
+#, python-format
+msgid "%%n candidatures sélectionnées"
+msgstr ""
+
+#: templates/recruitment/_lot_barre.html:22
+#: templates/recruitment/_lot_recapitulatif.html:3
+#, python-format
+msgid "%(n)s candidature sélectionnée"
+msgid_plural "%(n)s candidatures sélectionnées"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_barre.html:24
+msgid "Appliquer à la sélection"
+msgstr ""
+
+#: templates/recruitment/_lot_barre.html:25
+#, python-format
+msgid "Appliquer au %(n)s résultat du filtre"
+msgid_plural "Appliquer aux %(n)s résultats du filtre"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_barre.html:27
+msgid ""
+"La sélection ne vaut que pour la page affichée. Un récapitulatif s’affiche "
+"avant toute exécution ; les décisions défavorables et « Retenue » se "
+"prennent depuis la fiche."
+msgstr ""
+
+#: templates/recruitment/_lot_noms.html:2
+#, python-format
+msgid "et %(n)s autre"
+msgid_plural "et %(n)s autres"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_panneau.html:6
+msgid "Rapport d’exécution"
+msgstr ""
+
+#: templates/recruitment/_lot_panneau.html:6
+msgid "Récapitulatif avant exécution"
+msgstr ""
+
+#: templates/recruitment/_lot_panneau.html:14
+#: templates/recruitment/_lot_rapport.html:28
+msgid "Revenir à la liste"
+msgstr ""
+
+#: templates/recruitment/_lot_rapport.html:3
+#, python-format
+msgid ""
+"Relance lancée en arrière-plan pour %(n)s candidature (lot %(id)s). Les "
+"verdicts apparaîtront dans la liste au fur et à mesure."
+msgid_plural ""
+"Relance lancée en arrière-plan pour %(n)s candidatures (lot %(id)s). Les "
+"verdicts apparaîtront dans la liste au fur et à mesure."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_rapport.html:6
+#, python-format
+msgid "%(n)s décision enregistrée"
+msgid_plural "%(n)s décisions enregistrées"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_rapport.html:6
+#, python-format
+msgid "%(n)s non enregistrée"
+msgid_plural "%(n)s non enregistrées"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_rapport.html:6
+#, python-format
+msgid "%(n)s verdict recalculé"
+msgid_plural "%(n)s verdicts recalculés"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_rapport.html:6
+#, python-format
+msgid "dont %(n)s statut modifié"
+msgid_plural "dont %(n)s statuts modifiés"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_rapport.html:6
+#, python-format
+msgid "%(n)s en échec"
+msgid_plural "%(n)s en échec"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_rapport.html:10
+msgid "Non traitées"
+msgstr ""
+
+#: templates/recruitment/_lot_rapport.html:23
+msgid "Exclus par l’utilisateur (avertissement)"
+msgstr ""
+
+#: templates/recruitment/_lot_recapitulatif.html:4
+#, python-format
+msgid "%(n)s candidature concernée"
+msgid_plural "%(n)s candidatures concernées"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_recapitulatif.html:5
+#, python-format
+msgid "%(n)s non concernée"
+msgid_plural "%(n)s non concernées"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_recapitulatif.html:11
+msgid "Sélection"
+msgstr ""
+
+#: templates/recruitment/_lot_recapitulatif.html:11
+msgid "Tous les résultats du filtre"
+msgstr ""
+
+#: templates/recruitment/_lot_recapitulatif.html:11
+msgid "Cases cochées sur la page"
+msgstr ""
+
+#: templates/recruitment/_lot_recapitulatif.html:12
+msgid "Répartition par statut actuel"
+msgstr ""
+
+#: templates/recruitment/_lot_recapitulatif.html:16
+#, python-format
+msgid ""
+"%(n)s candidature déjà décidée : un nouveau verdict sera calculé, son statut "
+"ne changera pas."
+msgid_plural ""
+"%(n)s candidatures déjà décidées : un nouveau verdict sera calculé, leur "
+"statut ne changera pas."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_recapitulatif.html:21
+#, python-format
+msgid "%(n)s candidature non concernée"
+msgid_plural "%(n)s candidatures non concernées"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_recapitulatif.html:47
+#, python-format
+msgid "%(n)s dossier"
+msgid_plural "%(n)s dossiers"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_recapitulatif.html:51
+#, python-format
+msgid "Exclure ce dossier du lot"
+msgid_plural "Exclure ces %(n)s dossiers du lot"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_recapitulatif.html:52
+msgid "Les inclure : je confirme"
+msgstr ""
+
+#: templates/recruitment/_lot_recapitulatif.html:58
+msgid "Motif commun (obligatoire, 10 caractères minimum)"
+msgstr ""
+
+#: templates/recruitment/_lot_recapitulatif.html:61
+msgid ""
+"Enregistré tel quel sur chaque décision. Indiquez des faits, sans donnée "
+"sensible."
+msgstr ""
+
+#: templates/recruitment/_lot_recapitulatif.html:66
+#, python-format
+msgid ""
+"Je confirme enregistrer la décision « %(d)s » pour %(n)s candidature, en mon "
+"nom et avec ce motif."
+msgid_plural ""
+"Je confirme enregistrer la décision « %(d)s » pour %(n)s candidatures, "
+"chacune en mon nom et avec ce motif."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_recapitulatif.html:70
+#, python-format
+msgid "Enregistrer %(n)s décision"
+msgid_plural "Enregistrer les %(n)s décisions"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_recapitulatif.html:70
+#, python-format
+msgid "Relancer %(n)s calcul"
+msgid_plural "Relancer %(n)s calculs"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/recruitment/_lot_recapitulatif.html:71
+msgid "Annuler et revenir à la liste"
+msgstr ""
+
+#: templates/recruitment/_lot_recapitulatif.html:73
+msgid ""
+"Chaque candidature est traitée séparément et inscrite au journal d’audit. Ce "
+"récapitulatif est valable 30 minutes."
 msgstr ""
 
 #: templates/recruitment/_visionneuse.html:5
@@ -1171,7 +1664,7 @@ msgid "Non évaluées"
 msgstr ""
 
 #: templates/recruitment/concours_detail.html:55
-#: templates/recruitment/poste_candidatures.html:15
+#: templates/recruitment/poste_candidatures.html:16
 msgid "(date du concours)"
 msgstr ""
 
@@ -1187,18 +1680,18 @@ msgstr ""
 msgid "Pièce non affichable"
 msgstr ""
 
-#: templates/recruitment/poste_candidatures.html:13
+#: templates/recruitment/poste_candidatures.html:14
 msgid "Postes à pourvoir"
 msgstr ""
 
-#: templates/recruitment/poste_candidatures.html:25
+#: templates/recruitment/poste_candidatures.html:26
 msgid "Rechercher un candidat (nom, prénom)"
 msgstr ""
 
-#: templates/recruitment/poste_candidatures.html:29
+#: templates/recruitment/poste_candidatures.html:30
 msgid "Au moins 2 caractères"
 msgstr ""
 
-#: templates/recruitment/poste_candidatures.html:57
+#: templates/recruitment/poste_candidatures.html:58
 msgid "Lignes par page"
 msgstr ""

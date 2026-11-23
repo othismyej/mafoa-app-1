@@ -1,0 +1,28 @@
+{% load i18n %}{% comment %}
+Barre d'actions en lot (KAN-15, règle 32) : formulaire POST distinct du formulaire de filtres.
+Les cases du tableau y sont rattachées par l'attribut form="lot". Les paramètres de filtre
+validés (CandidatureFilter.querystring) sont transmis, préfixés par « lot_ », pour le mode
+« résultats du filtre » et le lien de retour.
+{% endcomment %}<form id="lot" method="post" action="{% url 'recruitment:lot_recapitulatif' concours.pk poste.pk %}"
+      hx-post="{% url 'recruitment:lot_recapitulatif' concours.pk poste.pk %}" hx-target="#lot-panneau" hx-swap="innerHTML" hx-push-url="false"
+      class="card mb-4 flex flex-wrap items-end gap-x-4 gap-y-3 px-5 py-4 text-sm" aria-label="{% translate 'Actions en lot' %}" data-lot-barre>
+  {% csrf_token %}
+  {% for name, value in lot_params %}<input type="hidden" name="lot_{{ name }}" value="{{ value }}">{% endfor %}
+  <div class="min-w-56 flex-1 sm:flex-none">
+    <label for="lot-action" class="field-label">{% translate "Action en lot" %}</label>
+    <select id="lot-action" name="action" required class="field-input">
+      <option value="">{% translate "— Choisir une action —" %}</option>
+      <option value="relance_eligibilite">{% translate "Relancer le calcul d’éligibilité" %}</option>
+      <optgroup label="{% translate 'Enregistrer une décision' %}">
+        {% for value, label in lot_decisions %}<option value="{{ value }}">{% blocktranslate with d=label %}Décision : {{ d }}{% endblocktranslate %}</option>{% endfor %}
+      </optgroup>
+    </select>
+  </div>
+  <p class="min-h-10 flex-1 basis-48 content-center font-medium text-ink-800" aria-live="polite" data-lot-compteur
+     data-singulier="{% translate '%n candidature sélectionnée' %}" data-pluriel="{% translate '%n candidatures sélectionnées' %}">{% blocktranslate count n=0 %}{{ n }} candidature sélectionnée{% plural %}{{ n }} candidatures sélectionnées{% endblocktranslate %}</p>
+  <div class="flex flex-wrap gap-2">
+    <button type="submit" name="mode" value="ids" class="btn-primary">{% translate "Appliquer à la sélection" %}</button>
+    <button type="submit" name="mode" value="filtre" class="btn-secondary" data-lot-filtre>{% blocktranslate count n=page.paginator.count %}Appliquer au {{ n }} résultat du filtre{% plural %}Appliquer aux {{ n }} résultats du filtre{% endblocktranslate %}</button>
+  </div>
+  <p class="hint basis-full">{% translate "La sélection ne vaut que pour la page affichée. Un récapitulatif s’affiche avant toute exécution ; les décisions défavorables et « Retenue » se prennent depuis la fiche." %}</p>
+</form>
