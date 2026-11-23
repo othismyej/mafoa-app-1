@@ -180,6 +180,19 @@ Seule la vue de contenu déroge au cadrage global (`X-Frame-Options: SAMEORIGIN`
 
 Réglages : `PIECE_VIEWER_MAX_BYTES` (défaut 20 Mo) et `PIECE_SOURCE_TIMEOUT` (défaut 10 s).
 
+### Actions en lot (KAN-15)
+
+Sur la liste des candidatures d'un poste, la direction peut sélectionner des candidatures
+(cases de la page, ou « tous les résultats du filtre ») et leur appliquer **une** action :
+relancer le calcul d'éligibilité, ou enregistrer une même décision d'avancement (éligible,
+présélectionnée, convoquée) avec un motif commun. « Non éligible », « rejetée », « retenue » et
+les révisions restent individuelles (fiche). Un récapitulatif signé (30 minutes) fige la
+sélection avant exécution ; chaque candidature reçoit sa propre `Decision` (champ `lot_id`), dans
+sa propre transaction, et le journal porte deux entrées `lot` (lancement, fin) sans donnée
+personnelle. Paramètres : `LOT_TAILLE_MAX` (500) et `LOT_ELIGIBILITE_SYNC_MAX` (50 ; au-delà,
+la relance passe par la tâche Celery `evaluation.relancer_eligibilite_lot`). Code :
+`apps/evaluation/lots.py`, `apps/recruitment/lot_views.py`.
+
 ### IA
 
 Aucun appel réel n'est fait pour l'instant. Les tests utilisent un transport simulé.

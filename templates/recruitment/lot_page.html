@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block head_title %}{% translate "Action en lot" %} — {% if poste.reference %}{{ poste.reference }} — {% endif %}{{ poste.intitule }}{% endblock %}
+{% block extra_head %}<script src="{% static 'js/lot.js' %}" defer></script>{% endblock %}
+{% block content %}
+{% translate "Action en lot" as courant %}
+{% include "components/breadcrumb.html" with concours=concours poste=poste current=courant only %}
+<header class="mb-6">
+  <p class="page-eyebrow">{{ concours.intitule }}</p>
+  <h1 class="page-title">{% if poste.reference %}{{ poste.reference }} — {% endif %}{{ poste.intitule }}</h1>
+</header>
+<div id="lot-panneau" data-lot-panneau>{% include "recruitment/_lot_panneau.html" %}</div>
+{% endblock %}

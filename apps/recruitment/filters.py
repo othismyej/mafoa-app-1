@@ -128,13 +128,16 @@ class CandidatureFilter:
             return key if self.desc else f"-{key}"
         return key
 
-    def querystring(self, include_tri: bool = True) -> str:
-        """Paramètres d'URL reconstruits à partir de l'état validé (jamais des valeurs brutes)."""
+    def querystring(self, include_tri: bool = True, include_q: bool = True) -> str:
+        """Paramètres d'URL reconstruits à partir de l'état validé (jamais des valeurs brutes).
+
+        ``include_q=False`` : sans le terme de recherche (jeton d'un lot, KAN-15 règle 29).
+        """
         params: list[tuple[str, str]] = [("statut", v) for v in self.statuts]
         params += [("verdict", v) for v in self.verdicts]
         if self.anomalies != ANOMALIES_TOUTES:
             params.append(("anomalies", self.anomalies))
-        if self.q:
+        if self.q and include_q:
             params.append(("q", self.q))
         if include_tri and (self.tri, self.desc) != (DEFAULT_SORT, False):
             params.append(("tri", self.tri_param))

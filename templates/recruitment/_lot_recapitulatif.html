@@ -1,0 +1,75 @@
+{% load i18n accord %}
+<p class="font-medium text-ink-900" aria-live="polite" data-lot-annonce>
+  <span data-lot-selectionnees>{% blocktranslate count c=nb_selectionnees|accord with n=nb_selectionnees %}{{ n }} candidature sélectionnée{% plural %}{{ n }} candidatures sélectionnées{% endblocktranslate %}</span> ·
+  <span data-lot-concernees>{% blocktranslate count c=nb_concernees|accord with n=nb_concernees %}{{ n }} candidature concernée{% plural %}{{ n }} candidatures concernées{% endblocktranslate %}</span>{% if nb_non_concernees %} ·
+  <span data-lot-non-concernees>{% blocktranslate count c=nb_non_concernees|accord with n=nb_non_concernees %}{{ n }} non concernée{% plural %}{{ n }} non concernées{% endblocktranslate %}</span>{% endif %}
+</p>
+{% if erreurs %}<div class="alert alert-warning mt-4" role="alert" data-lot-erreurs>{% include "components/icon.html" with name="alert" size="alert-icon" %}<ul class="space-y-1">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+
+<dl class="dl-grid mt-4">
+  <div><dt class="meta">{% translate "Action" %}</dt><dd class="font-medium text-ink-900" data-lot-action>{{ action_libelle }}</dd></div>
+  <div><dt class="meta">{% translate "Sélection" %}</dt><dd class="text-ink-800" data-lot-mode>{% if mode == "filtre" %}{% translate "Tous les résultats du filtre" %}{% else %}{% translate "Cases cochées sur la page" %}{% endif %}{% if filtres %}<ul class="meta mt-1" data-lot-filtres>{% for f in filtres %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}</dd></div>
+  <div><dt class="meta">{% translate "Répartition par statut actuel" %}</dt><dd><ul class="flex flex-wrap gap-1.5" data-lot-repartition>{% for label, nb in repartition %}<li class="badge badge-neutre badge-plain tabular-nums">{{ label }} {{ nb }}</li>{% endfor %}</ul></dd></div>
+</dl>
+
+{% if operation == "relance_eligibilite" and nb_deja_decidees %}
+<p class="mt-4 flex items-start gap-2 rounded-control bg-ink-50 px-4 py-3 text-ink-700" data-lot-deja-decidees>{% include "components/icon.html" with name="info" size="mt-0.5 h-4 w-4 text-ink-500" %}<span>{% blocktranslate count c=nb_deja_decidees|accord with n=nb_deja_decidees %}{{ n }} candidature déjà décidée : un nouveau verdict sera calculé, son statut ne changera pas.{% plural %}{{ n }} candidatures déjà décidées : un nouveau verdict sera calculé, leur statut ne changera pas.{% endblocktranslate %}</span></p>
+{% endif %}
+
+{% if groupes %}
+<div class="mt-5" data-lot-groupes>
+  <h3 class="section-title text-sm">{% blocktranslate count c=nb_non_concernees|accord with n=nb_non_concernees %}{{ n }} candidature non concernée{% plural %}{{ n }} candidatures non concernées{% endblocktranslate %}</h3>
+  <ul class="mt-2 space-y-3">
+  {% for g in groupes %}
+    <li class="rounded-control border border-ink-200 px-4 py-3" data-lot-groupe="{{ g.raison }}">
+      <p class="font-medium text-ink-800"><span data-lot-groupe-libelle>{{ g.libelle }}</span> <span class="badge badge-neutre badge-plain tabular-nums">{{ g.nb }}</span></p>
+      {% include "recruitment/_lot_noms.html" with g=g %}
+    </li>
+  {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if concours_termine %}
+<p class="mt-5 flex items-start gap-2 rounded-control bg-ink-50 px-4 py-3 text-ink-700" data-lot-concours-termine>{% include "components/icon.html" with name="lock" size="mt-0.5 h-4 w-4 text-ink-500" %}<span>{% translate "Le concours est terminé : aucune action en lot n’est possible." %}</span></p>
+{% elif not executable %}
+<p class="mt-5 rounded-control bg-ink-50 px-4 py-3 text-ink-700" data-lot-rien>{% translate "Aucune candidature concernée : rien à exécuter." %}</p>
+{% endif %}
+
+{% url 'recruitment:lot_executer' concours.pk poste.pk as url_executer %}
+<form method="post" action="{{ url_executer }}" hx-post="{{ url_executer }}" hx-target="#lot-panneau" hx-swap="innerHTML" class="mt-6 space-y-5 border-t border-ink-100 pt-5" data-lot-execution>
+  {% csrf_token %}
+  <input type="hidden" name="jeton" value="{{ jeton }}">
+  <input type="hidden" name="action" value="{{ action }}">
+  {% if recherche %}<input type="hidden" name="lot_q" value="{{ recherche }}">{% endif %}
+  {% if executable %}
+  {% for a in avertissements %}
+  <fieldset class="rounded-card border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900" data-lot-avertissement="{{ a.type }}">
+    <legend class="float-start mb-1 flex w-full items-center gap-2 font-semibold">{% include "components/icon.html" with name="alert" size="h-4 w-4" %}{{ a.titre }} <span class="tabular-nums">({% blocktranslate count n=a.nb %}{{ n }} dossier{% plural %}{{ n }} dossiers{% endblocktranslate %})</span></legend>
+    <p class="clear-both">{{ a.description }}</p>
+    {% include "recruitment/_lot_noms.html" with g=a %}
+    <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+      <label class="chip bg-white"><input type="radio" name="choix_{{ a.type }}" value="exclure" required {% if a.choix == "exclure" %}checked{% endif %}> {% blocktranslate count n=a.nb %}Exclure ce dossier du lot{% plural %}Exclure ces {{ n }} dossiers du lot{% endblocktranslate %}</label>
+      <label class="chip bg-white"><input type="radio" name="choix_{{ a.type }}" value="inclure" required {% if a.choix == "inclure" %}checked{% endif %}> {% translate "Les inclure : je confirme" %}</label>
+    </div>
+  </fieldset>
+  {% endfor %}
+  {% if operation == "decision" %}
+  <div>
+    <label class="field-label" for="lot-motif">{% translate "Motif commun (obligatoire, 10 caractères minimum)" %}</label>
+    <textarea id="lot-motif" name="motif" rows="3" maxlength="{{ motif_max }}" required aria-describedby="lot-motif-aide" data-compteur-cible="lot-motif-compteur" class="field-input">{{ motif }}</textarea>
+    <p id="lot-motif-aide" class="mt-1.5 flex justify-between gap-3 text-xs text-ink-600">
+      <span>{% translate "Enregistré tel quel sur chaque décision. Indiquez des faits, sans donnée sensible." %}</span>
+      <span class="shrink-0 tabular-nums"><span id="lot-motif-compteur" data-compteur>{{ motif|length }}</span> / {{ motif_max }}</span>
+    </p>
+  </div>
+  <label class="check items-start"><input type="checkbox" name="confirmer" value="1" required class="lot-check mt-0.5" {% if confirmer %}checked{% endif %}>
+    <span>{% blocktranslate count c=nb_concernees|accord with n=nb_concernees d=decision_libelle %}Je confirme enregistrer la décision « {{ d }} » pour {{ n }} candidature, en mon nom et avec ce motif.{% plural %}Je confirme enregistrer la décision « {{ d }} » pour {{ n }} candidatures, chacune en mon nom et avec ce motif.{% endblocktranslate %}</span></label>
+  {% endif %}
+  {% endif %}
+  <div class="flex flex-wrap items-center gap-2">
+    {% if executable %}<button type="submit" class="btn-primary" data-lot-executer>{% if operation == "decision" %}{% blocktranslate count c=nb_concernees|accord with n=nb_concernees %}Enregistrer {{ n }} décision{% plural %}Enregistrer les {{ n }} décisions{% endblocktranslate %}{% else %}{% blocktranslate count c=nb_concernees|accord with n=nb_concernees %}Relancer {{ n }} calcul{% plural %}Relancer {{ n }} calculs{% endblocktranslate %}{% endif %}</button>{% endif %}
+    <a href="{{ retour_url }}" class="btn-secondary" data-lot-retour>{% translate "Annuler et revenir à la liste" %}</a>
+  </div>
+  {% if executable %}<p class="flex items-start gap-2 text-xs text-ink-600">{% include "components/icon.html" with name="shield" size="mt-0.5 h-4 w-4 text-ink-500" %}<span>{% translate "Chaque candidature est traitée séparément et inscrite au journal d’audit. Ce récapitulatif est valable 30 minutes." %}</span></p>{% endif %}
+</form>

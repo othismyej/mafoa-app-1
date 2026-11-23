@@ -133,11 +133,51 @@ def avertissements(candidature: Candidature, decision: str) -> list[str]:
     return result
 
 
+# --------------------------------------------------------------------------------------
+# Décisions en lot (spec KAN-15, règles 2 à 4) : sous-ensemble fermé de la table ci-dessus,
+# décisions d'avancement uniquement, révisions exclues. Appliqué dans ``record_decision``.
+# --------------------------------------------------------------------------------------
+
+DECISIONS_LOT = (S.ELIGIBLE, S.PRESELECTIONNEE, S.CONVOQUEE)
+# Décision en lot → statuts courants acceptés.
+TRANSITIONS_LOT: dict[str, tuple[str, ...]] = {
+    S.ELIGIBLE: (S.RECUE, S.EN_ANALYSE, S.A_VERIFIER, S.NON_ELIGIBLE),
+    S.PRESELECTIONNEE: (S.ELIGIBLE,),
+    S.CONVOQUEE: (S.ELIGIBLE, S.PRESELECTIONNEE),
+}
+# Avertissement propre aux lots (règle 14) : « éligible » sur un verdict moteur non favorable.
+AVERTISSEMENT_VERDICT = "verdict_non_favorable"
+
+
+def transition_lot_permise(statut: str, decision: str, a_deja_une_decision: bool) -> bool:
+    """Vrai si la transition peut être traitée en lot (jamais une révision, règle 4)."""
+    return statut in TRANSITIONS_LOT.get(decision, ()) and not est_revision(
+        statut, decision, a_deja_une_decision
+    )
+
+
+def verifier_transition_lot(statut: str, decision: str, a_deja_une_decision: bool) -> None:
+    if decision not in DECISIONS_LOT:
+        raise DecisionError(
+            _("« %(d)s » ne peut pas être décidé en lot.") % {"d": decision},
+            "valeur_interdite_en_lot",
+        )
+    if not transition_lot_permise(statut, decision, a_deja_une_decision):
+        raise DecisionError(
+            _("Cette transition ne peut pas être traitée en lot : à faire depuis la fiche."),
+            "transition_interdite_en_lot",
+        )
+
+
 AVERTISSEMENT_LIBELLES = {
     AVERTISSEMENT_ANOMALIE: gettext_noop(
         "Ce dossier a au moins une anomalie de gravité haute non résolue."
     ),
     AVERTISSEMENT_QUOTA: gettext_noop(
         "Le nombre de postes à pourvoir est déjà atteint pour cette cible."
+    ),
+    AVERTISSEMENT_VERDICT: gettext_noop(
+        "Ces dossiers n’ont pas été jugés éligibles par le moteur. En les déclarant éligibles "
+        "en lot, vous attestez les avoir examinés."
     ),
 }

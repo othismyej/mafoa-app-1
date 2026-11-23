@@ -1,0 +1,17 @@
+{% load i18n %}{% comment %}
+Panneau d'une action en lot (KAN-15) : erreur, récapitulatif, rapport ou relance lancée.
+Inséré dans #lot-panneau (HTMX) ou dans la page complète (sans JavaScript).
+{% endcomment %}<section class="card border-t-4 border-t-ink-800" aria-labelledby="lot-titre" data-lot-etat="{{ etat }}">
+  <div class="card-header">
+    <h2 id="lot-titre" class="section-title flex items-center gap-2" tabindex="-1" data-lot-titre>{% include "components/icon.html" with name="users" size="h-5 w-5 text-ink-500" %}{% if etat == "rapport" or etat == "lance" %}{% translate "Rapport d’exécution" %}{% elif etat == "recap" %}{% translate "Récapitulatif avant exécution" %}{% else %}{% translate "Action en lot" %}{% endif %}{% if action_libelle %} · <span class="font-normal text-ink-700">{{ action_libelle }}</span>{% endif %}</h2>
+    {% if lot_court %}<span class="meta tabular-nums">{% blocktranslate with id=lot_court %}Lot {{ id }}{% endblocktranslate %}</span>{% endif %}
+  </div>
+  <div class="card-body text-sm">
+  {% if etat == "recap" %}{% include "recruitment/_lot_recapitulatif.html" %}
+  {% elif etat == "rapport" or etat == "lance" %}{% include "recruitment/_lot_rapport.html" %}
+  {% else %}
+    <div aria-live="polite" data-lot-annonce>{% include "components/alert.html" with message=message tone="warning" role="alert" %}</div>
+    <p class="mt-4"><a href="{{ retour_url }}" class="btn-secondary btn-sm" data-lot-retour>{% translate "Revenir à la liste" %}</a></p>
+  {% endif %}
+  </div>
+</section>

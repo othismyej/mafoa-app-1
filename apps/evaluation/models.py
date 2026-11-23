@@ -203,6 +203,8 @@ class Decision(models.Model):
     )
     decision = models.CharField("décision", max_length=20, choices=Candidature.Statut.choices)
     motif = models.TextField("motif")
+    # Identifiant du lot (KAN-15) : nul pour une décision prise depuis la fiche.
+    lot_id = models.UUIDField("lot", null=True, blank=True, editable=False, db_index=True)
     created_at = models.DateTimeField("date", auto_now_add=True)
 
     class Meta:

@@ -60,6 +60,7 @@
       <div class="flex flex-wrap items-center gap-2">
         <span class="font-semibold text-ink-900">{{ d.get_decision_display }}</span>
         {% if forloop.first %}<span class="badge badge-en_vigueur" data-en-vigueur>{% translate "en vigueur" %}</span>{% endif %}
+        {% if d.lot_id %}<span class="badge badge-neutre badge-plain" data-decision-lot title="{% blocktranslate with id=d.lot_id|stringformat:'s'|slice:':8' %}Lot {{ id }}{% endblocktranslate %}">{% translate "décision prise en lot" %}</span>{% endif %}
       </div>
       <p class="meta mt-0.5">{{ d.created_at|date:"d/m/Y H:i" }} · {{ d.auteur.full_name|default:d.auteur.email }}</p>
       <p class="mt-1.5 whitespace-pre-line rounded-control bg-ink-50 px-3 py-2 text-ink-800">{{ d.motif }}</p>

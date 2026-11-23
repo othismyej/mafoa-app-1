@@ -1,0 +1,28 @@
+{% load i18n accord %}
+{% if etat == "lance" %}
+<div aria-live="polite" data-lot-annonce>{% blocktranslate count n=nb with id=lot_court asvar message %}Relance lancée en arrière-plan pour {{ n }} candidature (lot {{ id }}). Le calcul se poursuit en arrière-plan : rechargez la liste dans quelques instants pour voir les verdicts à jour.{% plural %}Relance lancée en arrière-plan pour {{ n }} candidatures (lot {{ id }}). Le calcul se poursuit en arrière-plan : rechargez la liste dans quelques instants pour voir les verdicts à jour.{% endblocktranslate %}{% include "components/alert.html" with message=message tone="info" role="status" %}</div>
+{% else %}
+<div aria-live="polite" data-lot-annonce>
+  <p class="text-base font-medium text-ink-900" data-lot-bilan>{% if operation == "decision" %}{% blocktranslate count c=nb_succes|accord with n=nb_succes %}{{ n }} décision enregistrée{% plural %}{{ n }} décisions enregistrées{% endblocktranslate %}, {% blocktranslate count c=nb_echecs|accord with n=nb_echecs %}{{ n }} non enregistrée{% plural %}{{ n }} non enregistrées{% endblocktranslate %}{% else %}{% blocktranslate count c=nb_succes|accord with n=nb_succes %}{{ n }} verdict recalculé{% plural %}{{ n }} verdicts recalculés{% endblocktranslate %}, {% blocktranslate count c=nb_statuts_modifies|accord with n=nb_statuts_modifies %}dont {{ n }} statut modifié{% plural %}dont {{ n }} statuts modifiés{% endblocktranslate %}{% if nb_echecs %}, {% blocktranslate count c=nb_echecs|accord with n=nb_echecs %}{{ n }} en échec{% plural %}{{ n }} en échec{% endblocktranslate %}{% endif %}{% endif %}</p>
+</div>
+{% if echecs %}
+<div class="mt-4" data-lot-echecs>
+  <h3 class="section-title text-sm">{% translate "Non traitées" %}</h3>
+  <ul class="mt-2 space-y-3">
+  {% for g in echecs %}
+    <li class="rounded-control border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900" data-lot-echec="{{ g.raison }}">
+      <p class="font-medium">{{ g.libelle }} <span class="tabular-nums">({{ g.nb }})</span></p>
+      {% include "recruitment/_lot_noms.html" with g=g %}
+    </li>
+  {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% if exclues %}
+<div class="mt-4 rounded-control border border-ink-200 px-4 py-3" data-lot-exclues>
+  <p class="font-medium text-ink-800">{% translate "Exclus par l’utilisateur (avertissement)" %} <span class="tabular-nums">({{ exclues.nb }})</span></p>
+  {% include "recruitment/_lot_noms.html" with g=exclues %}
+</div>
+{% endif %}
+{% endif %}
+<p class="mt-5"><a href="{{ retour_url }}" class="btn-primary" data-lot-retour>{% if etat == "lance" %}{% translate "Recharger la liste" %}{% else %}{% translate "Revenir à la liste" %}{% endif %}</a></p>
