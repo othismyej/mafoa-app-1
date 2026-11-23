@@ -378,7 +378,9 @@ pièce n° 7 de la candidature 42 ; IP client `203.0.113.10`.
   (vérifié par introspection) ; la migration s'applique sur une table contenant des entrées
   sans déclencher le trigger d'ajout seul.
 - **CA39** — Étant donné une entrée créée à 23:30 UTC le 20/11/2026, alors la liste affiche son
-  horodatage converti dans le fuseau `Africa/Casablanca` au format `JJ/MM/AAAA HH:MM:SS`.
+  horodatage converti dans le fuseau `Africa/Casablanca` au format `JJ/MM/AAAA HH:MM:SS`
+  (« 20/11/2026 23:30:00 » : le Maroc est à UTC+0 à cette date, confirmé par le PO le
+  2026-11-23 ; la conversion suit la base des fuseaux horaires, jamais un décalage codé en dur).
 - **CA40** — Étant donné la langue active `ar`, quand la liste et le détail sont affichés, alors
   `<html>` porte `dir="rtl"`, la page est 200 et les gabarits du journal n'utilisent aucune
   classe directionnelle figée (`ml-`, `mr-`, `pl-`, `pr-`, `text-left`, `text-right`, `left-`,
