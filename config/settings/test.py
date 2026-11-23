@@ -20,3 +20,7 @@ ACCOUNT_RATE_LIMITS = False
 ANTHROPIC_API_KEY = ""
 # WhiteNoise inutile en test (et STATIC_ROOT n'existe pas avant collectstatic).
 MIDDLEWARE = [m for m in MIDDLEWARE if m != "whitenoise.middleware.WhiteNoiseMiddleware"]  # noqa: F405
+# Nom de la base de test surchargeable : permet de lancer plusieurs suites en parallèle
+# (agents, worktrees) sans qu'elles se marchent dessus.
+if os.environ.get("TEST_DATABASE_NAME"):
+    DATABASES["default"]["TEST"] = {"NAME": os.environ["TEST_DATABASE_NAME"]}  # noqa: F405

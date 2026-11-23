@@ -12,6 +12,7 @@ from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.utils.cache import add_never_cache_headers, patch_cache_control
 
 PUBLIC_PREFIXES = ("/accounts/", "/invitation/", "/i18n/", "/admin/login/")
 
@@ -60,3 +61,21 @@ class MFARequiredMiddleware:
         ):
             return redirect("mfa_activate_totp")
         return self.get_response(request)
+
+
+class NoStoreForAuthenticatedMiddleware:
+    """Interdit la mise en cache des pages servies à un utilisateur connecté.
+
+    Les pages contiennent des données personnelles de candidats : après déconnexion, le bouton
+    Précédent ne doit pas pouvoir les réafficher depuis un cache du navigateur.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        if getattr(request, "user", None) is not None and request.user.is_authenticated:
+            add_never_cache_headers(response)
+            patch_cache_control(response, private=True)
+        return response

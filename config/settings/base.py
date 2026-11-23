@@ -54,6 +54,7 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
     "apps.accounts.middleware.LoginRequiredMiddleware",
     "apps.accounts.middleware.MFARequiredMiddleware",
+    "apps.accounts.middleware.NoStoreForAuthenticatedMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

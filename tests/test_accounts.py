@@ -208,3 +208,9 @@ def test_mfa_toujours_forcee_en_production():
     }
     assert isinstance(assigns["MFA_REQUIRED"], ast.Constant)
     assert assigns["MFA_REQUIRED"].value is True
+
+
+def test_pages_connectees_non_mises_en_cache(client, direction_user):
+    client.force_login(direction_user)
+    cache_control = client.get(reverse("dashboard")).headers["Cache-Control"]
+    assert "no-store" in cache_control and "private" in cache_control
