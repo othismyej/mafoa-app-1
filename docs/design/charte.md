@@ -61,6 +61,7 @@ ou `templates/components/verdict.html`.
 | Convoquée | `badge-convoquee` | `violet-800` / `violet-50` / `violet-200` | Étape franchie (oral) |
 | Retenue | `badge-retenue` | blanc / `emerald-700` (plein) | Issue finale favorable |
 | Rejetée | `badge-rejetee` | blanc / `stone-700` (plein) | Issue finale défavorable |
+| Conservée au vivier | `badge-vivier` | `teal-800` / `teal-50` / `teal-200` | Candidature spontanée qualifiée (KAN-39) : neutre-positif, distinct des statuts de concours |
 | Non évaluée (verdict) | `badge-non_evaluee` | `ink-600` / blanc / `ink-300` pointillé | Absence de verdict |
 | Décision en vigueur | `badge-en_vigueur` | `emerald-800` / `emerald-50` | Marqueur d'historique |
 
@@ -119,6 +120,7 @@ Calcul selon la formule de luminance relative WCAG. Seuils : 4,5:1 texte courant
 | Convoquée `violet-800` / `violet-50` | 8,19 | AA |
 | Retenue blanc / `emerald-700` | 5,48 | AA |
 | Rejetée blanc / `stone-700` | 10,27 | AA |
+| Conservée au vivier `teal-800` / `teal-50` | 7,27 | AA |
 | Gravité haute `orange-900` / `orange-100` | 8,18 | AA |
 | Gravité moyenne `yellow-800` / `yellow-50` | 6,62 | AA |
 | Alerte info `sky-900` / `sky-50` | 8,87 | AA |
@@ -179,7 +181,7 @@ sont dans `templates/components/`.
 | Carte | `.card`, `.card-header`, `.card-body`, `.card-accent` | Blanche sur `ink-50` ; `.card-accent` = liseré rouge 4 px en haut, réservé à l'en-tête d'un objet (concours, candidature). |
 | Chiffre clé | `components/stat.html` (`label`, `value`, `hint`, `icon`, `tone`, `href`, `cta`) | `tone="attention"` passe la carte en ambre si la valeur est non nulle. Avec `href`, toute la carte est un lien unique (`.stat-link`, survol discret, focus rouge) et `cta` affiche un appel « Voir … → » ; une carte qui contient plusieurs liens (ventilation) n'est pas elle-même un lien (KAN-38). |
 | En-tête de page | `.page-eyebrow` + `.page-title` | Sur-titre = contexte (organisation, concours) ; un seul `h1`. |
-| Fil d'Ariane | `components/breadcrumb.html` (`concours`, `poste`, `offres`, `offre`, `current`, `current_poste`) | Toujours « Tableau de bord › … » ; page courante en `aria-current="page"`. |
+| Fil d'Ariane | `components/breadcrumb.html` (`concours`, `poste`, `offres`, `spontanees`, `offre`, `current`, `current_poste`) | Toujours « Tableau de bord › … » ; page courante en `aria-current="page"`. |
 | Navigation | `.nav-link` + `aria-current` | Élément actif : fond `brand-50`, texte `brand-700`, soulignement rouge 2 px. |
 | Menu utilisateur | `<details class="user-menu">` | Sans JavaScript : avatar (initiale), nom, rôle, double authentification, déconnexion. |
 | Tableau | `.table-wrap` + `.table-data` | En-têtes en petites capitales grises, lignes 48 px, survol `ink-50`, défilement horizontal sur mobile. |

@@ -165,7 +165,11 @@ téléphones `0600…`, CIN `ZZ…`. Elles contiennent volontairement des cas pi
 - spécialités hors liste ;
 - dates manquantes ou incohérentes ;
 - pièces manquantes ;
-- doublons de candidats et CV identique partagé.
+- doublons de candidats et CV identique partagé ;
+- 6 candidatures spontanées (`SP-…`, KAN-39) : souhaits variés ou absents, fonction hors
+  référentiel, consentement oui / non / inconnu, CV seul, lettre seule, un candidat ayant aussi
+  une candidature de concours et un candidat avec deux dépôts. Elles sont ajoutées après les
+  données existantes, sans tirage aléatoire : les autres données et empreintes sont inchangées.
 
 ### Visionneuse des pièces (KAN-12)
 
@@ -192,6 +196,37 @@ sa propre transaction, et le journal porte deux entrées `lot` (lancement, fin) 
 personnelle. Paramètres : `LOT_TAILLE_MAX` (500) et `LOT_ELIGIBILITE_SYNC_MAX` (50 ; au-delà,
 la relance passe par la tâche Celery `evaluation.relancer_eligibilite_lot`). Code :
 `apps/evaluation/lots.py`, `apps/recruitment/lot_views.py`.
+
+### Candidatures spontanées — vivier (KAN-39)
+
+Une candidature porte un **type explicite** (`concours`, `offre`, `spontanee`). Une candidature
+spontanée n'a ni poste ni offre ; elle porte les souhaits du candidat (`DetailsSpontanee` :
+fonction, secteur, lieu de travail souhaité, disponibilité, message, consentement au vivier).
+
+- Écran `/candidatures-spontanees/` (entrée « Candidatures spontanées » du menu, admin et
+  direction) : filtres par statut, fonction, secteur et lieu souhaités, période, présence de CV,
+  anomalies ; recherche par nom ; aucune colonne ni filtre sur le sexe, l'âge, la région ou la
+  ville de résidence. Logique serveur unique : `apps/recruitment/spontanees.py`.
+- Fiche candidature : bloc « Souhaits du candidat », « Autres candidatures de ce candidat », date
+  de fin de conservation ; pas de bloc éligibilité (`run_eligibility` refuse une candidature
+  spontanée, `sync_site --evaluate` les ignore).
+- Décisions humaines : reçue / en analyse → conservée au vivier ou rejetée ; conservée au vivier
+  → rejetée ; rejetée → conservée au vivier (révision confirmée). Statut `vivier` réservé aux
+  candidatures spontanées (contrainte de base).
+- Conservation : `RETENTION_CANDIDATURE_SPONTANEE_MOIS` (défaut 24 mois). La purge effective
+  relève de KAN-31 ; `spontanees.conservation_depassee()` liste les dossiers concernés.
+- Contrat `SiteSource` : `CandidatureDTO.type`, `souhaits` (`SouhaitsDTO`),
+  `date_mise_a_jour`. La correspondance avec le site est isolée dans
+  `integrations/site_source/spontanees.py` et **reste à confirmer avec le code source du site**
+  (questions QS1 à QS7 de la spec). Un DTO incohérent est refusé et compté ; un changement de
+  type à la source est compté comme conflit sans modifier le dossier ; l'entrée d'audit `sync`
+  porte les compteurs par type.
+
+**Note de version (migration `recruitment.0003`)** : la contrainte `candidature_poste_xor_offre`
+est remplacée par `candidature_type_cible` et `candidature_statut_selon_type` ; le type des
+candidatures existantes est renseigné par la migration (aucune perte). La migration inverse est
+refusée tant qu'une candidature spontanée existe. Le code qui crée une `Candidature` sans poste
+ni offre doit désormais fournir `type="spontanee"` explicitement.
 
 ### IA
 

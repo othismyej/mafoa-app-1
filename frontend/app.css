@@ -147,6 +147,8 @@
 .badge-convoquee { @apply border-violet-200 bg-violet-50 text-violet-800; }
 .badge-retenue { @apply border-emerald-700 bg-emerald-700 text-white; }
 .badge-rejetee { @apply border-stone-700 bg-stone-700 text-white; }
+/* Candidatures spontanées (KAN-39) : neutre-positif, distinct des statuts de concours. */
+.badge-vivier { @apply border-teal-200 bg-teal-50 text-teal-800; }
 .badge-non_evaluee { @apply border-dashed border-ink-300 bg-white text-ink-600; }
 .badge-neutre { @apply border-ink-200 bg-ink-100 text-ink-700; }
 /* Statuts de concours */

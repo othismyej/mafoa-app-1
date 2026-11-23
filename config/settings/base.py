@@ -191,6 +191,10 @@ LOT_JETON_DUREE = 30 * 60
 PIECE_VIEWER_MAX_BYTES = env.int("PIECE_VIEWER_MAX_BYTES", default=20 * 1024 * 1024)
 PIECE_SOURCE_TIMEOUT = env.float("PIECE_SOURCE_TIMEOUT", default=10.0)
 
+# Candidatures spontanées (KAN-39, loi 09-08) : durée de conservation en mois, à compter de la
+# date de candidature (ou de la dernière mise à jour à la source). Purge effective : KAN-31.
+RETENTION_CANDIDATURE_SPONTANEE_MOIS = env.int("RETENTION_CANDIDATURE_SPONTANEE_MOIS", default=24)
+
 # --- IA ---------------------------------------------------------------------
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
 AI_MODEL = env("AI_MODEL", default="claude-opus-5-5")

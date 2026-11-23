@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import lot_views, offre_views, views
+from . import lot_views, offre_views, spontanee_views, views
 
 app_name = "recruitment"
 
@@ -24,6 +24,11 @@ urlpatterns = [
     path("offres/", offre_views.offres_liste, name="offres_liste"),
     path("offres/<int:pk>/", offre_views.offre_detail, name="offre_detail"),
     path("a-verifier/", offre_views.a_verifier, name="a_verifier"),
+    path(
+        "candidatures-spontanees/",
+        spontanee_views.spontanees_liste,
+        name="spontanees_liste",
+    ),
     path("candidatures/<int:pk>/", views.candidature_detail, name="candidature_detail"),
     path(
         "candidatures/<int:pk>/pieces/<int:piece_pk>/",

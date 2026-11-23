@@ -271,6 +271,15 @@ class Candidat(SourceRefMixin, TimeStampedModel):
         super().save(*args, **kwargs)
 
 
+class CandidatureQuerySet(models.QuerySet):
+    def bulk_create(self, objs, *args, **kwargs):
+        # Même commodité que ``Candidature.save()`` (règle 3) : jamais « spontanée » par défaut.
+        objs = list(objs)
+        for obj in objs:
+            obj.renseigner_type()
+        return super().bulk_create(objs, *args, **kwargs)
+
+
 class Candidature(SourceRefMixin, TimeStampedModel):
     class Statut(models.TextChoices):
         RECUE = "recue", _("Reçue")
@@ -282,6 +291,19 @@ class Candidature(SourceRefMixin, TimeStampedModel):
         CONVOQUEE = "convoquee", _("Convoquée")
         RETENUE = "retenue", _("Retenue")
         REJETEE = "rejetee", _("Rejetée")
+        # Candidatures spontanées uniquement (KAN-39, règle 4).
+        VIVIER = "vivier", _("Conservée au vivier")
+
+    class Type(models.TextChoices):
+        """Nature de la candidature (KAN-39, règle 1) : explicite, jamais déduite « spontanée »."""
+
+        CONCOURS = "concours", _("Concours")
+        OFFRE = "offre", _("Offre d’emploi")
+        SPONTANEE = "spontanee", _("Candidature spontanée")
+
+    #: Statuts permis pour une candidature spontanée (règle 5) ; les autres types n'ont jamais
+    #: le statut « vivier ».
+    STATUTS_SPONTANEE = ("recue", "en_analyse", "vivier", "rejetee")
 
     candidat = models.ForeignKey(
         Candidat, verbose_name="candidat", on_delete=models.PROTECT, related_name="candidatures"
@@ -312,6 +334,9 @@ class Candidature(SourceRefMixin, TimeStampedModel):
         related_name="candidatures",
         editable=False,
     )
+    # Renseigné à la création, jamais modifié ensuite (règle 14) ; ``save()`` ne déduit que
+    # « concours » ou « offre », jamais « spontanée » (règle 3).
+    type = models.CharField("type", max_length=10, choices=Type.choices, db_index=True)
     date_candidature = models.DateTimeField("date de candidature")
     statut = models.CharField("statut", max_length=20, choices=Statut.choices, default=Statut.RECUE)
     donnees_declarees = models.JSONField(
@@ -321,17 +346,39 @@ class Candidature(SourceRefMixin, TimeStampedModel):
         help_text="Formation et expériences saisies par le candidat sur le site.",
     )
 
+    objects = CandidatureQuerySet.as_manager()
+
     class Meta:
         verbose_name = "candidature"
         verbose_name_plural = "candidatures"
         ordering = ["-date_candidature"]
         constraints = [
             SourceRefMixin.unique_source_constraint("uniq_candidature_source"),
+            # Remplace « candidature_poste_xor_offre » (KAN-39, règle 2).
             models.CheckConstraint(
-                condition=(Q(poste_concours__isnull=False) & Q(offre__isnull=True))
-                | (Q(poste_concours__isnull=True) & Q(offre__isnull=False)),
-                name="candidature_poste_xor_offre",
-                violation_error_message="Une candidature vise soit un poste de concours, soit une offre.",
+                condition=(
+                    Q(type="concours", poste_concours__isnull=False, offre__isnull=True)
+                    | Q(type="offre", offre__isnull=False, poste_concours__isnull=True)
+                    | Q(
+                        type="spontanee",
+                        poste_concours__isnull=True,
+                        offre__isnull=True,
+                        concours__isnull=True,
+                    )
+                ),
+                name="candidature_type_cible",
+                violation_error_message=(
+                    "Type et cible incohérents : un poste pour un concours, une offre pour une "
+                    "offre d'emploi, ni l'un ni l'autre pour une candidature spontanée."
+                ),
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(type="spontanee", statut__in=["recue", "en_analyse", "vivier", "rejetee"])
+                    | (~Q(type="spontanee") & ~Q(statut="vivier"))
+                ),
+                name="candidature_statut_selon_type",
+                violation_error_message="Statut non permis pour ce type de candidature.",
             ),
             models.UniqueConstraint(
                 fields=["candidat", "concours"],
@@ -345,11 +392,15 @@ class Candidature(SourceRefMixin, TimeStampedModel):
                 name="uniq_candidature_par_offre",
             ),
         ]
+        indexes = [
+            models.Index(fields=["type", "date_candidature"], name="candidature_type_date_idx"),
+        ]
 
     def __str__(self) -> str:
-        return f"{self.candidat} → {self.cible}"
+        return f"{self.candidat} → {self.cible_libelle}"
 
     def save(self, *args, **kwargs):
+        self.renseigner_type()
         self.concours_id = self.poste_concours.concours_id if self.poste_concours_id else None
         update_fields = kwargs.get("update_fields")
         if update_fields is not None:
@@ -357,9 +408,102 @@ class Candidature(SourceRefMixin, TimeStampedModel):
             kwargs["update_fields"] = set(update_fields) | {"concours"}
         super().save(*args, **kwargs)
 
+    def renseigner_type(self) -> None:
+        """Commodité (règle 3) : type vide → « concours » si poste, « offre » si offre ; jamais
+        « spontanée ». Sans cible ni type, la contrainte de base refuse l'enregistrement."""
+        if not self.type:
+            if self.poste_concours_id:
+                self.type = self.Type.CONCOURS
+            elif self.offre_id:
+                self.type = self.Type.OFFRE
+
     @property
     def cible(self):
         return self.poste_concours or self.offre
+
+    @property
+    def est_spontanee(self) -> bool:
+        return self.type == self.Type.SPONTANEE
+
+    @property
+    def cible_libelle(self) -> str:
+        """Cible en texte : poste, offre ou « Candidature spontanée » (règle 9)."""
+        cible = self.cible
+        if cible is None and self.est_spontanee:
+            return str(self.Type.SPONTANEE.label)
+        return str(cible)
+
+    @classmethod
+    def statut_choices_avec_cible(cls) -> list[tuple[str, str]]:
+        """Statuts possibles d'une candidature de concours ou d'offre (sans « vivier »)."""
+        return [(v, label) for v, label in cls.Statut.choices if v != cls.Statut.VIVIER]
+
+    @classmethod
+    def statut_choices_spontanee(cls) -> list[tuple[str, str]]:
+        return [(v, cls.Statut(v).label) for v in cls.STATUTS_SPONTANEE]
+
+
+class DetailsSpontanee(TimeStampedModel):
+    """Souhaits d'une candidature spontanée (KAN-39, règle 7), un-à-un avec la candidature.
+
+    Structure à confirmer avec le code source du site (QS2). Aucun champ sur le sexe, l'âge,
+    la situation familiale ou la photo.
+    """
+
+    MESSAGE_MAX = 5000
+
+    candidature = models.OneToOneField(
+        Candidature,
+        verbose_name="candidature",
+        on_delete=models.CASCADE,
+        related_name="details_spontanee",
+    )
+    fonction_souhaitee = models.CharField(
+        "fonction souhaitée", max_length=30, choices=Fonction.choices, blank=True
+    )
+    fonction_souhaitee_brute = models.CharField(
+        "fonction souhaitée (libellé du site)",
+        max_length=150,
+        blank=True,
+        help_text="Libellé d'origine quand il ne correspond à aucune fonction connue.",
+    )
+    secteur_souhaite = models.CharField("secteur souhaité", max_length=150, blank=True)
+    lieu_souhaite = models.CharField(
+        "lieu de travail souhaité",
+        max_length=100,
+        blank=True,
+        help_text="Préférence de mobilité déclarée, distincte de la ville de résidence.",
+    )
+    disponibilite = models.CharField("disponibilité", max_length=100, blank=True)
+    message = models.TextField("message du candidat", blank=True)
+    message_tronque = models.BooleanField("message tronqué", default=False)
+    consentement_vivier = models.BooleanField(
+        "consentement au vivier", null=True, blank=True, help_text="Vide : non renseigné."
+    )
+    consentement_le = models.DateTimeField("consentement le", null=True, blank=True)
+    mise_a_jour_source_le = models.DateTimeField(
+        "dernière mise à jour à la source",
+        null=True,
+        blank=True,
+        help_text="Point de départ de la conservation si le site la fournit (QS3).",
+    )
+
+    class Meta:
+        verbose_name = "souhaits d'une candidature spontanée"
+        verbose_name_plural = "souhaits des candidatures spontanées"
+        indexes = [
+            models.Index(fields=["fonction_souhaitee"], name="spontanee_fonction_idx"),
+            models.Index(fields=["secteur_souhaite"], name="spontanee_secteur_idx"),
+            models.Index(fields=["lieu_souhaite"], name="spontanee_lieu_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"Souhaits — Candidature #{self.candidature_id}"
+
+    def save(self, *args, **kwargs):
+        if self.candidature.type != Candidature.Type.SPONTANEE:
+            raise ValueError("Les souhaits ne concernent que les candidatures spontanées.")
+        super().save(*args, **kwargs)
 
 
 class Piece(SourceRefMixin, TimeStampedModel):

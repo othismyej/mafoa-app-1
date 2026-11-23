@@ -15,8 +15,12 @@ def test_volumes_attendus():
     assert len(s.list_concours()) == 2
     assert len(s.list_postes()) == 10
     assert len(s.list_offres()) == 5
-    assert 50 <= len(s.list_candidats()) <= 55
-    assert len(s.list_candidatures()) == len(s.list_candidats())
+    # 50 candidats + 2 doublons, une candidature de concours ou d'offre chacun ; plus 4
+    # nouveaux candidats et 6 candidatures spontanées (KAN-39, comptes par type).
+    assert len(s.list_candidats()) == 56
+    par_type = Counter(a.type for a in s.list_candidatures())
+    assert par_type["concours"] + par_type["offre"] == 52
+    assert par_type["spontanee"] == 6
 
 
 def test_generation_deterministe():

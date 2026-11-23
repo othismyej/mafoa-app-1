@@ -88,4 +88,6 @@ def test_commande_sync_site(db, capsys):
     out = capsys.readouterr().out
     assert "Synchronisation « fixture » terminée" in out
     assert "Éligibilité calculée" in out
-    assert not Candidature.objects.filter(statut=Candidature.Statut.RECUE).exists()
+    # Les candidatures spontanées (KAN-39) ne sont pas évaluées et restent « reçues ».
+    recues = Candidature.objects.filter(statut=Candidature.Statut.RECUE)
+    assert not recues.exclude(type=Candidature.Type.SPONTANEE).exists()

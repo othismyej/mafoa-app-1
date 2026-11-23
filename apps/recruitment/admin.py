@@ -2,7 +2,16 @@ from django.contrib import admin
 
 from apps.audit.admin_mixins import ConsultationLoggingAdminMixin
 
-from .models import Candidat, Candidature, Concours, OffreEmploi, Organisation, Piece, PosteConcours
+from .models import (
+    Candidat,
+    Candidature,
+    Concours,
+    DetailsSpontanee,
+    OffreEmploi,
+    Organisation,
+    Piece,
+    PosteConcours,
+)
 
 SOURCE_FIELDS = ("source_id", "source_synced_at")
 
@@ -108,18 +117,41 @@ class PieceInline(admin.TabularInline):
     extra = 0
 
 
+class DetailsSpontaneeInline(admin.StackedInline):
+    """Souhaits d'une candidature spontanée (KAN-39), importés du site : lecture seule."""
+
+    model = DetailsSpontanee
+    extra = 0
+    max_num = 0
+    can_delete = False
+    readonly_fields = (
+        "fonction_souhaitee",
+        "fonction_souhaitee_brute",
+        "secteur_souhaite",
+        "lieu_souhaite",
+        "disponibilite",
+        "message",
+        "message_tronque",
+        "consentement_vivier",
+        "consentement_le",
+        "mise_a_jour_source_le",
+    )
+    fields = readonly_fields
+
+
 @admin.register(Candidature)
 class CandidatureAdmin(ConsultationLoggingAdminMixin, admin.ModelAdmin):
-    list_display = ("candidat", "cible_display", "date_candidature", "statut")
-    list_filter = ("statut", "concours")
+    list_display = ("candidat", "type", "cible_display", "date_candidature", "statut")
+    list_filter = ("type", "statut", "concours")
     search_fields = ("candidat__nom", "candidat__prenom", "candidat__email")
     raw_id_fields = ("candidat", "poste_concours", "offre")
-    readonly_fields = ("concours", *SOURCE_FIELDS)
-    inlines = [PieceInline]
+    # Le type est fixé à la création et ne change jamais (KAN-39, règles 3 et 14).
+    readonly_fields = ("type", "concours", *SOURCE_FIELDS)
+    inlines = [DetailsSpontaneeInline, PieceInline]
 
     @admin.display(description="Poste / offre")
     def cible_display(self, obj):
-        return obj.cible
+        return obj.cible_libelle
 
 
 @admin.register(Piece)

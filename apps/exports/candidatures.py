@@ -422,7 +422,8 @@ def candidatures_concours(concours: Concours) -> QuerySet[Candidature]:
 
 def _ecrire_synthese(wb: Workbook, postes, par_poste: dict[int, list[Candidature]], ctx):
     ws = wb.create_sheet(SYNTHESE)
-    statuts = list(Candidature.Statut.choices)
+    # Un poste de concours n'a jamais le statut « vivier » (KAN-39, règle 5).
+    statuts = Candidature.statut_choices_avec_cible()
     cols = [Colonne(_(t), w, k) for t, w, k in COLONNES_SYNTHESE_FIXES] + [
         Colonne(f"{_('Statut')} : {label}", 12, INT) for _v, label in statuts
     ]

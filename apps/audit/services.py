@@ -106,6 +106,8 @@ VUES_CONSULTATION = frozenset(
         "journal_dossier",
         # Récapitulatif d'une action en lot (KAN-15, règle 31) : liste nominative.
         "lot_recapitulatif",
+        # Liste des candidatures spontanées (KAN-39, règle 38).
+        "spontanees_liste",
     }
 )
 MODES_PIECE = frozenset({"apercu", "telechargement"})

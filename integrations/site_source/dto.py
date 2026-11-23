@@ -94,13 +94,49 @@ class CandidatDTO:
 
 
 @dataclass(frozen=True)
+class SouhaitsDTO:
+    """Souhaits d'une candidature spontanée (KAN-39, règle 11), tous facultatifs.
+
+    **À confirmer avec le code source du site (QS2, QS4)** : champs réellement disponibles,
+    libellés des fonctions, forme du consentement. ``fonction_souhaitee`` est le libellé ou le
+    code du site ; la correspondance avec ``Fonction`` est faite par ``spontanees.py``.
+    Aucun champ sur le sexe, l'âge, la situation familiale ou la photo n'est prévu ni importé.
+    """
+
+    fonction_souhaitee: str = ""
+    secteur_souhaite: str = ""
+    lieu_souhaite: str = ""
+    disponibilite: str = ""
+    message: str = ""
+    consentement_vivier: bool | None = None
+    consentement_le: datetime | None = None
+
+
+@dataclass(frozen=True)
 class CandidatureDTO:
+    """Candidature lue sur le site.
+
+    ``type`` (KAN-39) : ``"concours"``, ``"offre"`` ou ``"spontanee"``, **fourni par la source**.
+    Compatibilité : absent (``None``), il est déduit uniquement d'un ``poste_source_id``
+    (concours) ou d'un ``offre_source_id`` (offre) ; un DTO sans type ni cible est refusé, jamais
+    classé « spontanée » par défaut. ``souhaits`` : candidatures spontanées seulement.
+    ``date_mise_a_jour`` : dernière mise à jour du dossier à la source, si le site la fournit
+    (point de départ de la conservation, QS3).
+
+    **Contrat à confirmer avec le code source du site (QS1 à QS3)** : table des candidatures
+    spontanées, espace des identifiants (``source_id`` préfixé ``SP-`` si la table est
+    distincte), un dossier mis à jour ou plusieurs dépôts.
+    """
+
     source_id: str
     candidat_source_id: str
     date_candidature: datetime
     donnees_declarees: dict
     poste_source_id: str | None = None
     offre_source_id: str | None = None
+    type: str | None = None
+    souhaits: SouhaitsDTO | None = None
+    date_mise_a_jour: datetime | None = None
 
 
 @dataclass(frozen=True)

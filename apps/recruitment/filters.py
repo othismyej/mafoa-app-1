@@ -72,7 +72,7 @@ class CandidatureFilter:
     @classmethod
     def from_querydict(cls, params: QueryDict) -> CandidatureFilter:
         """Lit les paramètres d'URL ; toute valeur inconnue est ignorée (règle 13)."""
-        valid_statuts = {v for v, _ in Candidature.Statut.choices}
+        valid_statuts = {v for v, _ in Candidature.statut_choices_avec_cible()}
         valid_verdicts = {v for v, _ in VERDICT_CHOICES}
         statuts = [s for s in dict.fromkeys(params.getlist("statut")) if s in valid_statuts]
         verdicts = [v for v in dict.fromkeys(params.getlist("verdict")) if v in valid_verdicts]
@@ -191,8 +191,8 @@ class CandidatureFilter:
         return [f"{prefix}{column}", f"{prefix}id"]
 
 
-def annotate_list_columns(queryset: QuerySet[Candidature]) -> QuerySet[Candidature]:
-    """Ajoute dernier verdict, anomalies non résolues et rangs de tri, calculés en base."""
+def anomalies_annotations() -> dict:
+    """Nombre d'anomalies non résolues et gravité maximale, calculés en base (KAN-10, KAN-39)."""
     unresolved = Anomalie.objects.filter(candidature=OuterRef("pk"), resolue=False)
     nb_anomalies = Subquery(
         unresolved.order_by().values("candidature").annotate(n=Count("id")).values("n")[:1],
@@ -203,10 +203,14 @@ def annotate_list_columns(queryset: QuerySet[Candidature]) -> QuerySet[Candidatu
         .order_by("-rang", "-id")
         .values("gravite")[:1]
     )
+    return {"nb_anomalies": Coalesce(nb_anomalies, Value(0)), "gravite_max": gravite_max}
+
+
+def annotate_list_columns(queryset: QuerySet[Candidature]) -> QuerySet[Candidature]:
+    """Ajoute dernier verdict, anomalies non résolues et rangs de tri, calculés en base."""
     return queryset.annotate(
         dernier_verdict=latest_verdict_subquery(),
-        nb_anomalies=Coalesce(nb_anomalies, Value(0)),
-        gravite_max=gravite_max,
+        **anomalies_annotations(),
     ).annotate(
         verdict_rang=_rank_case("dernier_verdict", VERDICT_SORT_RANK, len(VERDICT_SORT_RANK)),
         statut_rang=_rank_case("statut", STATUT_SORT_RANK, len(STATUT_SORT_RANK)),

@@ -657,9 +657,9 @@ def test_filtre_statut_multiple_en_ou(client, direction_user, ref):
     ]
 
 
-@pytest.mark.parametrize("statut", [v for v, _ in S.choices])
+@pytest.mark.parametrize("statut", [v for v, _ in Candidature.statut_choices_avec_cible()])
 def test_chaque_statut_est_filtrable(client, direction_user, ref, statut):
-    """Règle 7 — Les 9 statuts sont proposés et filtrables."""
+    """Règle 7 — Les 9 statuts sont proposés et filtrables (« vivier » exclu, KAN-39 CA61)."""
     root = parse(get(client, direction_user, ref, {"statut": statut}))
     assert statut in {n.attrs.get("value") for n in inputs(root, "statut")}
     expected = [k for k in ORDRE_DEFAUT if ref["c"][k].statut == statut]

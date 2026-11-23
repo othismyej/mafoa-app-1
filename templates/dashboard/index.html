@@ -25,6 +25,7 @@
     <ul class="mt-2 space-y-1 text-xs" data-ventilation>
       <li><a href="#concours" class="link-quiet inline-flex min-h-6 items-center">{% blocktranslate with n=stats.candidatures_concours %}Concours publics : {{ n }}{% endblocktranslate %}</a></li>
       <li><a href="{% url 'recruitment:offres_liste' %}" class="link-quiet inline-flex min-h-6 items-center">{% blocktranslate with n=stats.candidatures_offres %}Offres d’emploi : {{ n }}{% endblocktranslate %}</a></li>
+      <li><a href="{% url 'recruitment:spontanees_liste' %}" class="link-quiet inline-flex min-h-6 items-center" data-ventilation-spontanees>{% blocktranslate with n=stats.candidatures_spontanees %}Candidatures spontanées : {{ n }}{% endblocktranslate %}</a></li>
     </ul>
   </div>
   {% translate "Dossiers à vérifier" as l_verif %}{% translate "En attente d’un examen humain" as h_verif %}{% translate "Voir les dossiers" as cta_verif %}{% url 'recruitment:a_verifier' as u_verif %}
@@ -65,10 +66,19 @@
 </section>
 
 <section id="spontanees" class="mt-10 scroll-mt-6" aria-labelledby="titre-spontanees" data-section="spontanees">
-  <h2 id="titre-spontanees" class="section-title mb-3 text-lg">{% translate "Candidatures spontanées" %}</h2>
-  <div class="card card-body flex items-start gap-3 border-dashed text-sm text-ink-700">
-    {% include "components/icon.html" with name="info" size="h-5 w-5 text-ink-500" %}
-    <p>{% translate "Bientôt disponible : les candidatures envoyées sans viser une offre précise apparaîtront ici." %}</p>
+  <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+    <h2 id="titre-spontanees" class="section-title text-lg">{% translate "Candidatures spontanées" %} <span class="font-sans text-sm font-normal text-ink-600">— {% translate "vivier" %}</span></h2>
+    <a href="{% url 'recruitment:spontanees_liste' %}" class="link text-sm" data-toutes-spontanees>{% translate "Voir les candidatures spontanées" %} <span aria-hidden="true" class="flip-rtl">→</span></a>
+  </div>
+  <div class="card card-body">
+    <p class="mb-4 text-sm text-ink-700">{% translate "Candidatures déposées sur le site sans viser un poste de concours ni une offre d’emploi." %}</p>
+    <dl class="grid grid-cols-2 gap-4 sm:grid-cols-5" data-compteurs-spontanees>
+      <div data-compteur-spontanees="total"><dt class="stat-label">{% translate "Total" %}</dt><dd class="font-display text-2xl font-semibold tabular-nums text-ink-900">{{ spontanees.total }}</dd></div>
+      <div data-compteur-spontanees="a_traiter"><dt class="stat-label">{% translate "À traiter" %}</dt><dd class="font-display text-2xl font-semibold tabular-nums {% if spontanees.a_traiter %}text-amber-800{% else %}text-ink-900{% endif %}">{{ spontanees.a_traiter }}</dd><dd class="meta">{% translate "reçues ou en analyse" %}</dd></div>
+      <div data-compteur-spontanees="vivier"><dt class="stat-label">{% translate "Conservées au vivier" %}</dt><dd class="font-display text-2xl font-semibold tabular-nums text-ink-900">{{ spontanees.vivier }}</dd></div>
+      <div data-compteur-spontanees="rejetees"><dt class="stat-label">{% translate "Rejetées" %}</dt><dd class="font-display text-2xl font-semibold tabular-nums text-ink-900">{{ spontanees.rejetees }}</dd></div>
+      <div data-compteur-spontanees="recentes"><dt class="stat-label">{% translate "30 derniers jours" %}</dt><dd class="font-display text-2xl font-semibold tabular-nums text-ink-900">{{ spontanees.recues_30_jours }}</dd><dd class="meta">{% translate "reçues" %}</dd></div>
+    </dl>
   </div>
 </section>
 {% endblock %}
