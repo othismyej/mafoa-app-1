@@ -1,0 +1,124 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-23 00:57+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+#: templates/account/login.html:6 templates/account/login.html:10
+#: templates/account/login.html:27
+msgid "Sign In"
+msgstr ""
+
+#: templates/account/login.html:38
+msgid "Sign in with a passkey"
+msgstr ""
+
+#: templates/account/login.html:43
+msgid "Send me a sign-in code"
+msgstr ""
+
+#: templates/base.html:19 templates/recruitment/concours_detail.html:7
+msgid "Tableau de bord"
+msgstr ""
+
+#: templates/base.html:20
+msgid "Administration"
+msgstr ""
+
+#: templates/base.html:21
+msgid "Sécurité"
+msgstr ""
+
+#: templates/base.html:24
+msgid "Déconnexion"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:6
+msgid "Fil d’Ariane"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:15
+msgid "Organisation"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:16
+msgid "Statut"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:17
+msgid "Date de publication"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:18
+#: templates/recruitment/concours_detail.html:34
+msgid "Date limite"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:19
+msgid "Nombre total de postes"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:20
+#: templates/recruitment/concours_detail.html:35
+msgid "Candidatures"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:24
+#: templates/recruitment/concours_detail.html:33
+msgid "Postes"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:26
+msgid ""
+"Répartition selon le dernier verdict du moteur d’éligibilité. Un verdict "
+"n’est pas une décision : toute décision reste humaine."
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:31
+msgid "Référence"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:32
+msgid "Intitulé"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:36
+msgid "Éligibles"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:37
+msgid "Non éligibles"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:38
+msgid "À vérifier"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:39
+msgid "Non évaluées"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:48
+msgid "(date du concours)"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:59
+msgid "Total"
+msgstr ""
+
+#: templates/recruitment/concours_detail.html:72
+msgid "Aucun poste pour ce concours."
+msgstr ""
