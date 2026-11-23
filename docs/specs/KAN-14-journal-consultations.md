@@ -199,9 +199,10 @@ Contrôle de rôle côté serveur sur chaque vue **et** chaque fragment HTMX du 
     Excel » appliquant exactement les filtres courants (même logique serveur que la liste).
     - colonnes : horodatage (ISO 8601 avec fuseau), acteur, action (libellé), type d'objet,
       identifiant d'objet, objet, adresse IP, navigateur, métadonnées (JSON compact) ; **avant /
-      après ne sont pas exportés** (minimisation) ;
+      après ne sont pas exportés**, ni le terme de recherche `metadata.recherche` (minimisation) ;
+      les caractères de contrôle sont remplacés par `�` ;
     - CSV en UTF-8 avec BOM, séparateur `;` ; Excel via `openpyxl` ;
-    - toute cellule commençant par `=`, `+`, `-`, `@`, tabulation ou retour chariot est préfixée
+    - toute cellule commençant (espaces de tête ignorés) par `=`, `+`, `-`, `@`, tabulation ou retour chariot est préfixée
       d'une apostrophe (protection contre l'injection de formules) ;
     - nom de fichier `journal-audit-AAAAMMJJ-HHMM.csv` / `.xlsx` ;
     - plafond de 50 000 lignes : au-delà, aucun fichier n'est produit et un message invite à

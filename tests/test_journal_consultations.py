@@ -903,7 +903,8 @@ def test_ca35_neutralisation_des_formules(client, admin1, prefixe):
     rows = _csv_rows(get(client, admin1, export_url("csv", action="sync")))
     ligne = [r for r in rows[1:] if r[1].endswith("HYPERLINK(1)")][0]
     assert ligne[1] == f"'{prefixe}HYPERLINK(1)"
-    assert f"'{prefixe}1+1" in ligne[8]
+    # Seul le début de cellule est neutralisé : la valeur journalisée reste intacte dans le JSON.
+    assert f'"x":"{prefixe}1+1"' in ligne[8]
     response = get(client, admin1, export_url("xlsx", action="sync"))
     sheet = load_workbook(io.BytesIO(response.content), read_only=True).active
     cellules = [r for r in sheet.iter_rows(values_only=True)][1:]
@@ -1062,3 +1063,26 @@ def test_ca40_arabe_rtl_et_proprietes_logiques(client, admin1, dir1, c42):
     gabarits = Path(settings.BASE_DIR, "templates", "audit")
     for path in gabarits.glob("*.html"):
         assert not interdit.search(path.read_text(encoding="utf-8")), path.name
+
+
+def test_export_excel_supporte_les_caracteres_de_controle(client, admin1):
+    """Relecture conformité : un User-Agent forgé (\\x01) ne rend pas l'export Excel impossible."""
+    from openpyxl import load_workbook
+
+    entree(action=AuditAction.SYNC, user_agent="Navigateur\x01Fictif")
+    response = get(client, admin1, export_url("xlsx", action="sync"))
+    assert response.status_code == 200
+    sheet = load_workbook(io.BytesIO(response.content), read_only=True).active
+    assert any(r[7] == "Navigateur\ufffdFictif" for r in sheet.iter_rows(values_only=True))
+
+
+def test_export_sans_terme_de_recherche(client, admin1):
+    """Minimisation : un terme de recherche (nom, CIN) ne sort pas dans le fichier exporté."""
+    entree(action=AuditAction.SYNC, metadata={"recherche": "BENALI", "page": 1})
+    rows = _csv_rows(get(client, admin1, export_url("csv", action="sync")))
+    assert all("BENALI" not in ";".join(r) for r in rows)
+    assert any('"page":1' in r[8] for r in rows[1:])
+
+
+def test_neutralize_espaces_de_tete():
+    assert exports.neutralize("  =1+1") == "'  =1+1"
