@@ -11,4 +11,5 @@ urlpatterns = [
         views.poste_candidatures,
         name="poste_candidatures",
     ),
+    path("candidatures/<int:pk>/", views.candidature_detail, name="candidature_detail"),
 ]

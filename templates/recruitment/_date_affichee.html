@@ -1,0 +1,1 @@
+{% load i18n %}{% if d.probleme == "illisible" %}<span class="text-amber-700" data-date="illisible">{{ d.texte }} ({% translate "Date illisible" %})</span>{% elif d.probleme == "manquante" %}<span class="text-amber-700" data-date="manquante">{{ d.texte }}</span>{% else %}<span data-date="{{ d.probleme|default:'ok' }}">{{ d.texte }}</span>{% endif %}
