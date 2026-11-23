@@ -218,7 +218,11 @@ décision soit humaine, motivée et tracée dans le journal d'audit.
 - **CA29** — Étant donné une `Decision` existante, quand on tente de la modifier ou de la
   supprimer via l'administration Django, alors l'action n'est pas disponible (pas de permission
   de modification ni de suppression) ; via l'ORM, `save()` sur une décision existante lève une
-  erreur.
+  erreur. Étant donné un `admin` sur l'administration Django, quand il ouvre la page d'ajout
+  d'une décision, alors l'accès est refusé (403).
+- **CA31** — Étant donné un appel direct à `record_decision` (sans passer par la vue) avec une
+  transition absente de la table ou un motif de moins de 10 caractères, alors le service lève
+  une erreur et rien n'est enregistré.
 - **CA30** — Étant donné un identifiant de candidature inexistant dans l'URL de décision, alors
   la réponse est 404 et rien n'est enregistré.
 
@@ -299,3 +303,7 @@ décision soit humaine, motivée et tracée dans le journal d'audit.
   *Proposition par défaut* : avertir avec confirmation tracée.
 - [ ] **Q9 — Candidatures à une offre privée** : même table de transitions ? *Proposition par
   défaut* : oui ; « convoquée » vaut « convoquée en entretien ».
+- [ ] **Q10 — Ajout de décision depuis l'administration Django** : le supprimer (règle 14) ?
+  *Proposition par défaut* : oui, la fiche devient le seul point d'entrée ; l'administration
+  reste en lecture seule pour les décisions. *Alternative* : le garder pour l'admin, soumis aux
+  mêmes règles du service mais sans confirmation de révision ni contrôle de concurrence.
