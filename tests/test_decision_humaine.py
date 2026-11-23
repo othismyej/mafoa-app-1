@@ -726,6 +726,9 @@ def test_decision_acceptee_journalisee(client, direction_user, cand):
     assert e.metadata["motif"] == MOTIF
     assert e.ip_address == "203.0.113.7"
     assert e.user_agent == "NavigateurFictif/1.0"
+    # Libellé sans nom : le journal en ajout seul ne peut pas être purgé (loi 09-08).
+    assert e.object_repr == f"Candidature #{cand.pk}"
+    assert cand.candidat.nom not in e.object_repr
 
 
 def test_decisions_refusees_non_journalisees(client, direction_user, poste):
@@ -1216,3 +1219,86 @@ def test_orm_refuse_la_modification_d_une_decision(direction_user, cand):
         d.save()
     d.refresh_from_db()
     assert d.motif == MOTIF
+
+
+# Relecture conformité KAN-13 — concurrence moteur, refus journalisés (Q6), htmx
+# --------------------------------------------------------------------------------------
+
+
+def test_moteur_avec_instance_perimee_ne_ecrase_pas_une_decision(direction_user, poste):
+    """Règle 9 — le moteur reçoit une instance chargée avant la décision humaine (cas de
+    ``sync_site --evaluate``) : il relit la ligne verrouillée et ne reclasse pas."""
+    c = new_candidature(poste, S.A_VERIFIER, donnees_declarees=PROFIL_BAC2)
+    perimee = Candidature.objects.get(pk=c.pk)
+    record_decision(c, direction_user, S.ELIGIBLE, "Équivalence de diplôme fictive admise.")
+    assert perimee.statut == S.A_VERIFIER
+    run_eligibility(perimee)
+    assert statut_en_base(c) == S.ELIGIBLE
+    assert perimee.statut == S.ELIGIBLE
+
+
+def test_moteur_reclasse_avec_libelle_sans_nom(poste):
+    c = new_candidature(poste, S.RECUE, donnees_declarees=PROFIL_BAC2)
+    run_eligibility(c)
+    e = JournalAudit.objects.get(action=AuditAction.UPDATE, object_id=str(c.pk))
+    assert e.object_repr == f"Candidature #{c.pk}"
+
+
+def refus():
+    return JournalAudit.objects.filter(action=AuditAction.UPDATE, metadata__has_key="refus")
+
+
+@pytest.mark.parametrize("htmx", [False, True])
+def test_refus_de_droits_journalise(client, cand, htmx):
+    """Q6 — un 403 sur l'envoi d'une décision laisse une trace sans nom."""
+    user = make_user(f"consultant-refus-{int(htmx)}@example.org", Role.CONSULTANT)
+    response = poster(client, user, cand, S.PRESELECTIONNEE, htmx=htmx)
+    assert response.status_code == 403
+    e = refus().get()
+    assert e.metadata["refus"] == "droits"
+    assert e.actor == user
+    assert e.object_repr == f"Candidature #{cand.pk}"
+
+
+def test_transition_interdite_journalisee_sans_motif(client, direction_user, cand):
+    """Q6 — transition interdite envoyée directement : trace, sans recopier le motif."""
+    response = poster(client, direction_user, cand, S.RETENUE)
+    assert response.status_code == 400
+    e = refus().get()
+    assert e.metadata["refus"] == "transition_interdite"
+    assert e.metadata["decision"] == S.RETENUE
+    assert MOTIF not in str(e.metadata)
+    assert cand.candidat.nom not in e.object_repr
+
+
+def test_erreur_de_saisie_non_journalisee(client, direction_user, cand):
+    """Q6 — un motif trop court est une erreur de saisie : pas de trace de refus."""
+    poster(client, direction_user, cand, S.PRESELECTIONNEE, "court")
+    assert not refus().exists()
+
+
+def test_fiche_reaffichee_sans_js_est_une_consultation(client, direction_user, cand):
+    """§5 — la fiche complète renvoyée après un refus sans JavaScript est journalisée."""
+    response = poster(client, direction_user, cand, S.PRESELECTIONNEE, "court")
+    assert response.status_code == 400
+    assert JournalAudit.objects.filter(action=AuditAction.VIEW, object_id=str(cand.pk)).exists()
+
+
+def test_fragment_htmx_n_est_pas_une_consultation(client, direction_user, cand):
+    poster(client, direction_user, cand, S.PRESELECTIONNEE, "court", htmx=True)
+    assert not JournalAudit.objects.filter(action=AuditAction.VIEW).exists()
+
+
+def test_chiffre_unicode_dans_derniere_decision_pas_d_erreur_500(client, direction_user, cand):
+    response = poster(client, direction_user, cand, S.PRESELECTIONNEE, derniere="²")
+    assert response.status_code in (302, 400, 409)
+
+
+def test_remplacement_sur_erreur_limite_au_formulaire_de_decision(client, direction_user, cand):
+    """La configuration htmx globale ne remplace plus la cible sur 400/409 ; seul le
+    formulaire de décision (data-decision-form) le fait, via un script statique."""
+    client.force_login(direction_user)
+    html = client.get(url_fiche(cand)).content.decode()
+    assert "responseHandling" not in html
+    assert "js/decision.js" in html
+    assert "data-decision-form" in html

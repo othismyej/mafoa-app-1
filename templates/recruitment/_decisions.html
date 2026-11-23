@@ -9,7 +9,7 @@
   {% if not f.disponible %}
   <p class="mb-4 text-sm text-slate-500" data-decision-indisponible>{% translate "Le concours est terminé : aucune décision n’est possible." %}</p>
   {% elif f.choix %}
-  <form method="post" action="{% url 'recruitment:decision_enregistrer' c.pk %}" class="mb-6 space-y-3 rounded border border-slate-200 bg-slate-50 p-4 text-sm"
+  <form data-decision-form method="post" action="{% url 'recruitment:decision_enregistrer' c.pk %}" class="mb-6 space-y-3 rounded border border-slate-200 bg-slate-50 p-4 text-sm"
         hx-post="{% url 'recruitment:decision_enregistrer' c.pk %}" hx-target="#decisions" hx-swap="outerHTML" data-decision-form>
     {% csrf_token %}
     <input type="hidden" name="statut_attendu" value="{{ f.statut_attendu }}">

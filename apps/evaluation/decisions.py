@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_noop
 
 from apps.recruitment.models import Candidature, Concours
 
@@ -41,6 +42,8 @@ REVISIONS = {
 REQUALIFICATIONS = {(S.ELIGIBLE, S.NON_ELIGIBLE), (S.NON_ELIGIBLE, S.ELIGIBLE)}
 
 MOTIF_MIN, MOTIF_MAX = 10, 2000
+# Refus journalisés (Q6) : signes d'un envoi direct, pas d'une erreur de saisie.
+CODES_REFUS_JOURNALISES = {"transition_interdite", "valeur_interdite"}
 AVERTISSEMENT_ANOMALIE = "anomalie_haute"
 AVERTISSEMENT_QUOTA = "quota_atteint"
 
@@ -125,10 +128,16 @@ def avertissements(candidature: Candidature, decision: str) -> list[str]:
         )
         if cible is not None and retenues >= cible.nombre_postes:
             result.append(AVERTISSEMENT_QUOTA)
+    # Le verrou ne porte que sur la candidature : deux décisions « retenue » simultanées sur le
+    # même poste peuvent passer ce contrôle. Acceptable, ce n'est qu'un avertissement (Q7).
     return result
 
 
 AVERTISSEMENT_LIBELLES = {
-    AVERTISSEMENT_ANOMALIE: "Ce dossier a au moins une anomalie de gravité haute non résolue.",
-    AVERTISSEMENT_QUOTA: "Le nombre de postes à pourvoir est déjà atteint pour cette cible.",
+    AVERTISSEMENT_ANOMALIE: gettext_noop(
+        "Ce dossier a au moins une anomalie de gravité haute non résolue."
+    ),
+    AVERTISSEMENT_QUOTA: gettext_noop(
+        "Le nombre de postes à pourvoir est déjà atteint pour cette cible."
+    ),
 }

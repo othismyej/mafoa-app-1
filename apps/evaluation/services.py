@@ -96,23 +96,27 @@ def run_eligibility(candidature: Candidature) -> VerificationEligibilite:
         sources=[{"type": "donnees_declarees"}],
         moteur_version=resultat.version,
     )
-    deja_decidee = candidature.decisions.exists()
+    # Verrou sur la ligne puis relecture : une décision humaine concurrente est soit déjà validée
+    # (visible ici), soit bloquée jusqu'à la fin de cette transaction (règle 9).
+    c = Candidature.objects.select_for_update().get(pk=candidature.pk)
     if (
-        not deja_decidee
-        and candidature.statut in AUTO_CLASSABLE
-        and candidature.statut != resultat.verdict.value
+        not c.decisions.exists()
+        and c.statut in AUTO_CLASSABLE
+        and c.statut != resultat.verdict.value
     ):
-        before = candidature.statut
-        candidature.statut = resultat.verdict.value
-        candidature.save(update_fields=["statut", "updated_at"])
+        before = c.statut
+        c.statut = resultat.verdict.value
+        c.save(update_fields=["statut", "updated_at"])
         log(
             AuditAction.UPDATE,
-            obj=candidature,
+            obj=c,
+            object_repr=f"Candidature #{c.pk}",
             before={"statut": before},
-            after={"statut": candidature.statut},
+            after={"statut": c.statut},
             actor_repr="moteur d'éligibilité",
             metadata={"verification_id": verification.pk, "moteur": resultat.version},
         )
+    candidature.statut = c.statut
     return verification
 
 
@@ -186,6 +190,7 @@ def record_decision(
             AuditAction.DECISION,
             actor=auteur,
             obj=c,
+            object_repr=f"Candidature #{c.pk}",
             before={"statut": avant},
             after={"statut": c.statut},
             request=request,

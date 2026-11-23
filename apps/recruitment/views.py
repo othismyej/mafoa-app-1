@@ -1,10 +1,12 @@
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.cache import patch_vary_headers
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_GET, require_POST
+from django.views.defaults import permission_denied
 
 from apps.accounts.permissions import DIRECTION_ROLES, role_required
 from apps.audit.models import AuditAction
@@ -189,10 +191,23 @@ def candidature_detail(request, pk: int):
     return render(request, "recruitment/candidature_detail.html", _fiche_context(candidature))
 
 
+def _journaliser_refus(request, candidature_pk: int, refus: str, **metadata) -> None:
+    """Trace un refus anormal (Q6) : sans nom ni motif saisi."""
+    log(
+        AuditAction.UPDATE,
+        object_repr=f"Candidature #{candidature_pk}",
+        request=request,
+        metadata={"refus": refus, "candidature_id": candidature_pk, **metadata},
+    )
+
+
 @require_POST
-@role_required(*DIRECTION_ROLES)
 def decision_enregistrer(request, pk: int):
     """Enregistre une décision humaine depuis la fiche (spec KAN-13)."""
+    if not (request.user.is_authenticated and request.user.has_role(*DIRECTION_ROLES)):
+        # Réponse 403 renvoyée (et non levée) pour que la trace survive à ATOMIC_REQUESTS.
+        _journaliser_refus(request, pk, "droits")
+        return permission_denied(request, PermissionDenied())
     candidature = get_object_or_404(Candidature, pk=pk)
     htmx = request.headers.get("HX-Request") == "true"
     data = request.POST
@@ -207,7 +222,9 @@ def decision_enregistrer(request, pk: int):
             form["motif"],
             request,
             statut_attendu=data.get("statut_attendu") or None,
-            derniere_decision_attendue=int(derniere_raw) if derniere_raw.isdigit() else None,
+            derniere_decision_attendue=(
+                int(derniere_raw) if derniere_raw.isascii() and derniere_raw.isdigit() else None
+            ),
             confirmer_revision=data.get("confirmer_revision") == "1",
             confirmer_avertissements=data.get("confirmer_avertissements") == "1",
         )
@@ -215,13 +232,21 @@ def decision_enregistrer(request, pk: int):
         form["confirmation"] = {
             "revision": exc.revision,
             "avertissements": [
-                decision_rules.AVERTISSEMENT_LIBELLES[a] for a in exc.avertissements
+                _(decision_rules.AVERTISSEMENT_LIBELLES[a]) for a in exc.avertissements
             ],
             "derniere_date": candidature.decisions.order_by("-created_at", "-id")
             .values_list("created_at", flat=True)
             .first(),
         }
     except DecisionError as exc:
+        if exc.code in decision_rules.CODES_REFUS_JOURNALISES:
+            _journaliser_refus(
+                request,
+                pk,
+                exc.code,
+                statut=candidature.statut,
+                decision=form["decision"][:50],
+            )
         form["erreur"] = exc.message
         if exc.code == "concurrence":
             form = {"erreur": exc.message}  # formulaire réinitialisé sur l'état à jour
@@ -234,5 +259,8 @@ def decision_enregistrer(request, pk: int):
 
     candidature = _fiche_queryset().get(pk=pk)
     context = _fiche_context(candidature, form)
-    template = "recruitment/_decisions.html" if htmx else "recruitment/candidature_detail.html"
-    return render(request, template, context, status=status)
+    if htmx:
+        return render(request, "recruitment/_decisions.html", context, status=status)
+    # Sans JavaScript, la fiche complète est réaffichée : c'est une consultation (§5).
+    log(AuditAction.VIEW, obj=candidature, request=request, object_repr=f"Candidature #{pk}")
+    return render(request, "recruitment/candidature_detail.html", context, status=status)

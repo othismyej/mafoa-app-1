@@ -248,7 +248,7 @@ décision soit humaine, motivée et tracée dans le journal d'audit.
 - **Journal d'audit** : chaque décision acceptée produit une entrée `decision` (acteur, objet,
   avant/après statut, motif, `decision_id`, révision éventuelle et décision remplacée,
   avertissements confirmés, IP, navigateur). Les tentatives refusées ne créent pas de
-  `Decision` ; leur journalisation éventuelle est une question ouverte (Q6). Le journal reste en
+  `Decision` ; les refus de droits (403) et les transitions ou valeurs interdites sont journalisés (action `update`, `metadata.refus`, sans nom ni motif saisi — Q6). Le journal reste en
   ajout seul (modèle, admin et trigger PostgreSQL existants).
 - **Données personnelles** : le motif peut contenir des informations sur le candidat ; il est
   visible uniquement par `admin` et `direction` (fiche, journal). Il entre dans le périmètre de
