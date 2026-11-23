@@ -1494,6 +1494,7 @@ def test_restauration_d_historique_renvoie_la_page_complete(client, direction_us
     )
     assert "<html" in response.content.decode()
     assert "HX-Request" in response.headers["Vary"]
+    assert "HX-History-Restore-Request" in response.headers["Vary"]
 
 
 def test_pages_connectees_jamais_mises_en_cache(client, direction_user, ref):
