@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block head_title %}{% blocktranslate with id=e.pk %}Entrée n° {{ id }} du journal d’audit{% endblocktranslate %}{% endblock %}
+{% block content %}
+<nav class="breadcrumb" aria-label="{% translate 'Fil d’Ariane' %}">
+  <a href="{% url 'dashboard' %}">{% translate "Tableau de bord" %}</a>
+  <span class="breadcrumb-sep" aria-hidden="true">›</span>
+  <a href="{% url 'audit:journal_liste' %}">{% translate "Journal d’audit" %}</a>
+  <span class="breadcrumb-sep" aria-hidden="true">›</span>
+  <span class="breadcrumb-current" aria-current="page">{% blocktranslate with id=e.pk %}Entrée n° {{ id }}{% endblocktranslate %}</span>
+</nav>
+
+<header class="mb-6">
+  <p class="page-eyebrow">{% translate "Journal d’audit" %}</p>
+  <h1 class="page-title">{% blocktranslate with id=e.pk %}Entrée n° {{ id }}{% endblocktranslate %}</h1>
+</header>
+
+<div class="space-y-6">
+<section class="card" aria-labelledby="titre-entree">
+  <div class="card-header">
+    <h2 id="titre-entree" class="section-title flex items-center gap-2">{% include "components/icon.html" with name="history" size="h-5 w-5 text-ink-500" %}{% translate "Entrée" %}</h2>
+  </div>
+  <dl class="card-body dl-grid" data-champs>
+    <dt>{% translate "Horodatage" %}</dt><dd class="tabular-nums" data-champ="horodatage">{{ e.timestamp|date:"d/m/Y H:i:s" }}</dd>
+    <dt>{% translate "Acteur" %}</dt><dd class="break-all" data-champ="acteur">{{ acteur }}</dd>
+    <dt>{% translate "Action" %}</dt><dd data-champ="action"><span class="badge badge-plain badge-neutre">{{ action_label }}</span></dd>
+    <dt>{% translate "Type d’objet" %}</dt><dd data-champ="type">{% if e.content_type %}{{ e.content_type.name }}{% else %}—{% endif %}</dd>
+    <dt>{% translate "Identifiant d’objet" %}</dt><dd class="tabular-nums" data-champ="object_id">{{ e.object_id|default:"—" }}</dd>
+    <dt>{% translate "Objet" %}</dt><dd class="break-words" data-champ="objet">{% if lien %}<a href="{{ lien }}" class="link">{{ e.object_repr }}</a>{% else %}{{ e.object_repr|default:"—" }}{% endif %}</dd>
+    <dt>{% translate "Adresse IP" %}</dt><dd class="tabular-nums" dir="ltr" data-champ="ip">{{ e.ip_address|default:"—" }}</dd>
+    <dt>{% translate "Navigateur" %}</dt><dd class="break-all" data-champ="navigateur">{{ e.user_agent|default:"—" }}</dd>
+  </dl>
+</section>
+
+<section class="card" aria-labelledby="titre-metadonnees">
+  <div class="card-header">
+    <h2 id="titre-metadonnees" class="section-title">{% translate "Métadonnées" %}</h2>
+  </div>
+  {% if metadata %}
+  <div class="overflow-x-auto">
+  <table class="table-data" data-metadonnees>
+    <thead><tr><th scope="col">{% translate "Clé" %}</th><th scope="col">{% translate "Valeur" %}</th></tr></thead>
+    <tbody>
+    {% for cle, valeur in metadata %}
+      <tr><th scope="row" class="whitespace-nowrap font-medium text-ink-800">{{ cle }}</th><td class="whitespace-pre-wrap break-all">{{ valeur }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="card-body text-sm text-ink-600">{% translate "Aucune métadonnée." %}</p>
+  {% endif %}
+</section>
+
+{% if a_avant_apres %}
+<section class="card" aria-labelledby="titre-avant-apres">
+  <div class="card-header">
+    <h2 id="titre-avant-apres" class="section-title">{% translate "Avant / après" %}</h2>
+  </div>
+  <div class="overflow-x-auto">
+  <table class="table-data" data-avant-apres>
+    <thead><tr><th scope="col">{% translate "Clé" %}</th><th scope="col">{% translate "Avant" %}</th><th scope="col">{% translate "Après" %}</th><th scope="col"><span class="sr-only">{% translate "Changement" %}</span></th></tr></thead>
+    <tbody>
+    {% for r in diff %}
+      <tr data-cle="{{ r.cle }}">
+        <th scope="row" class="whitespace-nowrap font-medium text-ink-800">{{ r.cle|default:"—" }}</th>
+        <td class="whitespace-pre-wrap break-all" data-avant>{{ r.avant }}</td>
+        <td class="whitespace-pre-wrap break-all" data-apres>{{ r.apres }}</td>
+        <td>{% if r.modifie %}<span class="badge badge-a_verifier" data-modifie>{% translate "modifié" %}</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+
+<p><a href="{% url 'audit:journal_liste' %}" class="btn-secondary">{% translate "Retour au journal" %}</a></p>
+</div>
+{% endblock %}

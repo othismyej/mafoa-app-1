@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block head_title %}{% translate "Journal d’audit" %}{% endblock %}
+{% block content %}
+{% translate "Journal d’audit" as titre %}{% include "components/breadcrumb.html" with current=titre only %}
+
+<header class="mb-6">
+  <p class="page-eyebrow">{% translate "Administration" %}</p>
+  <h1 class="page-title">{% translate "Journal d’audit" %}</h1>
+  <p class="mt-1 text-sm text-ink-600">{% translate "Consultations de dossiers, décisions, connexions et accès refusés. Le journal est en ajout seul : aucune entrée ne peut être modifiée ni supprimée." %}</p>
+</header>
+
+<form method="get" action="{% url 'audit:journal_liste' %}" id="filtres-journal"
+      class="card mb-6 grid gap-x-6 gap-y-5 p-5 text-sm md:grid-cols-2 xl:grid-cols-4"
+      hx-get="{% url 'audit:journal_liste' %}" hx-target="#journal-resultats" hx-swap="innerHTML" hx-push-url="true">
+  <fieldset class="flex flex-wrap gap-3">
+    <legend class="field-legend">{% translate "Période" %}</legend>
+    <label class="field-label mb-0">{% translate "Du" %}
+      <input type="date" name="du" value="{{ flt.du|date:'Y-m-d' }}" class="field-input mt-1.5 w-auto tabular-nums">
+    </label>
+    <label class="field-label mb-0">{% translate "Au" %}
+      <input type="date" name="au" value="{{ flt.au|date:'Y-m-d' }}" class="field-input mt-1.5 w-auto tabular-nums">
+    </label>
+  </fieldset>
+  <div>
+    <label for="f-acteur" class="field-label">{% translate "Acteur" %}</label>
+    <select id="f-acteur" name="acteur" class="field-input">
+      <option value="">{% translate "Tous" %}</option>
+      <option value="{{ acteur_aucun }}" {% if flt.acteur == acteur_aucun %}selected{% endif %}>{% translate "Sans utilisateur (système, anonyme)" %}</option>
+      {% for u in users %}<option value="{{ u.pk }}" {% if flt.acteur == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.email }}{% if not u.is_active %} {% translate "(désactivé)" %}{% endif %}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="f-type" class="field-label">{% translate "Type d’objet" %}</label>
+    <select id="f-type" name="type" class="field-input">
+      <option value="">{% translate "Tous" %}</option>
+      {% for value, label in type_choices %}<option value="{{ value }}" {% if flt.type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div>
+      <label for="f-dossier" class="field-label">{% translate "Dossier (candidature n°)" %}</label>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" id="f-dossier" name="dossier" value="{{ flt.dossier|default_if_none:'' }}" maxlength="19" autocomplete="off" class="field-input tabular-nums">
+    </div>
+    <div>
+      <label for="f-ip" class="field-label">{% translate "Adresse IP" %}</label>
+      <input type="text" id="f-ip" name="ip" value="{{ flt.ip }}" maxlength="45" autocomplete="off" spellcheck="false" class="field-input tabular-nums" dir="ltr">
+    </div>
+  </div>
+  <fieldset class="md:col-span-2 xl:col-span-4">
+    <legend class="field-legend">{% translate "Action" %}</legend>
+    <div class="flex flex-wrap gap-2">
+    {% for value, label in action_choices %}
+    <label class="chip"><input type="checkbox" name="action" value="{{ value }}" {% if value in flt.actions %}checked{% endif %}> {{ label }}</label>
+    {% endfor %}
+    </div>
+  </fieldset>
+  <div class="flex flex-wrap items-center justify-between gap-4 md:col-span-2 xl:col-span-4">
+    <label class="check"><input type="checkbox" name="journal" value="1" {% if flt.inclure_journal %}checked{% endif %}> {% translate "Inclure les consultations du journal" %}</label>
+    <div class="flex flex-wrap gap-2">
+      <button type="submit" class="btn-primary">{% include "components/icon.html" with name="filter" size="h-4 w-4" %}{% translate "Filtrer" %}</button>
+      <a href="{% url 'audit:journal_liste' %}" class="btn-secondary">{% translate "Réinitialiser" %}</a>
+    </div>
+  </div>
+</form>
+
+<div id="journal-resultats" aria-live="polite">
+  {% include "audit/_journal_resultats.html" %}
+</div>
+{% endblock %}

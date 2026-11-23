@@ -167,6 +167,19 @@ téléphones `0600…`, CIN `ZZ…`. Elles contiennent volontairement des cas pi
 - pièces manquantes ;
 - doublons de candidats et CV identique partagé.
 
+### Visionneuse des pièces (KAN-12)
+
+La fiche candidature affiche les pièces à la demande (`/candidatures/<id>/pieces/<id>/` pour le
+fragment HTMX, `.../contenu/` pour les octets). Le contenu est lu via `SiteSource.read_piece`,
+gardé en mémoire le temps de la requête et jamais copié (ni disque, ni cache, ni base) ; aucune
+URL Spaces n'est transmise au navigateur. Type réel détecté sur les octets (PDF, PNG, JPEG
+affichables ; le reste en téléchargement seulement), empreinte SHA-256 contrôlée (anomalie
+`empreinte_differente` si elle diffère), chaque lecture journalisée sans nom ni clé de stockage.
+Seule la vue de contenu déroge au cadrage global (`X-Frame-Options: SAMEORIGIN`,
+`frame-ancestors 'self'`) pour s'afficher dans l'`<iframe>` de la fiche.
+
+Réglages : `PIECE_VIEWER_MAX_BYTES` (défaut 20 Mo) et `PIECE_SOURCE_TIMEOUT` (défaut 10 s).
+
 ### IA
 
 Aucun appel réel n'est fait pour l'instant. Les tests utilisent un transport simulé.

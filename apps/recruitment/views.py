@@ -1,8 +1,13 @@
+import logging
+
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Prefetch
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.cache import patch_vary_headers
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_GET, require_POST
@@ -10,12 +15,14 @@ from django.views.defaults import permission_denied
 
 from apps.accounts.permissions import DIRECTION_ROLES, role_required
 from apps.audit.models import AuditAction
-from apps.audit.services import log
+from apps.audit.services import log, log_access_denied, log_consultation, role_required_logged
 from apps.evaluation import decisions as decision_rules
 from apps.evaluation.decisions import ConfirmationRequise, DecisionError
 from apps.evaluation.models import Anomalie, Decision, VerificationEligibilite
 from apps.evaluation.services import record_decision
+from integrations.site_source.base import get_source
 
+from . import pieces as pieces_service
 from . import presenters
 from .filters import ANOMALIE_CHOICES, PAGE_SIZES, VERDICT_CHOICES, filter_candidatures
 from .models import Candidature, Concours, Piece, PosteConcours
@@ -135,7 +142,11 @@ def _fiche_context(candidature: Candidature, form: dict | None = None) -> dict:
     return {
         "c": candidature,
         "candidat": candidature.candidat,
-        "pieces": list(candidature.pieces.all()),
+        "pieces": (pieces := list(candidature.pieces.all())),
+        # Sans JavaScript, une pièce non affichable s'ouvre directement en téléchargement.
+        "pieces_telechargement": {
+            p.pk for p in pieces if pieces_service.mode_affichage(p.content_type) == "aucun"
+        },
         "pieces_en_anomalie": {a.piece_id for a in anomalies if a.piece_id and not a.resolue},
         "anomalies": anomalies,
         "nb_anomalies_non_resolues": sum(1 for a in anomalies if not a.resolue),
@@ -176,18 +187,15 @@ def _decision_form_context(candidature, decisions_list, form: dict) -> dict:
 
 
 @require_GET
-@role_required(*DIRECTION_ROLES)
+@role_required_logged(*DIRECTION_ROLES, candidature_kwarg="pk")
 def candidature_detail(request, pk: int):
-    """Fiche candidature en lecture seule (spec KAN-11) ; formulaire de décision (KAN-13)."""
+    """Fiche candidature en lecture seule (spec KAN-11) ; formulaire de décision (KAN-13).
+
+    Consultation journalisée (KAN-14) ; un refus d'accès est tracé en ``access_denied``.
+    """
     candidature = get_object_or_404(_fiche_queryset(), pk=pk)
-    # Point d'accroche unique de la journalisation des consultations (KAN-14).
-    # Libellé sans nom : le journal, en ajout seul, ne doit pas multiplier les données nominatives.
-    log(
-        AuditAction.VIEW,
-        obj=candidature,
-        request=request,
-        object_repr=f"Candidature #{candidature.pk}",
-    )
+    # Journalisé avant le rendu : si l'écriture échoue, rien n'est servi (KAN-14, règle 6).
+    log_consultation(request, candidature, "fiche")
     return render(request, "recruitment/candidature_detail.html", _fiche_context(candidature))
 
 
@@ -262,5 +270,244 @@ def decision_enregistrer(request, pk: int):
     if htmx:
         return render(request, "recruitment/_decisions.html", context, status=status)
     # Sans JavaScript, la fiche complète est réaffichée : c'est une consultation (§5).
-    log(AuditAction.VIEW, obj=candidature, request=request, object_repr=f"Candidature #{pk}")
+    log_consultation(request, candidature, "fiche_apres_decision")
     return render(request, "recruitment/candidature_detail.html", context, status=status)
+
+
+# --------------------------------------------------------------------------------------
+# Visionneuse des pièces (spec KAN-12)
+# --------------------------------------------------------------------------------------
+
+logger = logging.getLogger(__name__)
+
+PIECE_FIELDS = (
+    "id",
+    "candidature_id",
+    "type",
+    "nom_fichier",
+    "storage_key",
+    "content_type",
+    "taille",
+    "sha256",
+    "recue_le",
+)
+
+# CSP propre à la vue de contenu (règle 11) : rien n'est chargé, seul le cadrage par la fiche
+# (même origine) est permis. « sandbox » pour les images uniquement : Chromium refuse
+# d'afficher un PDF dans un contexte sandbox.
+CSP_CONTENU = "default-src 'none'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'"
+CSP_CONTENU_IMAGE = f"{CSP_CONTENU}; sandbox"
+# Page d'erreur affichée dans l'iframe (règle 18) : aucun script, feuille de style locale.
+CSP_ERREUR = (
+    "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; "
+    "frame-ancestors 'self'; base-uri 'none'; form-action 'none'"
+)
+
+MESSAGES_PIECE = {
+    "source_indisponible": _(
+        "La source des pièces est momentanément indisponible. Réessayez dans quelques instants."
+    ),
+    "introuvable": _("Fichier introuvable à la source."),
+    "vide": _("Le fichier reçu est vide."),
+    "type_non_affichable": _(
+        "Aperçu impossible : le contenu ne correspond pas à un type affichable. "
+        "Utilisez « Télécharger »."
+    ),
+    "empreinte_differente": _(
+        "Le fichier a été modifié à la source depuis sa réception (empreinte différente). "
+        "Une anomalie a été enregistrée. Vous pouvez le télécharger pour l’examiner."
+    ),
+    "piece_inconnue": _("Pièce introuvable."),
+}
+
+STATUTS_PIECE = {
+    "trop_volumineuse": 422,
+    "source_indisponible": 503,
+    "introuvable": 404,
+    "vide": 422,
+    "type_non_affichable": 415,
+    "empreinte_differente": 409,
+    "piece_inconnue": 404,
+}
+
+
+def _journaliser_piece(
+    request,
+    candidature_pk: int,
+    piece_pk: int,
+    *,
+    piece: Piece | None = None,
+    **metadata,
+) -> None:
+    """Point d'accroche unique de la journalisation des pièces, branché sur KAN-14.
+
+    - refus (``metadata.refus`` : droits, pièce hors candidature) → ``access_denied`` ;
+    - toute autre réponse de la vue de contenu → consultation ``view`` (``vue = piece``).
+
+    Libellé sans nom : ni ``nom_fichier`` ni ``storage_key`` ne sont journalisés.
+    """
+    object_repr = f"Pièce #{piece_pk} (Candidature #{candidature_pk})"
+    if "refus" in metadata:
+        log_access_denied(
+            request,
+            candidature_id=candidature_pk,
+            object_repr=object_repr,
+            piece_id=piece_pk,
+            **metadata,
+        )
+        return
+    log_consultation(
+        request,
+        piece,
+        "piece",
+        object_repr=object_repr,
+        candidature_id=candidature_pk,
+        piece_id=piece_pk,
+        **metadata,
+    )
+
+
+def _taille_mo(octets: int) -> str:
+    valeur = octets / (1024 * 1024)
+    texte = f"{valeur:.1f}" if valeur >= 0.1 else f"{valeur:.3f}"
+    return texte.rstrip("0").rstrip(".").replace(".", ",") or "0"
+
+
+def _page_erreur_piece(request, code: str, message: str | None = None):
+    """Petite page HTML sans script, lisible dans l'iframe de la visionneuse (règle 18)."""
+    response = render(
+        request,
+        "recruitment/piece_erreur.html",
+        {"message": message or MESSAGES_PIECE[code]},
+        status=STATUTS_PIECE[code],
+    )
+    response["Content-Security-Policy"] = CSP_ERREUR
+    response["X-Frame-Options"] = "SAMEORIGIN"
+    return response
+
+
+@require_GET
+def piece_contenu(request, pk: int, piece_pk: int):
+    """Contenu d'une pièce, lu à la demande via ``SiteSource`` (spec KAN-12, règles 4 à 18).
+
+    Toutes les réponses sont renvoyées (jamais levées) pour que l'entrée de journal survive à
+    ``ATOMIC_REQUESTS``. Le contenu n'est jamais écrit sur disque, en cache ni en base.
+    """
+    if not (request.user.is_authenticated and request.user.has_role(*DIRECTION_ROLES)):
+        _journaliser_piece(request, pk, piece_pk, refus="droits")
+        return permission_denied(request, PermissionDenied())
+    piece = Piece.objects.filter(pk=piece_pk).only(*PIECE_FIELDS).first()
+    if piece is None or not Candidature.objects.filter(pk=pk).exists():
+        return _page_erreur_piece(request, "piece_inconnue")
+    if piece.candidature_id != pk:
+        _journaliser_piece(request, pk, piece_pk, refus="piece_hors_candidature")
+        return _page_erreur_piece(request, "piece_inconnue")
+
+    mode = "telechargement" if request.GET.get("telechargement") == "1" else "apercu"
+    metadata = {"type_piece": piece.type, "mode": mode}
+
+    def refus(resultat: str, message: str | None = None, **extra):
+        _journaliser_piece(
+            request, pk, piece.pk, piece=piece, resultat=resultat, **metadata, **extra
+        )
+        return _page_erreur_piece(request, resultat, message)
+
+    max_bytes = settings.PIECE_VIEWER_MAX_BYTES
+
+    def trop_volumineuse(octets: int, **extra):
+        message = _(
+            "Pièce trop volumineuse pour la visionneuse (taille : %(taille)s Mo ; "
+            "maximum : %(max)s Mo)."
+        ) % {"taille": _taille_mo(octets), "max": _taille_mo(max_bytes)}
+        return refus("trop_volumineuse", message, **extra)
+
+    if piece.taille is not None and piece.taille > max_bytes:
+        return trop_volumineuse(piece.taille)
+
+    try:
+        content = get_source().read_piece(
+            piece.storage_key, max_bytes=max_bytes, timeout=settings.PIECE_SOURCE_TIMEOUT
+        )
+    except FileNotFoundError:
+        return refus("introuvable")
+    except Exception as exc:  # noqa: BLE001 — toute erreur de la source : 503, jamais 500
+        # Journal applicatif : classe de l'erreur et identifiant interne uniquement.
+        logger.warning("Lecture de la pièce #%s impossible : %s", piece.pk, type(exc).__name__)
+        return refus("source_indisponible")
+
+    taille = len(content)
+    if taille == 0:
+        return refus("vide", taille=0)
+    if taille > max_bytes:
+        del content
+        return trop_volumineuse(taille, taille=taille)
+
+    type_detecte = pieces_service.detect_type(content)
+    controle = pieces_service.controler_empreinte(piece, content)
+    metadata.update(
+        empreinte=controle.statut,
+        type_detecte=type_detecte or pieces_service.OCTET_STREAM,
+        taille=taille,
+    )
+    if controle.statut == "differente":
+        pieces_service.signaler_empreinte_differente(piece, controle, request.user)
+        if mode == "apercu":
+            return refus("empreinte_differente")
+    if mode == "apercu" and type_detecte is None:
+        return refus("type_non_affichable")
+
+    nom = pieces_service.nom_assaini(piece.nom_fichier, piece.pk, type_detecte)
+    response = HttpResponse(content, content_type=type_detecte or pieces_service.OCTET_STREAM)
+    response["Content-Disposition"] = pieces_service.content_disposition(
+        "inline" if mode == "apercu" else "attachment", nom
+    )
+    response["Content-Length"] = str(taille)
+    response["Accept-Ranges"] = "none"
+    response["X-Content-Type-Options"] = "nosniff"
+    response["X-Frame-Options"] = "SAMEORIGIN"
+    response["Cross-Origin-Resource-Policy"] = "same-origin"
+    response["Content-Security-Policy"] = (
+        # ``sandbox`` partout sauf pour le PDF (le lecteur de Chromium le refuse).
+        CSP_CONTENU if type_detecte == pieces_service.PDF else CSP_CONTENU_IMAGE
+    )
+    _journaliser_piece(request, pk, piece.pk, piece=piece, resultat="servie", **metadata)
+    return response
+
+
+@require_GET
+@role_required(*DIRECTION_ROLES)
+def piece_visionneuse(request, pk: int, piece_pk: int):
+    """Fragment HTMX de la visionneuse (règles 9, 19 à 21) : métadonnées seulement, aucun
+    appel à la source, non journalisé (Q6)."""
+    pieces = list(
+        Piece.objects.filter(candidature_id=pk).order_by("type", "id").only(*PIECE_FIELDS)
+    )
+    index = next((i for i, p in enumerate(pieces) if p.pk == piece_pk), None)
+    if index is None:
+        return render(
+            request,
+            "recruitment/_visionneuse_erreur.html",
+            {"message": MESSAGES_PIECE["piece_inconnue"]},
+            status=404,
+        )
+    piece = pieces[index]
+    anomalies = set(
+        Anomalie.objects.filter(piece_id=piece.pk, resolue=False).values_list("type", flat=True)
+    )
+    contenu = reverse("recruitment:piece_contenu", args=[pk, piece.pk])
+    return render(
+        request,
+        "recruitment/_visionneuse.html",
+        {
+            "piece": piece,
+            "position": index + 1,
+            "total": len(pieces),
+            "precedente": pieces[index - 1] if index > 0 else None,
+            "suivante": pieces[index + 1] if index + 1 < len(pieces) else None,
+            "mode": pieces_service.mode_affichage(piece.content_type),
+            "url_contenu": contenu,
+            "url_telechargement": f"{contenu}?telechargement=1",
+            "en_anomalie": bool(anomalies),
+            "empreinte_modifiee": Anomalie.Type.EMPREINTE_DIFFERENTE in anomalies,
+        },
+    )

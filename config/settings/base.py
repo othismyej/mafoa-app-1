@@ -123,6 +123,10 @@ MFA_TOTP_ISSUER = "Mafoa AI"
 TRUSTED_PROXY_COUNT = env.int("TRUSTED_PROXY_COUNT", default=0)
 ALLAUTH_TRUSTED_PROXY_COUNT = TRUSTED_PROXY_COUNT
 
+# --- Journal d'audit (KAN-14) ----------------------------------------------
+# Plafond de lignes d'un export du journal : au-delà, aucun fichier n'est produit.
+AUDIT_EXPORT_MAX_ROWS = env.int("AUDIT_EXPORT_MAX_ROWS", default=50_000)
+
 # --- Sessions et cookies ----------------------------------------------------
 SESSION_COOKIE_AGE = env.int("SESSION_COOKIE_AGE", default=8 * 3600)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
@@ -176,6 +180,9 @@ CELERY_TIMEZONE = TIME_ZONE
 # "fixture" (données fictives), plus tard "database" ou "api".
 SITE_SOURCE = env("SITE_SOURCE", default="fixture")
 SITE_SOURCE_FIXTURE_SEED = env.int("SITE_SOURCE_FIXTURE_SEED", default=20260101)
+# Visionneuse des pièces (KAN-12) : taille maximale lue en mémoire et délai de lecture (s).
+PIECE_VIEWER_MAX_BYTES = env.int("PIECE_VIEWER_MAX_BYTES", default=20 * 1024 * 1024)
+PIECE_SOURCE_TIMEOUT = env.float("PIECE_SOURCE_TIMEOUT", default=10.0)
 
 # --- IA ---------------------------------------------------------------------
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")

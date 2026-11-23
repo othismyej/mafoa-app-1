@@ -13,6 +13,16 @@ urlpatterns = [
     ),
     path("candidatures/<int:pk>/", views.candidature_detail, name="candidature_detail"),
     path(
+        "candidatures/<int:pk>/pieces/<int:piece_pk>/",
+        views.piece_visionneuse,
+        name="piece_visionneuse",
+    ),
+    path(
+        "candidatures/<int:pk>/pieces/<int:piece_pk>/contenu/",
+        views.piece_contenu,
+        name="piece_contenu",
+    ),
+    path(
         "candidatures/<int:pk>/decision/",
         views.decision_enregistrer,
         name="decision_enregistrer",
