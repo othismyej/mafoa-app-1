@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 09:13+0000\n"
+"POT-Creation-Date: 2026-11-23 09:22+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -150,7 +150,7 @@ msgstr ""
 msgid "Anomalies"
 msgstr ""
 
-#: apps/recruitment/views.py:229 apps/recruitment/views.py:231
+#: apps/recruitment/views.py:231 apps/recruitment/views.py:233
 msgid "Décision enregistrée."
 msgstr ""
 
@@ -167,21 +167,21 @@ msgstr ""
 msgid "Send me a sign-in code"
 msgstr ""
 
-#: templates/base.html:23 templates/recruitment/candidature_detail.html:7
+#: templates/base.html:24 templates/recruitment/candidature_detail.html:7
 #: templates/recruitment/concours_detail.html:7
 #: templates/recruitment/poste_candidatures.html:6
 msgid "Tableau de bord"
 msgstr ""
 
-#: templates/base.html:24
+#: templates/base.html:25
 msgid "Administration"
 msgstr ""
 
-#: templates/base.html:25
+#: templates/base.html:26
 msgid "Sécurité"
 msgstr ""
 
-#: templates/base.html:28
+#: templates/base.html:29
 msgid "Déconnexion"
 msgstr ""
 
@@ -269,34 +269,42 @@ msgstr ""
 msgid "Motif (obligatoire, 10 caractères minimum)"
 msgstr ""
 
-#: templates/recruitment/_decisions.html:28
+#: templates/recruitment/_decisions.html:25
+msgid "Indiquez des faits liés au dossier, sans donnée sensible."
+msgstr ""
+
+#: templates/recruitment/_decisions.html:32
 #, python-format
 msgid "Je confirme revenir sur la décision du %(d)s."
 msgstr ""
 
-#: templates/recruitment/_decisions.html:28
+#: templates/recruitment/_decisions.html:32
 msgid "Je confirme revenir sur le statut actuel."
 msgstr ""
 
-#: templates/recruitment/_decisions.html:33
+#: templates/recruitment/_decisions.html:37
 msgid "J’ai pris connaissance de ces avertissements et je confirme."
 msgstr ""
 
-#: templates/recruitment/_decisions.html:37
+#: templates/recruitment/_decisions.html:41
 msgid "Enregistrer la décision"
 msgstr ""
 
-#: templates/recruitment/_decisions.html:38
+#: templates/recruitment/_decisions.html:42
 msgid ""
 "Toute décision est humaine, motivée et inscrite au journal d’audit. Elle ne "
 "peut pas être modifiée : on la remplace par une nouvelle décision."
 msgstr ""
 
-#: templates/recruitment/_decisions.html:48
+#: templates/recruitment/_decisions.html:45
+msgid "Statut non pris en charge, contactez un administrateur."
+msgstr ""
+
+#: templates/recruitment/_decisions.html:54
 msgid "en vigueur"
 msgstr ""
 
-#: templates/recruitment/_decisions.html:55
+#: templates/recruitment/_decisions.html:61
 msgid "Aucune décision enregistrée"
 msgstr ""
 

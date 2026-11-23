@@ -20,7 +20,11 @@
       {% for value, label in f.choix %}<option value="{{ value }}" {% if value == f.decision %}selected{% endif %}>{{ label }}</option>{% endfor %}
     </select>
     <label class="block font-medium" for="decision-motif">{% translate "Motif (obligatoire, 10 caractères minimum)" %}</label>
-    <textarea id="decision-motif" name="motif" rows="3" maxlength="{{ f.motif_max }}" required class="w-full rounded border border-slate-300 px-2 py-1.5">{{ f.motif }}</textarea>
+    <textarea id="decision-motif" name="motif" rows="3" maxlength="{{ f.motif_max }}" required aria-describedby="decision-motif-aide" data-compteur-cible="decision-motif-compteur" class="w-full rounded border border-slate-300 px-2 py-1.5">{{ f.motif }}</textarea>
+    <p id="decision-motif-aide" class="flex justify-between text-xs text-slate-500">
+      <span>{% translate "Indiquez des faits liés au dossier, sans donnée sensible." %}</span>
+      <span><span id="decision-motif-compteur" data-compteur>{{ f.motif|length }}</span> / {{ f.motif_max }}</span>
+    </p>
     {% if f.confirmation %}
     <div class="rounded border border-amber-300 bg-amber-50 p-3" data-decision-confirmation>
       {% if f.confirmation.revision %}
@@ -37,6 +41,8 @@
     <button type="submit" class="rounded bg-teal-700 px-3 py-2 text-white">{% translate "Enregistrer la décision" %}</button>
     <p class="text-xs text-slate-500">{% translate "Toute décision est humaine, motivée et inscrite au journal d’audit. Elle ne peut pas être modifiée : on la remplace par une nouvelle décision." %}</p>
   </form>
+  {% else %}
+  <p class="mb-4 text-sm text-slate-500" data-decision-statut-inconnu>{% translate "Statut non pris en charge, contactez un administrateur." %}</p>
   {% endif %}
   {% endwith %}
 
