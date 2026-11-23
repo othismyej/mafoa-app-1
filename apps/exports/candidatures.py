@@ -332,7 +332,7 @@ def _fill_for(col: Colonne, code: str | None) -> PatternFill | None:
 def _cell(ws, value, col: Colonne, fill=None, font=None):
     texte_brut = False
     if isinstance(value, str):
-        if col.kind == PHONE and _PHONE_RE.match(value):
+        if col.kind == PHONE and _PHONE_RE.fullmatch(value):
             texte_brut = True  # chiffres et « + » seulement : aucune formule possible
         else:
             value = sanitize(value) if value else None

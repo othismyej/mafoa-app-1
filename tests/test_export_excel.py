@@ -612,3 +612,16 @@ def test_telephone_non_numerique_reste_neutralise():
     ws = Workbook(write_only=True).create_sheet()
     cell = _cell(ws, "=HYPERLINK(1)", Colonne("Téléphone", 16, PHONE))
     assert cell.value == "'=HYPERLINK(1)"
+
+
+def test_telephone_texte_et_saut_de_ligne_refuse():
+    """Relecture : un numéro est une cellule texte ; un « \\n » final n'échappe pas au nettoyage."""
+    from openpyxl import Workbook
+
+    from apps.exports.candidatures import PHONE, Colonne, _cell
+
+    ws = Workbook(write_only=True).create_sheet()
+    col = Colonne("Téléphone", 16, PHONE)
+    ok = _cell(ws, "+212600000001", col)
+    assert ok.value == "+212600000001" and ok.data_type == "s"
+    assert _cell(ws, "+212\n", col).value != "+212\n"
