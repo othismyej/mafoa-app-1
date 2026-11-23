@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 from typing import Any
 
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
@@ -22,13 +24,33 @@ def snapshot(instance: models.Model | None) -> dict[str, Any] | None:
     return json.loads(json.dumps(data, cls=DjangoJSONEncoder, default=str))
 
 
+def _valid_ip(value: str | None) -> str | None:
+    if not value:
+        return None
+    try:
+        return str(ipaddress.ip_address(value.strip()))
+    except ValueError:
+        return None
+
+
 def client_ip(request) -> str | None:
+    """Adresse IP du client, fiable pour le journal d'audit.
+
+    ``X-Forwarded-For`` peut être forgé par n'importe quel client : il n'est lu que si
+    ``TRUSTED_PROXY_COUNT`` > 0 (proxys sous notre contrôle), et l'on prend alors la N-ième
+    adresse en partant de la droite, celle ajoutée par notre proxy le plus externe.
+    Une valeur invalide n'est jamais retenue et ne lève jamais d'exception.
+    """
     if request is None:
         return None
+    remote = _valid_ip(request.META.get("REMOTE_ADDR"))
+    count = getattr(settings, "TRUSTED_PROXY_COUNT", 0)
     forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-    if forwarded:
-        return forwarded.split(",")[0].strip() or None
-    return request.META.get("REMOTE_ADDR") or None
+    if count > 0 and forwarded:
+        parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+        if len(parts) >= count:
+            return _valid_ip(parts[-count]) or remote
+    return remote
 
 
 def log(

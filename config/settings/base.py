@@ -117,6 +117,11 @@ MFA_REQUIRED = env.bool("MFA_REQUIRED", default=True)
 MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
 MFA_TOTP_ISSUER = "Mafoa AI"
 
+# Nombre de proxys de confiance devant l'application (load balancer…). 0 = aucun :
+# l'en-tête X-Forwarded-For, falsifiable, est alors ignoré (audit et limitation des tentatives).
+TRUSTED_PROXY_COUNT = env.int("TRUSTED_PROXY_COUNT", default=0)
+ALLAUTH_TRUSTED_PROXY_COUNT = TRUSTED_PROXY_COUNT
+
 # --- Sessions et cookies ----------------------------------------------------
 SESSION_COOKIE_AGE = env.int("SESSION_COOKIE_AGE", default=8 * 3600)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
