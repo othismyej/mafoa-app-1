@@ -123,6 +123,10 @@ MFA_TOTP_ISSUER = "Mafoa AI"
 TRUSTED_PROXY_COUNT = env.int("TRUSTED_PROXY_COUNT", default=0)
 ALLAUTH_TRUSTED_PROXY_COUNT = TRUSTED_PROXY_COUNT
 
+# --- Journal d'audit (KAN-14) ----------------------------------------------
+# Plafond de lignes d'un export du journal : au-delà, aucun fichier n'est produit.
+AUDIT_EXPORT_MAX_ROWS = env.int("AUDIT_EXPORT_MAX_ROWS", default=50_000)
+
 # --- Sessions et cookies ----------------------------------------------------
 SESSION_COOKIE_AGE = env.int("SESSION_COOKIE_AGE", default=8 * 3600)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True

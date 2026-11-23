@@ -14,6 +14,7 @@ urlpatterns = [
     path("", account_views.dashboard, name="dashboard"),
     path("invitation/<str:token>/", account_views.accept_invitation, name="accept_invitation"),
     path("", include("apps.recruitment.urls")),
+    path("", include("apps.audit.urls")),
     path("accounts/", include("allauth.urls")),
     path("admin/", admin.site.urls),
     path("i18n/", include("django.conf.urls.i18n")),

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 09:48+0000\n"
+"POT-Creation-Date: 2026-11-23 14:20+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,132 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+#: apps/audit/filters.py:33
+msgid "Candidature"
+msgstr ""
+
+#: apps/audit/filters.py:34 templates/recruitment/candidature_detail.html:174
+msgid "Pièce"
+msgstr ""
+
+#: apps/audit/filters.py:35 apps/recruitment/views.py:90
+msgid "Candidat"
+msgstr ""
+
+#: apps/audit/filters.py:36 templates/dashboard/index.html:22
+#: templates/dashboard/index.html:27
+msgid "Concours"
+msgstr ""
+
+#: apps/audit/filters.py:37
+msgid "Poste de concours"
+msgstr ""
+
+#: apps/audit/filters.py:38
+msgid "Offre d’emploi"
+msgstr ""
+
+#: apps/audit/filters.py:39 templates/recruitment/_decisions.html:21
+msgid "Décision"
+msgstr ""
+
+#: apps/audit/filters.py:40
+msgid "Utilisateur"
+msgstr ""
+
+#: apps/audit/filters.py:41
+msgid "Invitation"
+msgstr ""
+
+#: apps/audit/filters.py:42
+msgid "Entrée du journal"
+msgstr ""
+
+#: apps/audit/filters.py:43
+msgid "Aucun objet"
+msgstr ""
+
+#: apps/audit/filters.py:120
+#, python-format
+msgid "La date de début « %(v)s » est invalide : elle est ignorée."
+msgstr ""
+
+#: apps/audit/filters.py:123
+#, python-format
+msgid "La date de fin « %(v)s » est invalide : elle est ignorée."
+msgstr ""
+
+#: apps/audit/filters.py:132
+msgid ""
+"La date de fin est antérieure à la date de début : aucune entrée affichée."
+msgstr ""
+
+#: apps/audit/filters.py:136
+#, python-format
+msgid ""
+"La période dépasse %(max)s jours : restreignez-la pour afficher les entrées."
+msgstr ""
+
+#: apps/audit/filters.py:147
+msgid "L’acteur demandé est inconnu : filtre ignoré."
+msgstr ""
+
+#: apps/audit/filters.py:155
+#, python-format
+msgid "L’action « %(v)s » est inconnue : elle est ignorée."
+msgstr ""
+
+#: apps/audit/filters.py:162
+msgid "Le type d’objet demandé est inconnu : filtre ignoré."
+msgstr ""
+
+#: apps/audit/filters.py:170
+#, python-format
+msgid "Le numéro de dossier « %(v)s » est invalide : filtre ignoré."
+msgstr ""
+
+#: apps/audit/filters.py:178
+#, python-format
+msgid "L’adresse IP « %(v)s » est invalide : filtre ignorée."
+msgstr ""
+
+#: apps/audit/views.py:96
+msgid "système"
+msgstr ""
+
+#: apps/audit/views.py:208
+#, python-format
+msgid ""
+"L’export est limité à %(max)s lignes (%(n)s entrées correspondent) : "
+"restreignez les filtres."
+msgstr ""
+
+#: apps/audit/views.py:243
+msgid "aperçu"
+msgstr ""
+
+#: apps/audit/views.py:243
+msgid "téléchargement"
+msgstr ""
+
+#: apps/audit/views.py:246
+#, python-format
+msgid "Pièce #%(id)s (%(mode)s)"
+msgstr ""
+
+#: apps/audit/views.py:248 templates/audit/journal_liste.html:8
+#: templates/base.html:37
+msgid "Administration"
+msgstr ""
+
+#: apps/audit/views.py:250
+msgid "Fragment"
+msgstr ""
+
+#: apps/audit/views.py:251
+msgid "Fiche"
+msgstr ""
 
 #: apps/evaluation/decisions.py:87
 msgid "Le motif est obligatoire (10 caractères minimum)."
@@ -127,10 +253,6 @@ msgstr ""
 msgid "en cours"
 msgstr ""
 
-#: apps/recruitment/views.py:90
-msgid "Candidat"
-msgstr ""
-
 #: apps/recruitment/views.py:91
 msgid "Date de candidature"
 msgstr ""
@@ -154,7 +276,7 @@ msgstr ""
 msgid "Anomalies"
 msgstr ""
 
-#: apps/recruitment/views.py:256 apps/recruitment/views.py:258
+#: apps/recruitment/views.py:253 apps/recruitment/views.py:255
 msgid "Décision enregistrée."
 msgstr ""
 
@@ -183,8 +305,267 @@ msgstr ""
 msgid "Accès sur invitation · Double authentification obligatoire"
 msgstr ""
 
-#: templates/allauth/layouts/entrance.html:30 templates/base.html:68
+#: templates/allauth/layouts/entrance.html:30 templates/base.html:69
 msgid "Développement et conseil RH"
+msgstr ""
+
+#: templates/audit/_consultations_dossier.html:3
+#, python-format
+msgid "%(n)s consultation"
+msgid_plural "%(n)s consultations"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/audit/_consultations_dossier.html:3
+#, python-format
+msgid "par %(n)s personne"
+msgid_plural "par %(n)s personnes"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/audit/_consultations_dossier.html:16
+#, python-format
+msgid "%(n)s consultation la plus récente affichée."
+msgid_plural "%(n)s consultations les plus récentes affichées."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/audit/_consultations_dossier.html:18
+msgid "Voir dans le journal d’audit"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:9
+#, python-format
+msgid "%(n)s entrée"
+msgid_plural "%(n)s entrées"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/audit/_journal_resultats.html:10
+#, python-format
+msgid "du %(du)s au %(au)s"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:13
+msgid "Exporter en CSV"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:14
+msgid "Exporter en Excel"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:20
+msgid "Entrées du journal d’audit, de la plus récente à la plus ancienne"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:23
+#: templates/audit/journal_detail.html:24
+msgid "Horodatage"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:24
+#: templates/audit/journal_detail.html:25 templates/audit/journal_liste.html:26
+msgid "Acteur"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:25
+#: templates/audit/journal_detail.html:26 templates/audit/journal_liste.html:51
+msgid "Action"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:26
+#: templates/audit/journal_detail.html:29
+msgid "Objet"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:27
+#: templates/audit/journal_detail.html:30 templates/audit/journal_liste.html:46
+msgid "Adresse IP"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:28
+#: templates/audit/_journal_resultats.html:39
+msgid "Détail"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:39
+#, python-format
+msgid "entrée n° %(id)s"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:46
+#: templates/recruitment/_candidatures_resultats.html:48
+msgid "Pagination"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:48
+#: templates/recruitment/_candidatures_resultats.html:49
+#, python-format
+msgid "Page %(num)s sur %(total)s"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:50
+#: templates/recruitment/_candidatures_resultats.html:51
+msgid "Précédente"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:51
+#: templates/recruitment/_candidatures_resultats.html:52
+msgid "Suivante"
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:58
+msgid "Aucune entrée pour ces critères."
+msgstr ""
+
+#: templates/audit/_journal_resultats.html:59
+#: templates/audit/journal_liste.html:62
+#: templates/recruitment/_candidatures_resultats.html:60
+#: templates/recruitment/poste_candidatures.html:64
+msgid "Réinitialiser"
+msgstr ""
+
+#: templates/audit/journal_detail.html:3
+#, python-format
+msgid "Entrée n° %(id)s du journal d’audit"
+msgstr ""
+
+#: templates/audit/journal_detail.html:5 templates/components/breadcrumb.html:5
+msgid "Fil d’Ariane"
+msgstr ""
+
+#: templates/audit/journal_detail.html:6 templates/base.html:34
+#: templates/components/breadcrumb.html:6 templates/dashboard/index.html:3
+#: templates/dashboard/index.html:8
+msgid "Tableau de bord"
+msgstr ""
+
+#: templates/audit/journal_detail.html:8 templates/audit/journal_detail.html:14
+#: templates/audit/journal_liste.html:3 templates/audit/journal_liste.html:5
+#: templates/audit/journal_liste.html:9 templates/base.html:36
+msgid "Journal d’audit"
+msgstr ""
+
+#: templates/audit/journal_detail.html:10
+#: templates/audit/journal_detail.html:15
+#, python-format
+msgid "Entrée n° %(id)s"
+msgstr ""
+
+#: templates/audit/journal_detail.html:21
+msgid "Entrée"
+msgstr ""
+
+#: templates/audit/journal_detail.html:27 templates/audit/journal_liste.html:34
+msgid "Type d’objet"
+msgstr ""
+
+#: templates/audit/journal_detail.html:28
+msgid "Identifiant d’objet"
+msgstr ""
+
+#: templates/audit/journal_detail.html:31
+msgid "Navigateur"
+msgstr ""
+
+#: templates/audit/journal_detail.html:37
+msgid "Métadonnées"
+msgstr ""
+
+#: templates/audit/journal_detail.html:42
+#: templates/audit/journal_detail.html:62
+msgid "Clé"
+msgstr ""
+
+#: templates/audit/journal_detail.html:42
+msgid "Valeur"
+msgstr ""
+
+#: templates/audit/journal_detail.html:51
+msgid "Aucune métadonnée."
+msgstr ""
+
+#: templates/audit/journal_detail.html:58
+msgid "Avant / après"
+msgstr ""
+
+#: templates/audit/journal_detail.html:62
+msgid "Avant"
+msgstr ""
+
+#: templates/audit/journal_detail.html:62
+msgid "Après"
+msgstr ""
+
+#: templates/audit/journal_detail.html:62
+msgid "Changement"
+msgstr ""
+
+#: templates/audit/journal_detail.html:69
+msgid "modifié"
+msgstr ""
+
+#: templates/audit/journal_detail.html:78
+msgid "Retour au journal"
+msgstr ""
+
+#: templates/audit/journal_liste.html:10
+msgid ""
+"Consultations de dossiers, décisions, connexions et accès refusés. Le "
+"journal est en ajout seul : aucune entrée ne peut être modifiée ni supprimée."
+msgstr ""
+
+#: templates/audit/journal_liste.html:17
+msgid "Période"
+msgstr ""
+
+#: templates/audit/journal_liste.html:18
+msgid "Du"
+msgstr ""
+
+#: templates/audit/journal_liste.html:21
+msgid "Au"
+msgstr ""
+
+#: templates/audit/journal_liste.html:28 templates/audit/journal_liste.html:36
+msgid "Tous"
+msgstr ""
+
+#: templates/audit/journal_liste.html:29
+msgid "Sans utilisateur (système, anonyme)"
+msgstr ""
+
+#: templates/audit/journal_liste.html:30
+msgid "(désactivé)"
+msgstr ""
+
+#: templates/audit/journal_liste.html:42
+msgid "Dossier (candidature n°)"
+msgstr ""
+
+#: templates/audit/journal_liste.html:59
+msgid "Inclure les consultations du journal"
+msgstr ""
+
+#: templates/audit/journal_liste.html:61
+#: templates/recruitment/poste_candidatures.html:63
+msgid "Filtrer"
 msgstr ""
 
 #: templates/base.html:22
@@ -199,39 +580,26 @@ msgstr ""
 msgid "Navigation principale"
 msgstr ""
 
-#: templates/base.html:34 templates/components/breadcrumb.html:6
-#: templates/dashboard/index.html:3 templates/dashboard/index.html:8
-msgid "Tableau de bord"
-msgstr ""
-
 #: templates/base.html:35
 msgid "Sécurité"
 msgstr ""
 
-#: templates/base.html:36
-msgid "Administration"
-msgstr ""
-
-#: templates/base.html:44
+#: templates/base.html:45
 msgid "Menu utilisateur"
 msgstr ""
 
-#: templates/base.html:52
+#: templates/base.html:53
 msgid "Double authentification"
 msgstr ""
 
-#: templates/base.html:54
+#: templates/base.html:55
 msgid "Déconnexion"
 msgstr ""
 
-#: templates/base.html:69
+#: templates/base.html:70
 msgid ""
 "Outil interne réservé à la direction · Données personnelles protégées (loi "
 "09-08) · Toute décision reste humaine"
-msgstr ""
-
-#: templates/components/breadcrumb.html:5
-msgid "Fil d’Ariane"
 msgstr ""
 
 #: templates/dashboard/index.html:9
@@ -239,14 +607,46 @@ msgstr ""
 msgid "Bonjour %(nom)s, voici l’état des concours et des recrutements."
 msgstr ""
 
-#: templates/dashboard/index.html:14 templates/dashboard/index.html:22
-#: templates/dashboard/index.html:27
-msgid "Concours"
+#: templates/dashboard/index.html:14
+msgid "Concours publics"
+msgstr ""
+
+#: templates/dashboard/index.html:14
+#, python-format
+msgid "%(n)s poste"
+msgid_plural "%(n)s postes"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/dashboard/index.html:14
+#, python-format
+msgid "%(n)s en cours"
+msgid_plural "%(n)s en cours"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: templates/dashboard/index.html:15
+msgid "Offres d'emploi (privé)"
 msgstr ""
 
 #: templates/dashboard/index.html:15
-msgid "Offres d'emploi"
-msgstr ""
+#, python-format
+msgid "%(n)s ouverte"
+msgid_plural "%(n)s ouvertes"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
 
 #: templates/dashboard/index.html:16
 #: templates/recruitment/concours_detail.html:23
@@ -318,30 +718,8 @@ msgstr ""
 msgid "info"
 msgstr ""
 
-#: templates/recruitment/_candidatures_resultats.html:48
-msgid "Pagination"
-msgstr ""
-
-#: templates/recruitment/_candidatures_resultats.html:49
-#, python-format
-msgid "Page %(num)s sur %(total)s"
-msgstr ""
-
-#: templates/recruitment/_candidatures_resultats.html:51
-msgid "Précédente"
-msgstr ""
-
-#: templates/recruitment/_candidatures_resultats.html:52
-msgid "Suivante"
-msgstr ""
-
 #: templates/recruitment/_candidatures_resultats.html:59
 msgid "Aucune candidature ne correspond à ces critères."
-msgstr ""
-
-#: templates/recruitment/_candidatures_resultats.html:60
-#: templates/recruitment/poste_candidatures.html:64
-msgid "Réinitialiser"
 msgstr ""
 
 #: templates/recruitment/_date_affichee.html:1
@@ -354,10 +732,6 @@ msgstr ""
 
 #: templates/recruitment/_decisions.html:13
 msgid "Le concours est terminé : aucune décision n’est possible."
-msgstr ""
-
-#: templates/recruitment/_decisions.html:21
-msgid "Décision"
 msgstr ""
 
 #: templates/recruitment/_decisions.html:23
@@ -516,7 +890,7 @@ msgid "Sources"
 msgstr ""
 
 #: templates/recruitment/candidature_detail.html:120
-msgid "Critère"
+msgid "Critères d’éligibilité"
 msgstr ""
 
 #: templates/recruitment/candidature_detail.html:128
@@ -572,10 +946,6 @@ msgstr ""
 
 #: templates/recruitment/candidature_detail.html:173
 msgid "Détectée le"
-msgstr ""
-
-#: templates/recruitment/candidature_detail.html:174
-msgid "Pièce"
 msgstr ""
 
 #: templates/recruitment/candidature_detail.html:176
@@ -636,6 +1006,14 @@ msgstr ""
 
 #: templates/recruitment/candidature_detail.html:235
 msgid "Aucune pièce reçue"
+msgstr ""
+
+#: templates/recruitment/candidature_detail.html:246
+msgid "Consultations de ce dossier"
+msgstr ""
+
+#: templates/recruitment/candidature_detail.html:250
+msgid "Voir qui a consulté ce dossier"
 msgstr ""
 
 #: templates/recruitment/concours_detail.html:20
@@ -704,8 +1082,4 @@ msgstr ""
 
 #: templates/recruitment/poste_candidatures.html:57
 msgid "Lignes par page"
-msgstr ""
-
-#: templates/recruitment/poste_candidatures.html:63
-msgid "Filtrer"
 msgstr ""
