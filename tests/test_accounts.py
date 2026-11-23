@@ -186,3 +186,25 @@ def test_admin_cree_une_invitation_journalisee(client, admin_user):
 def test_admin_ne_peut_pas_creer_de_compte_directement(client, admin_user):
     client.force_login(admin_user)
     assert client.get(reverse("admin:accounts_user_add")).status_code == 403
+
+
+def test_mfa_facultative_si_desactivee(client, user_without_mfa, settings):
+    settings.MFA_REQUIRED = False
+    client.force_login(user_without_mfa)
+    assert client.get(reverse("dashboard")).status_code == 200
+
+
+def test_mfa_toujours_forcee_en_production():
+    import ast
+    from pathlib import Path
+
+    source = Path(__file__).resolve().parent.parent / "config" / "settings" / "prod.py"
+    assigns = {
+        t.id: node.value
+        for node in ast.parse(source.read_text()).body
+        if isinstance(node, ast.Assign)
+        for t in node.targets
+        if isinstance(t, ast.Name)
+    }
+    assert isinstance(assigns["MFA_REQUIRED"], ast.Constant)
+    assert assigns["MFA_REQUIRED"].value is True
