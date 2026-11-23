@@ -876,6 +876,11 @@ def test_ca28_navigation(client, dir1, admin1, ref):
         root = parse(client.get(reverse("dashboard")))
         (nav,) = by_attr(root, "data-nav-spontanees")
         assert "aria-current" not in nav.attrs
+    # Fiche d'une candidature spontanée : l'entrée « Candidatures spontanées » est active.
+    root = parse(client.get(fiche(ref.S1)))
+    assert by_attr(root, "data-nav-spontanees")[0].attrs.get("aria-current") == "true"
+    root = parse(client.get(fiche(ref.C1)))
+    assert "aria-current" not in by_attr(root, "data-nav-spontanees")[0].attrs
 
 
 # --------------------------------------------------------------------------------------
