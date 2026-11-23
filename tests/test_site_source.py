@@ -14,7 +14,7 @@ def test_volumes_attendus():
     s = FixtureSource()
     assert len(s.list_concours()) == 2
     assert len(s.list_postes()) == 10
-    assert len(s.list_offres()) == 2
+    assert len(s.list_offres()) == 5
     assert 50 <= len(s.list_candidats()) <= 55
     assert len(s.list_candidatures()) == len(s.list_candidats())
 

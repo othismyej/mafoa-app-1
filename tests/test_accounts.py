@@ -239,3 +239,22 @@ def test_css_compile_present_et_commite():
     assert "Poppins" in content and "Roboto" in content
     urls = re.findall(r"url\(([^)]*)\)", content)
     assert urls and all(u.strip("\"'").startswith("../fonts/") for u in urls), urls
+
+
+def test_tableau_de_bord_distingue_concours_et_offres(client, direction_user):
+    """Concours publics et offres d'emploi sont comptés séparément, avec leur détail."""
+    from apps.recruitment.models import Concours, OffreEmploi, Organisation, PosteConcours
+
+    org = Organisation.objects.create(nom="Organisation fictive", type="public")
+    c = Concours.objects.create(organisation=org, intitule="Concours fictif", statut="ouvert")
+    for i in range(3):
+        PosteConcours.objects.create(concours=c, intitule=f"Poste fictif {i}", reference=f"R{i}")
+    for i, statut in enumerate(["ouverte", "ouverte", "fermee", "pourvue", "ouverte"]):
+        OffreEmploi.objects.create(organisation=org, intitule=f"Offre fictive {i}", statut=statut)
+    client.force_login(direction_user)
+    html = client.get("/").content.decode()
+    assert Concours.objects.count() == 1 and OffreEmploi.objects.count() == 5
+    assert "Concours publics" in html
+    assert "3 postes · 1 en cours" in html
+    assert "Offres d&#x27;emploi (privé)" in html or "Offres d'emploi (privé)" in html
+    assert "3 ouvertes" in html
