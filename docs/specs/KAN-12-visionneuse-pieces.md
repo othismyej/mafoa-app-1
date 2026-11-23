@@ -148,8 +148,8 @@ contenu de la pièce), avant tout accès à la base de la pièce ou à la source
     - `Cache-Control: no-store, private` (et pas d'`ETag` ni de `Last-Modified`) ;
     - `X-Frame-Options: SAMEORIGIN` (dérogation à `DENY` limitée à cette vue) ;
     - `Content-Security-Policy` propre à cette vue : `default-src 'none'; frame-ancestors
-      'self'; base-uri 'none'; form-action 'none'`, complétée de `sandbox` **pour les images
-      uniquement** (Chromium refuse d'afficher un PDF dans un contexte `sandbox`) ;
+      'self'; base-uri 'none'; form-action 'none'`, complétée de `sandbox` **pour tout type autre que
+      le PDF** (images et téléchargements ; Chromium refuse d'afficher un PDF dans un contexte `sandbox`) ;
     - `Cross-Origin-Resource-Policy: same-origin` ;
     - `Referrer-Policy: same-origin` (global, inchangé).
 12. **Politique globale inchangée** : toutes les autres réponses (fiche, fragment, autres pages)

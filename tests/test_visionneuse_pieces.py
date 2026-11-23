@@ -392,7 +392,8 @@ def test_ca11_telechargement_docx(client, direction_user, cand, fake):
     assert download.status_code == 200
     assert download["Content-Type"] == "application/octet-stream"
     assert "lettre_fictive.docx" in download["Content-Disposition"]
-    assert "sandbox" not in download["Content-Security-Policy"]
+    # Défense en profondeur (relecture conformité) : sandbox sur tout ce qui n'est pas un PDF.
+    assert "sandbox" in download["Content-Security-Policy"]
     # Toute autre valeur du paramètre vaut aperçu.
     assert get(client, direction_user, contenu_url(p, telechargement="oui")).status_code == 415
 
@@ -1082,3 +1083,31 @@ def test_fragment_404_lisible(client, direction_user, cand):
     response = get(client, direction_user, path, **HX)
     assert response.status_code == 404
     assert "Pièce introuvable" in parse(response).text()
+
+
+# Relecture conformité — noms de fichier Unicode
+# --------------------------------------------------------------------------------------
+
+
+def test_nom_assaini_retire_les_marques_bidirectionnelles():
+    from apps.recruitment.pieces import content_disposition, nom_assaini
+
+    nom = nom_assaini("cv‮gpj.exe", 7, None)
+    assert "‮" not in nom
+    assert nom == "cvgpj.exe"
+    assert "%E2%80%AE" not in content_disposition("attachment", nom)
+
+
+def test_nom_entierement_arabe_repli_ascii_non_cache():
+    from apps.recruitment.pieces import content_disposition, nom_assaini
+
+    nom = nom_assaini("شهادة.pdf", 7, "application/pdf")
+    header = content_disposition("attachment", nom)
+    assert 'filename="piece.pdf"' in header
+    assert "filename*=UTF-8''%D8" in header
+
+
+def test_nom_accentue_garde_un_repli_lisible():
+    from apps.recruitment.pieces import content_disposition
+
+    assert 'filename="diplome.pdf"' in content_disposition("inline", "diplôme.pdf")

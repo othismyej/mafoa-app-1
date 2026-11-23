@@ -452,9 +452,8 @@ def piece_contenu(request, pk: int, piece_pk: int):
     response["X-Frame-Options"] = "SAMEORIGIN"
     response["Cross-Origin-Resource-Policy"] = "same-origin"
     response["Content-Security-Policy"] = (
-        CSP_CONTENU_IMAGE
-        if type_detecte in (pieces_service.PNG, pieces_service.JPEG)
-        else CSP_CONTENU
+        # ``sandbox`` partout sauf pour le PDF (le lecteur de Chromium le refuse).
+        CSP_CONTENU if type_detecte == pieces_service.PDF else CSP_CONTENU_IMAGE
     )
     _journaliser_piece(request, pk, piece.pk, piece=piece, resultat="servie", **metadata)
     return response

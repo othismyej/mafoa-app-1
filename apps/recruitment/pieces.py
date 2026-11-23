@@ -60,13 +60,20 @@ def mode_affichage(content_type_declare: str) -> str:
 
 
 _CONTROLE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+# Caractères invisibles de mise en forme (dont les marques bidirectionnelles U+202A–U+202E et
+# U+2066–U+2069) : ils permettent de déguiser une extension (« cv‮gpj.exe » → « cvexe.jpg »).
+_CATEGORIES_INVISIBLES = {"Cf", "Zl", "Zp"}
+
+
+def _sans_invisibles(texte: str) -> str:
+    return "".join(c for c in texte if unicodedata.category(c) not in _CATEGORIES_INVISIBLES)
 
 
 def nom_assaini(nom_fichier: str, piece_pk: int, type_detecte: str | None) -> str:
     """Nom proposé au navigateur (règle 13, Q14) : sans chemin, caractère de contrôle ni
     guillemet, 150 caractères au plus, extension alignée sur le type détecté."""
     nom = (nom_fichier or "").replace("/", "").replace("\\", "")
-    nom = _CONTROLE.sub("", nom).replace('"', "")
+    nom = _sans_invisibles(_CONTROLE.sub("", nom)).replace('"', "")
     nom = re.sub(r"\s+", " ", nom).strip().lstrip(".").strip()
     stem, dot, current = nom.rpartition(".")
     if not dot:
@@ -85,7 +92,13 @@ def nom_assaini(nom_fichier: str, piece_pk: int, type_detecte: str | None) -> st
 def content_disposition(disposition: str, nom: str) -> str:
     """``inline`` / ``attachment`` avec ``filename`` (ASCII) et ``filename*`` (UTF-8)."""
     ascii_nom = unicodedata.normalize("NFKD", nom).encode("ascii", "ignore").decode("ascii")
-    ascii_nom = _CONTROLE.sub("", ascii_nom).replace('"', "").replace("\\", "") or "piece"
+    ascii_nom = _CONTROLE.sub("", ascii_nom).replace('"', "").replace("\\", "").strip()
+    stem, dot, ext = ascii_nom.rpartition(".")
+    if not dot:
+        stem, ext = ascii_nom, ""
+    if not stem.strip(" ."):
+        # Nom entièrement non ASCII (arabe…) : jamais de fichier caché « .pdf » en repli.
+        ascii_nom = f"piece.{ext}" if dot and ext else "piece"
     return f"{disposition}; filename=\"{ascii_nom}\"; filename*=UTF-8''{quote(nom, safe='')}"
 
 
