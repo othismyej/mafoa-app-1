@@ -1,0 +1,60 @@
+{% load i18n %}
+{# Lecture des pièces par l'IA et écarts déclaré ↔ pièces (KAN-41, règles 26 et 27). #}
+<section class="card" aria-labelledby="titre-lecture" data-lecture-pieces>
+  <div class="card-header">
+    <h2 id="titre-lecture" class="section-title flex items-center gap-2">{% include "components/icon.html" with name="search" size="h-5 w-5 text-ink-500" %}{% translate "Lecture des pièces (IA)" %}</h2>
+  </div>
+  <div class="card-body space-y-5">
+  {% include "recruitment/_lecture_etat.html" %}
+
+  {% for l in lecture_lignes %}{% if l.donnees %}
+  <article class="rounded-control border border-ink-200 p-4 text-sm" data-lecture-piece="{{ l.piece.pk }}">
+    <header class="flex flex-wrap items-center justify-between gap-2">
+      <h3 class="font-display font-semibold text-ink-900">{{ l.piece.get_type_display }} <span class="meta">n° {{ l.piece.pk }}</span></h3>
+      <span class="badge badge-plain badge-confiance_{{ l.confiance_niveau }}">{{ l.confiance_label }}</span>
+    </header>
+    {% if not l.donnees.lisibles %}
+    <p class="mt-2 text-ink-600">{% translate "Données extraites illisibles : relancer la lecture." %}</p>
+    {% else %}
+    {% if l.donnees.dossier %}
+    {% for seg in l.donnees.segments %}
+    <section class="mt-3 rounded-control bg-ink-50 p-3" data-segment="{{ seg.type }}" data-pages="{{ seg.pages.0 }}-{{ seg.pages.1 }}">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h4 class="font-semibold text-ink-900">{{ seg.type_label }} <span class="meta">· {% if seg.pages.0 == seg.pages.1 %}{% blocktranslate with p=seg.pages.0 %}page {{ p }}{% endblocktranslate %}{% else %}{% blocktranslate with a=seg.pages.0 b=seg.pages.1 %}pages {{ a }} à {{ b }}{% endblocktranslate %}{% endif %}</span></h4>
+        {% if seg.type != "autre" %}<span class="badge badge-plain badge-confiance_{{ seg.confiance_niveau }}">{{ seg.confiance_label }}</span>{% endif %}
+      </div>
+      {% if seg.type == "autre" %}<p class="meta mt-1">{{ seg.description|default:_("Document non utilisé pour l’éligibilité") }}</p>
+      {% else %}{% include "recruitment/_lecture_donnees.html" with d=seg %}{% endif %}
+    </section>
+    {% endfor %}
+    {% if l.donnees.remarques %}<ul class="mt-3 list-disc space-y-1 ps-5 text-xs text-ink-700" data-remarques>{% for r in l.donnees.remarques %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+    {% else %}
+    {% include "recruitment/_lecture_donnees.html" with d=l.donnees %}
+    {% endif %}
+    {% if l.donnees.pages_non_lues %}<p class="mt-3 text-xs text-amber-800" data-pages-non-lues>{% blocktranslate with pages=l.donnees.pages_non_lues|join:", " %}Pages numérisées non lues par l’IA : {{ pages }} — vérification humaine.{% endblocktranslate %}</p>{% endif %}
+    {% endif %}
+  </article>
+  {% endif %}{% endfor %}
+
+  {% if lecture_lues %}
+  {% if lecture_ecarts %}
+  <div class="alert alert-warning" role="note" data-ecarts>
+    {% include "components/icon.html" with name="alert" size="alert-icon" %}
+    <div>
+      <p class="font-semibold">{% translate "Écarts entre le déclaré et les pièces" %}</p>
+      <ul class="mt-1 space-y-1">
+        {% for e in lecture_ecarts %}
+        <li data-ecart="{{ e.critere }}"><strong>{% if e.critere == "niveau_etudes" %}{% translate "Niveau d’études" %}{% elif e.critere == "specialite" %}{% translate "Spécialité" %}{% else %}{% translate "Expérience" %}{% endif %}</strong> :
+          {% blocktranslate with declare=e.declare pieces=e.pieces %}déclaré « {{ declare }} », pièces « {{ pieces }} »{% endblocktranslate %}
+          <span class="meta">({% for i in e.pieces_ids %}n° {{ i }}{% if not forloop.last %}, {% endif %}{% endfor %})</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% else %}
+  <p class="flex items-center gap-2 text-sm text-ink-600" data-aucun-ecart>{% include "components/icon.html" with name="check" size="h-4 w-4 text-emerald-700" %}{% translate "Aucun écart constaté entre le déclaré et les pièces lues." %}</p>
+  {% endif %}
+  {% endif %}
+  <p class="border-t border-ink-100 pt-3 text-xs text-ink-600">{% translate "Données extraites par IA, à vérifier sur la pièce. Un écart ou une lecture peu fiable place le critère concerné « à vérifier » ; l’IA ne rend jamais seule une candidature non éligible." %}</p>
+  </div>
+</section>

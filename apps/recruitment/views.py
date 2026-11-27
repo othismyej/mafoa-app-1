@@ -17,6 +17,8 @@ from django.views.defaults import permission_denied
 from apps.accounts.permissions import DIRECTION_ROLES, role_required
 from apps.audit.models import AuditAction
 from apps.audit.services import log, log_access_denied, log_consultation, role_required_logged
+from apps.documents.models import Extraction
+from apps.documents.presenters import lecture_context
 from apps.evaluation import decisions as decision_rules
 from apps.evaluation.decisions import ConfirmationRequise, DecisionError
 from apps.evaluation.models import Anomalie, Decision, VerificationEligibilite
@@ -130,7 +132,16 @@ def _fiche_queryset():
         "offre__organisation",
         "details_spontanee",
     ).prefetch_related(
-        Prefetch("pieces", queryset=Piece.objects.order_by("type", "id")),
+        Prefetch(
+            "pieces",
+            queryset=Piece.objects.order_by("type", "id").prefetch_related(
+                # Extractions IA (KAN-41), sans le texte extrait (jamais affiché).
+                Prefetch(
+                    "extractions",
+                    queryset=Extraction.objects.defer("texte").order_by("-created_at", "-id"),
+                )
+            ),
+        ),
         Prefetch(
             "anomalies",
             queryset=Anomalie.objects.select_related(
@@ -222,6 +233,8 @@ def _fiche_context(candidature: Candidature, form: dict | None = None) -> dict:
         "experiences": presenters.experiences(donnees),
         "decision_form": _decision_form_context(candidature, decisions_list, form or {}),
         **(_spontanee_context(candidature) if candidature.est_spontanee else {}),
+        # Lecture des pièces par l'IA (KAN-41) : concours et offres uniquement (Q3).
+        **({} if candidature.est_spontanee else lecture_context(candidature, pieces)),
     }
 
 

@@ -1,0 +1,42 @@
+{% load i18n %}
+{% comment %}
+État de la lecture des pièces par l'IA (KAN-41, règles 17 et 28). Statuts seulement : aucun nom,
+aucun nom de fichier, aucune donnée extraite (ce fragment n'est pas journalisé comme consultation).
+Rafraîchi toutes les 5 s tant qu'une lecture est en cours.
+{% endcomment %}
+<div id="lecture-etat" class="space-y-3" data-lecture-etat aria-live="polite"
+  {% if lecture_en_cours %}hx-get="{% url 'recruitment:lecture_pieces_etat' c.pk %}" hx-trigger="every 5s" hx-swap="outerHTML" data-lecture-polling{% endif %}>
+  {% if lecture_message %}{% include "components/alert.html" with message=lecture_message tone=lecture_message_ton %}{% endif %}
+  {% if not ia_configuree %}
+  <div class="alert alert-warning" role="note" data-ia-non-configuree>
+    {% include "components/icon.html" with name="alert" size="alert-icon" %}
+    <p>{% translate "IA non configurée : la lecture des pièces est indisponible. L’administrateur doit renseigner la clé de l’API Claude (ANTHROPIC_API_KEY)." %}</p>
+  </div>
+  {% endif %}
+  {% if lecture_lignes %}
+  <form method="post" action="{% url 'recruitment:lecture_pieces_lancer' c.pk %}" hx-post="{% url 'recruitment:lecture_pieces_lancer' c.pk %}" hx-target="#lecture-etat" hx-swap="outerHTML" class="flex flex-wrap items-center gap-2" data-lecture-form>
+    {% csrf_token %}
+    <button type="submit" name="mode" value="lire" class="btn-secondary btn-sm min-h-10" data-lire{% if not ia_configuree or lecture_en_cours or not lecture_a_lire %} disabled{% endif %}>{% translate "Lire les pièces" %}</button>
+    <button type="submit" name="mode" value="relire" class="btn-ghost btn-sm min-h-10" data-relire{% if not ia_configuree or lecture_en_cours or not lecture_lues %} disabled{% endif %}>{% translate "Relire" %}</button>
+    {% if lecture_en_cours %}<span class="meta" data-lecture-en-cours>{% translate "Lecture en cours…" %}</span>{% endif %}
+  </form>
+  <ul class="divide-y divide-ink-100 text-sm" aria-label="{% translate 'État de lecture des pièces' %}">
+    {% for l in lecture_lignes %}
+    <li class="flex flex-wrap items-center gap-x-3 gap-y-1 py-2" data-lecture-statut="{{ l.piece.pk }}" data-etat="{{ l.etat }}">
+      <span class="font-medium text-ink-900">{{ l.piece.get_type_display }} <span class="meta">n° {{ l.piece.pk }}</span></span>
+      <span class="badge badge-lecture_{{ l.etat }}">{{ l.etat_label }}</span>
+      {% if l.courante %}
+      <span class="badge badge-plain badge-confiance_{{ l.confiance_niveau }}" data-confiance="{{ l.confiance_niveau }}">{{ l.confiance_label }}{% if l.courante.confiance is not None %} ({{ l.courante.confiance|floatformat:2 }}){% endif %}</span>
+      <span class="meta">{% blocktranslate with date=l.courante.terminee_le|date:"d/m/Y H:i" methode=l.courante.get_methode_display modele=l.courante.modele version=l.courante.prompt_version %}le {{ date }} · {{ methode }} · {{ modele }} · prompt v{{ version }}{% endblocktranslate %}</span>
+      {% endif %}
+      {% if l.motif %}<span class="w-full text-xs text-amber-800" data-lecture-motif>{% if l.courante %}{% translate "Dernière relecture" %} : {% endif %}{{ l.motif }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if fragment_etat and not lecture_en_cours %}
+  <p class="text-sm" data-lecture-terminee><a href="{% url 'recruitment:candidature_detail' c.pk %}" class="link">{% translate "Actualiser la fiche pour voir les données extraites" %}</a></p>
+  {% endif %}
+  {% else %}
+  <p class="text-sm text-ink-600">{% translate "Aucune pièce lisible par l’IA (CV, diplôme, attestation de travail, dossier combiné)." %}</p>
+  {% endif %}
+</div>

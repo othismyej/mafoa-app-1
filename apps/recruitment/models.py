@@ -514,6 +514,9 @@ class Piece(SourceRefMixin, TimeStampedModel):
         DIPLOME = "diplome", "Diplôme"
         ATTESTATION_TRAVAIL = "attestation_travail", "Attestation de travail"
         LETTRE = "lettre", "Lettre de motivation"
+        # Champ « Documents » unique d'une candidature du site : PDF combiné (CV, diplôme,
+        # attestations…), découpé par l'IA en segments (KAN-41, règle 1 bis).
+        DOSSIER = "dossier", "Dossier combiné (plusieurs documents)"
         AUTRE = "autre", "Autre"
 
     candidature = models.ForeignKey(

@@ -30,10 +30,21 @@ class Pseudonymizer:
         self.mapping[token] = value
         return token
 
-    def pseudonymize(self, text: str, known_names: list[str] | None = None) -> str:
+    def pseudonymize(
+        self,
+        text: str,
+        known_names: list[str] | None = None,
+        known_values: dict[str, list[str]] | None = None,
+    ) -> str:
+        """``known_values`` : autres valeurs connues à masquer, par nature de jeton (ex.
+        ``{"NAISSANCE": ["14/03/1990", "1990-03-14"]}``, KAN-41)."""
         text = EMAIL_RE.sub(lambda m: self._token("EMAIL", m.group(0)), text)
         text = PHONE_RE.sub(lambda m: self._token("TEL", m.group(0)), text)
         text = CIN_RE.sub(lambda m: self._token("CIN", m.group(0)), text)
+        for kind, values in (known_values or {}).items():
+            for value in sorted({v for v in values if v}, key=len, reverse=True):
+                pattern = re.compile(rf"(?<!\w){re.escape(value)}(?!\w)")
+                text = pattern.sub(lambda m, k=kind: self._token(k, m.group(0)), text)
         # Les noms en dernier : sinon ils casseraient la détection des emails.
         names = sorted({n for n in (known_names or []) if n and len(n) > 1}, key=len, reverse=True)
         for name in names:

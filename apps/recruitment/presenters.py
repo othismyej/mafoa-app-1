@@ -83,9 +83,20 @@ def experiences(donnees: dict) -> list[dict] | None:
 def source_labels(sources) -> list[str]:
     if not isinstance(sources, list):
         return []
+    from .models import Piece
+
     labels = []
     for s in sources:
         key = s.get("type") if isinstance(s, dict) else s
+        if key == "extraction" and isinstance(s, dict) and s.get("piece_id"):
+            # Pièce lue par l'IA (KAN-41, règle 29) : « Pièce n° 12 (Diplôme) ».
+            type_label = dict(Piece.Type.choices).get(str(s.get("piece_type", "")), "")
+            label = _("Pièce n° %(n)s") % {"n": s["piece_id"]}
+            if isinstance(s.get("pages"), list) and len(s["pages"]) == 2:
+                a, b = s["pages"]
+                label += f" p. {a}" if a == b else f" p. {a}-{b}"
+            labels.append(f"{label} ({type_label})" if type_label else label)
+            continue
         labels.append(SOURCE_LABELS.get(str(key), str(key)))
     return labels
 

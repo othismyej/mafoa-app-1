@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 21:40+0000\n"
+"POT-Creation-Date: 2026-11-27 15:45+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,12 +22,12 @@ msgstr ""
 msgid "Candidature"
 msgstr ""
 
-#: apps/audit/filters.py:34 templates/recruitment/candidature_detail.html:190
+#: apps/audit/filters.py:34 templates/recruitment/candidature_detail.html:191
 msgid "Pièce"
 msgstr ""
 
 #: apps/audit/filters.py:35 apps/recruitment/spontanee_views.py:26
-#: apps/recruitment/views.py:115
+#: apps/recruitment/views.py:117
 msgid "Candidat"
 msgstr ""
 
@@ -146,6 +146,151 @@ msgstr ""
 msgid "Fiche"
 msgstr ""
 
+#: apps/documents/lecture.py:57
+msgid "IA non configurée"
+msgstr ""
+
+#: apps/documents/lecture.py:58
+msgid "Lecture refusée par l’IA"
+msgstr ""
+
+#: apps/documents/lecture.py:59
+msgid "Réponse de l’IA invalide"
+msgstr ""
+
+#: apps/documents/lecture.py:60
+msgid "IA momentanément indisponible"
+msgstr ""
+
+#: apps/documents/lecture.py:61
+msgid "Erreur lors de l’appel à l’IA"
+msgstr ""
+
+#: apps/documents/lecture.py:62
+msgid "Fichier introuvable à la source"
+msgstr ""
+
+#: apps/documents/lecture.py:63
+msgid "Source des pièces momentanément indisponible"
+msgstr ""
+
+#: apps/documents/lecture.py:64
+msgid "Le fichier reçu est vide"
+msgstr ""
+
+#: apps/documents/lecture.py:65
+msgid "Pièce trop volumineuse pour la lecture IA : vérification humaine"
+msgstr ""
+
+#: apps/documents/lecture.py:66
+msgid "Image de plus de 5 Mo : vérification humaine"
+msgstr ""
+
+#: apps/documents/lecture.py:67
+msgid "PDF trop long pour la lecture IA : vérification humaine"
+msgstr ""
+
+#: apps/documents/lecture.py:68
+msgid "Texte trop long pour la lecture IA : vérification humaine"
+msgstr ""
+
+#: apps/documents/lecture.py:69
+msgid "Format non lu automatiquement : à traiter par un humain"
+msgstr ""
+
+#: apps/documents/lecture.py:70
+msgid ""
+"Document Word illisible (endommagé ou trop volumineux une fois décompressé)"
+msgstr ""
+
+#: apps/documents/lecture.py:71
+msgid "Image illisible"
+msgstr ""
+
+#: apps/documents/lecture.py:72
+msgid "PDF illisible (protégé ou endommagé)"
+msgstr ""
+
+#: apps/documents/lecture.py:74
+msgid ""
+"Scan : lecture IA désactivée (pseudonymisation impossible) — vérification "
+"humaine"
+msgstr ""
+
+#: apps/documents/lecture.py:77
+msgid ""
+"Contenu modifié à la source (empreinte différente) : anomalie enregistrée"
+msgstr ""
+
+#: apps/documents/lecture.py:79
+msgid "File de traitement indisponible"
+msgstr ""
+
+#: apps/documents/lecture.py:80
+msgid "Lecture interrompue (délai dépassé)"
+msgstr ""
+
+#: apps/documents/lecture.py:216
+msgid "Lecture des pièces non disponible pour une candidature spontanée."
+msgstr ""
+
+#: apps/documents/presenters.py:21
+msgid "Non lue"
+msgstr ""
+
+#: apps/documents/presenters.py:22
+msgid "Lecture en cours"
+msgstr ""
+
+#: apps/documents/presenters.py:23
+msgid "Lue"
+msgstr ""
+
+#: apps/documents/presenters.py:24
+msgid "Obsolète (pièce modifiée depuis la lecture)"
+msgstr ""
+
+#: apps/documents/presenters.py:25
+msgid "Échec"
+msgstr ""
+
+#: apps/documents/presenters.py:26
+msgid "Ignorée"
+msgstr ""
+
+#: apps/documents/presenters.py:30
+msgid "Confiance élevée"
+msgstr ""
+
+#: apps/documents/presenters.py:31
+msgid "Confiance moyenne"
+msgstr ""
+
+#: apps/documents/presenters.py:32
+msgid "Confiance faible"
+msgstr ""
+
+#: apps/documents/presenters.py:46 apps/recruitment/presenters.py:69
+msgid "en cours"
+msgstr ""
+
+#: apps/documents/presenters.py:100
+#: templates/recruitment/_spontanees_resultats.html:43
+msgid "CV"
+msgstr ""
+
+#: apps/documents/presenters.py:101
+msgid "Diplôme"
+msgstr ""
+
+#: apps/documents/presenters.py:102
+msgid "Attestation de travail"
+msgstr ""
+
+#: apps/documents/presenters.py:103
+msgid "Autre document"
+msgstr ""
+
 #: apps/evaluation/decisions.py:109
 msgid "Le motif est obligatoire (10 caractères minimum)."
 msgstr ""
@@ -203,16 +348,16 @@ msgid ""
 "éligibles en lot, vous attestez les avoir examinés."
 msgstr ""
 
-#: apps/evaluation/services.py:208
+#: apps/evaluation/services.py:260
 msgid "Une décision est toujours prise par un utilisateur identifié."
 msgstr ""
 
-#: apps/evaluation/services.py:223
+#: apps/evaluation/services.py:275
 msgid ""
 "Une autre décision a été enregistrée entre-temps. La fiche a été actualisée."
 msgstr ""
 
-#: apps/evaluation/services.py:228
+#: apps/evaluation/services.py:280
 msgid "Le concours est terminé : aucune décision n'est possible."
 msgstr ""
 
@@ -225,27 +370,27 @@ msgid "Poste"
 msgstr ""
 
 #: apps/exports/candidatures.py:67 apps/recruitment/spontanee_views.py:27
-#: apps/recruitment/views.py:116
+#: apps/recruitment/views.py:118
 msgid "Date de candidature"
 msgstr ""
 
 #: apps/exports/candidatures.py:68
-#: templates/recruitment/candidature_detail.html:216
+#: templates/recruitment/candidature_detail.html:217
 msgid "Nom"
 msgstr ""
 
 #: apps/exports/candidatures.py:69
-#: templates/recruitment/candidature_detail.html:217
+#: templates/recruitment/candidature_detail.html:218
 msgid "Prénom"
 msgstr ""
 
 #: apps/exports/candidatures.py:70
-#: templates/recruitment/candidature_detail.html:218
+#: templates/recruitment/candidature_detail.html:219
 msgid "CIN"
 msgstr ""
 
 #: apps/exports/candidatures.py:71
-#: templates/recruitment/candidature_detail.html:219
+#: templates/recruitment/candidature_detail.html:220
 msgid "Date de naissance"
 msgstr ""
 
@@ -255,12 +400,12 @@ msgid "Email"
 msgstr ""
 
 #: apps/exports/candidatures.py:74
-#: templates/recruitment/candidature_detail.html:221
+#: templates/recruitment/candidature_detail.html:222
 msgid "Téléphone"
 msgstr ""
 
 #: apps/exports/candidatures.py:75 templates/recruitment/_offres_tableau.html:7
-#: templates/recruitment/candidature_detail.html:222
+#: templates/recruitment/candidature_detail.html:223
 #: templates/recruitment/offre_detail.html:16
 msgid "Ville"
 msgstr ""
@@ -315,11 +460,15 @@ msgid "Niveau d'études"
 msgstr ""
 
 #: apps/exports/candidatures.py:90
+#: templates/recruitment/_lecture_donnees.html:9
+#: templates/recruitment/_lecture_pieces.html:47
 #: templates/recruitment/candidature_detail.html:78
 msgid "Spécialité"
 msgstr ""
 
-#: apps/exports/candidatures.py:91 templates/recruitment/offre_detail.html:51
+#: apps/exports/candidatures.py:91
+#: templates/recruitment/_lecture_pieces.html:47
+#: templates/recruitment/offre_detail.html:51
 msgid "Expérience"
 msgstr ""
 
@@ -448,6 +597,21 @@ msgstr ""
 
 #: apps/recruitment/filters.py:34
 msgid "Sans anomalie non résolue"
+msgstr ""
+
+#: apps/recruitment/lecture_views.py:51
+#, python-format
+msgid "%(n)d pièce(s) mise(s) en lecture"
+msgstr ""
+
+#: apps/recruitment/lecture_views.py:54
+#, python-format
+msgid "%(n)d déjà lue(s)"
+msgstr ""
+
+#: apps/recruitment/lecture_views.py:56
+#, python-format
+msgid "%(n)d lecture(s) déjà en cours"
 msgstr ""
 
 #: apps/recruitment/lot_presenters.py:32
@@ -641,8 +805,9 @@ msgstr ""
 msgid "Date manquante"
 msgstr ""
 
-#: apps/recruitment/presenters.py:69
-msgid "en cours"
+#: apps/recruitment/presenters.py:94
+#, python-format
+msgid "Pièce n° %(n)s"
 msgstr ""
 
 #: apps/recruitment/spontanee_views.py:28
@@ -663,11 +828,11 @@ msgstr ""
 
 #: apps/recruitment/spontanee_views.py:31
 #: templates/recruitment/_spontanees_filtres.html:61
-#: templates/recruitment/candidature_detail.html:229
+#: templates/recruitment/candidature_detail.html:230
 msgid "Pièces"
 msgstr ""
 
-#: apps/recruitment/spontanee_views.py:32 apps/recruitment/views.py:117
+#: apps/recruitment/spontanee_views.py:32 apps/recruitment/views.py:119
 #: templates/dashboard/index.html:42
 #: templates/recruitment/_candidatures_filtres.html:16
 #: templates/recruitment/_offres_tableau.html:8
@@ -678,11 +843,11 @@ msgstr ""
 msgid "Statut"
 msgstr ""
 
-#: apps/recruitment/spontanee_views.py:33 apps/recruitment/views.py:119
+#: apps/recruitment/spontanee_views.py:33 apps/recruitment/views.py:121
 #: templates/recruitment/_candidatures_filtres.html:32
 #: templates/recruitment/_spontanees_filtres.html:69
 #: templates/recruitment/candidature_detail.html:41
-#: templates/recruitment/candidature_detail.html:175
+#: templates/recruitment/candidature_detail.html:176
 msgid "Anomalies"
 msgstr ""
 
@@ -699,47 +864,47 @@ msgstr ""
 msgid "Non précisée"
 msgstr ""
 
-#: apps/recruitment/views.py:118
+#: apps/recruitment/views.py:120
 #: templates/recruitment/_candidatures_filtres.html:24
 msgid "Verdict d’éligibilité"
 msgstr ""
 
-#: apps/recruitment/views.py:322 apps/recruitment/views.py:324
+#: apps/recruitment/views.py:335 apps/recruitment/views.py:337
 msgid "Décision enregistrée."
 msgstr ""
 
-#: apps/recruitment/views.py:366
+#: apps/recruitment/views.py:379
 msgid ""
 "La source des pièces est momentanément indisponible. Réessayez dans quelques "
 "instants."
 msgstr ""
 
-#: apps/recruitment/views.py:368
+#: apps/recruitment/views.py:381
 msgid "Fichier introuvable à la source."
 msgstr ""
 
-#: apps/recruitment/views.py:369
+#: apps/recruitment/views.py:382
 msgid "Le fichier reçu est vide."
 msgstr ""
 
-#: apps/recruitment/views.py:371
+#: apps/recruitment/views.py:384
 msgid ""
 "Aperçu impossible : le contenu ne correspond pas à un type affichable. "
 "Utilisez « Télécharger »."
 msgstr ""
 
-#: apps/recruitment/views.py:375
+#: apps/recruitment/views.py:388
 msgid ""
 "Le fichier a été modifié à la source depuis sa réception (empreinte "
 "différente). Une anomalie a été enregistrée. Vous pouvez le télécharger pour "
 "l’examiner."
 msgstr ""
 
-#: apps/recruitment/views.py:378
+#: apps/recruitment/views.py:391
 msgid "Pièce introuvable."
 msgstr ""
 
-#: apps/recruitment/views.py:477
+#: apps/recruitment/views.py:490
 #, python-format
 msgid ""
 "Pièce trop volumineuse pour la visionneuse (taille : %(taille)s Mo ; "
@@ -1432,19 +1597,23 @@ msgid "Souhaits du candidat"
 msgstr ""
 
 #: templates/recruitment/_fiche_spontanee.html:12
+#: templates/recruitment/_lecture_donnees.html:8
+#: templates/recruitment/_lecture_donnees.html:9
+#: templates/recruitment/_lecture_donnees.html:10
+#: templates/recruitment/_lecture_donnees.html:21
 #: templates/recruitment/candidature_detail.html:75
 #: templates/recruitment/candidature_detail.html:77
 #: templates/recruitment/candidature_detail.html:78
 #: templates/recruitment/candidature_detail.html:79
 #: templates/recruitment/candidature_detail.html:80
 #: templates/recruitment/candidature_detail.html:105
-#: templates/recruitment/candidature_detail.html:216
 #: templates/recruitment/candidature_detail.html:217
 #: templates/recruitment/candidature_detail.html:218
 #: templates/recruitment/candidature_detail.html:219
 #: templates/recruitment/candidature_detail.html:220
 #: templates/recruitment/candidature_detail.html:221
 #: templates/recruitment/candidature_detail.html:222
+#: templates/recruitment/candidature_detail.html:223
 msgid "Non renseigné"
 msgstr ""
 
@@ -1522,6 +1691,129 @@ msgstr[5] ""
 
 #: templates/recruitment/_fiche_spontanee.html:59
 msgid "Aucune autre candidature"
+msgstr ""
+
+#: templates/recruitment/_lecture_donnees.html:4
+msgid "Formation lue"
+msgstr ""
+
+#: templates/recruitment/_lecture_donnees.html:9
+#: templates/recruitment/candidature_detail.html:77
+msgid "Niveau"
+msgstr ""
+
+#: templates/recruitment/_lecture_donnees.html:10
+#: templates/recruitment/candidature_detail.html:79
+msgid "Établissement"
+msgstr ""
+
+#: templates/recruitment/_lecture_donnees.html:10
+#: templates/recruitment/candidature_detail.html:80
+msgid "Année"
+msgstr ""
+
+#: templates/recruitment/_lecture_donnees.html:17
+msgid "Expériences lues"
+msgstr ""
+
+#: templates/recruitment/_lecture_donnees.html:28
+msgid "Aucune formation ni expérience trouvée dans la pièce."
+msgstr ""
+
+#: templates/recruitment/_lecture_donnees.html:30
+msgid "Remarques de l’IA"
+msgstr ""
+
+#: templates/recruitment/_lecture_etat.html:13
+msgid ""
+"IA non configurée : la lecture des pièces est indisponible. L’administrateur "
+"doit renseigner la clé de l’API Claude (ANTHROPIC_API_KEY)."
+msgstr ""
+
+#: templates/recruitment/_lecture_etat.html:19
+msgid "Lire les pièces"
+msgstr ""
+
+#: templates/recruitment/_lecture_etat.html:20
+msgid "Relire"
+msgstr ""
+
+#: templates/recruitment/_lecture_etat.html:21
+msgid "Lecture en cours…"
+msgstr ""
+
+#: templates/recruitment/_lecture_etat.html:23
+msgid "État de lecture des pièces"
+msgstr ""
+
+#: templates/recruitment/_lecture_etat.html:30
+#, python-format
+msgid "le %(date)s · %(methode)s · %(modele)s · prompt v%(version)s"
+msgstr ""
+
+#: templates/recruitment/_lecture_etat.html:32
+msgid "Dernière relecture"
+msgstr ""
+
+#: templates/recruitment/_lecture_etat.html:37
+msgid "Actualiser la fiche pour voir les données extraites"
+msgstr ""
+
+#: templates/recruitment/_lecture_etat.html:40
+msgid ""
+"Aucune pièce lisible par l’IA (CV, diplôme, attestation de travail, dossier "
+"combiné)."
+msgstr ""
+
+#: templates/recruitment/_lecture_pieces.html:5
+msgid "Lecture des pièces (IA)"
+msgstr ""
+
+#: templates/recruitment/_lecture_pieces.html:17
+msgid "Données extraites illisibles : relancer la lecture."
+msgstr ""
+
+#: templates/recruitment/_lecture_pieces.html:23
+#, python-format
+msgid "page %(p)s"
+msgstr ""
+
+#: templates/recruitment/_lecture_pieces.html:23
+#, python-format
+msgid "pages %(a)s à %(b)s"
+msgstr ""
+
+#: templates/recruitment/_lecture_pieces.html:26
+msgid "Document non utilisé pour l’éligibilité"
+msgstr ""
+
+#: templates/recruitment/_lecture_pieces.html:34
+#, python-format
+msgid "Pages numérisées non lues par l’IA : %(pages)s — vérification humaine."
+msgstr ""
+
+#: templates/recruitment/_lecture_pieces.html:44
+msgid "Écarts entre le déclaré et les pièces"
+msgstr ""
+
+#: templates/recruitment/_lecture_pieces.html:47
+msgid "Niveau d’études"
+msgstr ""
+
+#: templates/recruitment/_lecture_pieces.html:48
+#, python-format
+msgid "déclaré « %(declare)s », pièces « %(pieces)s »"
+msgstr ""
+
+#: templates/recruitment/_lecture_pieces.html:55
+msgid "Aucun écart constaté entre le déclaré et les pièces lues."
+msgstr ""
+
+#: templates/recruitment/_lecture_pieces.html:58
+msgid ""
+"Données extraites par IA, à vérifier sur la pièce. Un écart ou une lecture "
+"peu fiable place le critère concerné « à vérifier » ; l’IA ne rend jamais "
+"seule une candidature non éligible."
 msgstr ""
 
 #: templates/recruitment/_lot_barre.html:8
@@ -1909,10 +2201,6 @@ msgstr[3] ""
 msgstr[4] ""
 msgstr[5] ""
 
-#: templates/recruitment/_spontanees_resultats.html:43
-msgid "CV"
-msgstr ""
-
 #: templates/recruitment/_spontanees_resultats.html:44
 #, python-format
 msgid "%(n)s pièce"
@@ -1925,7 +2213,7 @@ msgstr[4] ""
 msgstr[5] ""
 
 #: templates/recruitment/_spontanees_resultats.html:50
-#: templates/recruitment/candidature_detail.html:200
+#: templates/recruitment/candidature_detail.html:201
 msgid "Aucune anomalie"
 msgstr ""
 
@@ -1935,7 +2223,7 @@ msgid "Pièce %(n)s sur %(total)s"
 msgstr ""
 
 #: templates/recruitment/_visionneuse.html:8
-#: templates/recruitment/candidature_detail.html:240
+#: templates/recruitment/candidature_detail.html:241
 msgid "anomalie"
 msgstr ""
 
@@ -1944,7 +2232,7 @@ msgid "Taille inconnue"
 msgstr ""
 
 #: templates/recruitment/_visionneuse.html:11
-#: templates/recruitment/candidature_detail.html:244
+#: templates/recruitment/candidature_detail.html:245
 msgid "reçue le"
 msgstr ""
 
@@ -2084,18 +2372,6 @@ msgstr ""
 msgid "Formation déclarée"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:77
-msgid "Niveau"
-msgstr ""
-
-#: templates/recruitment/candidature_detail.html:79
-msgid "Établissement"
-msgstr ""
-
-#: templates/recruitment/candidature_detail.html:80
-msgid "Année"
-msgstr ""
-
 #: templates/recruitment/candidature_detail.html:98
 msgid "Expérience non renseignée"
 msgstr ""
@@ -2173,44 +2449,44 @@ msgstr ""
 msgid "Score sur grille : non disponible"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:185
+#: templates/recruitment/candidature_detail.html:186
 #, python-format
 msgid "Résolue par %(qui)s le %(quand)s"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:189
+#: templates/recruitment/candidature_detail.html:190
 msgid "Détectée le"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:192
+#: templates/recruitment/candidature_detail.html:193
 msgid "Voir la candidature liée"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:193
+#: templates/recruitment/candidature_detail.html:194
 msgid "candidature liée indisponible"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:213
+#: templates/recruitment/candidature_detail.html:214
 msgid "Identité et contacts"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:220
+#: templates/recruitment/candidature_detail.html:221
 msgid "Email"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:248
+#: templates/recruitment/candidature_detail.html:249
 msgid "Consulter"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:253
+#: templates/recruitment/candidature_detail.html:254
 msgid "Aucune pièce reçue"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:264
+#: templates/recruitment/candidature_detail.html:265
 msgid "Consultations de ce dossier"
 msgstr ""
 
-#: templates/recruitment/candidature_detail.html:268
+#: templates/recruitment/candidature_detail.html:269
 msgid "Voir qui a consulté ce dossier"
 msgstr ""
 

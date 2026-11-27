@@ -49,6 +49,9 @@ class SyncReport:
     conflits_type: list[dict] = field(default_factory=list)
     souhaits_ignores: list[str] = field(default_factory=list)
     pieces_ignorees: list[str] = field(default_factory=list)
+    # KAN-41, règle 18 : pièces créées ou dont l'empreinte a changé (à lire par l'IA).
+    pieces_nouvelles_ou_modifiees: list[int] = field(default_factory=list)
+    lecture_ia_en_file: int = 0
 
     def count(self, model: str, created: bool) -> None:
         bucket = self.created if created else self.updated
@@ -65,6 +68,7 @@ class SyncReport:
             "souhaits_ignores": len(self.souhaits_ignores),
             "souhaits_ignores_detail": self.souhaits_ignores[:MAX_IDS_AUDIT],
             "pieces_ignorees": len(self.pieces_ignorees),
+            "lecture_ia_en_file": self.lecture_ia_en_file,
         }
 
 
@@ -115,6 +119,7 @@ def sync_from_source(source: SiteSource, *, actor=None, compute_hashes: bool = T
     candidatures = _sync_candidatures(source, report, now, candidats, postes, offres)
     refusees = {r["source_id"] for r in report.refusees}
 
+    anciennes_empreintes = dict(Piece.objects.values_list("source_id", "sha256"))
     for f in source.list_pieces():
         if f.candidature_source_id in refusees:
             # Pièce d'une candidature refusée (règle 12) : non importée, comptée.
@@ -133,7 +138,19 @@ def sync_from_source(source: SiteSource, *, actor=None, compute_hashes: bool = T
             content = source.read_piece(f.storage_key)
             values["sha256"] = hashlib.sha256(content).hexdigest()
             values["taille"] = len(content)
-        _upsert(Piece, report, f.source_id, now, **values)
+        piece = _upsert(Piece, report, f.source_id, now, **values)
+        if f.source_id not in anciennes_empreintes or (
+            compute_hashes and anciennes_empreintes[f.source_id] != values["sha256"]
+        ):
+            report.pieces_nouvelles_ou_modifiees.append(piece.pk)
+
+    # Lecture IA des pièces nouvelles ou modifiées, mise en file après validation (KAN-41).
+    from apps.documents.lecture import lancer_apres_synchronisation
+
+    rapport_lecture = lancer_apres_synchronisation(
+        report.pieces_nouvelles_ou_modifiees, actor=actor
+    )
+    report.lecture_ia_en_file = len(rapport_lecture.en_file) if rapport_lecture else 0
 
     log(
         AuditAction.SYNC,
