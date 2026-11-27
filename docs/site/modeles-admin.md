@@ -22,7 +22,7 @@ URL admin : `/mad1009/concours/concourapplication/add/`
 | Ville, Pays | texte | — | **ville/pays du diplôme ou de résidence ?** à clarifier ; jamais un critère |
 | Documents | **un seul** `FileField` | `Piece` | un fichier par candidature : PDF combiné ou archive ? à confirmer |
 | URL signée | texte (« URL signée pour le téléchargement du document ») | — | ⚠ une URL signée stockée en base est réutilisable tant qu'elle n'expire pas : durée de validité à vérifier |
-| Snapshot | section repliée (probablement JSON) | idéal pour `donnees_declarees` | instantané du profil au moment de la candidature ? contenu à voir |
+| Snapshot du profil | champ en lecture seule (probablement JSON), aide : « Snapshot du profil du candidat au moment de la candidature » | **source prioritaire** de `donnees_declarees` | confirmé par le PO (2026-11-27) : copie figée du profil au dépôt ; affiché « - » quand vide ; structure exacte à lire en base |
 | Date de création / mise à jour | dates auto | `date_candidature`, `SourceRef.synced_at` | |
 
 **Absents de la candidature** : aucun **statut** (présélection, convocation, résultat), aucune
@@ -70,7 +70,7 @@ candidatures à des postes ? → **décision PO à prendre**.
 
 1. « Documents » d'une candidature : un PDF unique qui regroupe CV, diplôme, attestations, ou une
    archive ? (impact : découpage et classement des pages par l'IA, KAN-41).
-2. Contenu de la section « Snapshot » (sur une candidature **de test**).
+2. Structure exacte du « Snapshot du profil » (JSON) : à lire en base (`DatabaseSource`). Son existence est confirmée ; il garantit qu'on évalue le dossier tel qu'il était au moment du dépôt, même si le candidat modifie ensuite son profil.
 3. Durée de validité de l'« URL signée » et politique de listing du bucket Spaces.
 4. Référentiels : spécialités, mentions, niveaux d'études, niveaux d'expérience, fonctions,
    secteurs (listes fermées à récupérer).
