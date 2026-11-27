@@ -3,7 +3,9 @@
 - **Ticket** : https://othmane-smyej.atlassian.net/browse/KAN-41
 - **Epic** : E3 — Lecture des pièces et IA
 - **Statut** : validée le 2026-11-27 (PO : avancer ; propositions par défaut retenues pour toutes
-  les questions ouvertes)
+  les questions ouvertes). Amendée le même jour après le relevé des modèles du site
+  (`docs/site/modeles-admin.md`, KAN-25) et la précision du PO sur les formats acceptés
+  (règles 1 bis, 4 bis, 9 bis, 22 bis ; CA26 à CA31 ; Q9 à Q13).
 
 ## Contexte
 
@@ -36,6 +38,19 @@ Existant à réutiliser (pas à re-spécifier) :
 - `integrations/site_source/sync.py` : `sync_from_source` (empreintes, rapport, audit `sync`) ;
 - fiche candidature (KAN-11, KAN-12, KAN-13), journal (KAN-14), charte (`docs/design/charte.md`).
 
+Ce que l'on sait du site réel (relevé de l'admin, formulaires vides, KAN-25) :
+
+- une candidature (`ConcourApplication`) n'a qu'**un seul champ fichier « Documents »**, qui
+  accepte **n'importe quel type de fichier** : très probablement un PDF combiné (CV + diplôme +
+  attestations), parfois une image, un document Word ou une archive. Le profil candidat
+  (`CandidateProfile`) porte en plus un fichier « CV » distinct ;
+- le site ne stocke **aucune expérience datée** (ni employeur ni dates) : seulement une tranche
+  « niveau d'expérience » dans le profil. Sur la candidature : diplôme actuel (texte libre), date
+  de diplôme, spécialité (référentiel), mention, établissement. **Les années d'expérience datées
+  ne peuvent donc venir que des pièces lues par l'IA** : c'est le cœur de cette story ;
+- le profil contient civilité, photo, date de naissance, adresse, région : jamais extraits ni
+  envoyés à l'IA (règle 10).
+
 Coordination :
 
 - **KAN-42** (en parallèle) : détection des anomalies (doublons, pièces manquantes,
@@ -67,10 +82,17 @@ Contrôle de rôle côté serveur sur chaque vue et chaque fragment HTMX.
 
 ### A. Pièces lues et pipeline
 
-1. **Types lus.** Seules les pièces de type **CV**, **Diplôme** et **Attestation de travail** sont
+1. **Types lus.** Seules les pièces de type **CV**, **Diplôme**, **Attestation de travail** et **Dossier combiné** (règle 1 bis) sont
    lues. Les lettres de motivation et pièces « Autre » ne le sont pas (aucune donnée utile à
    l'éligibilité ; minimisation). Les candidatures **spontanées** ne sont pas lues dans cette
    story (Q3).
+1 bis. **Dossier combiné.** Une pièce de type **« Dossier combiné »** (`Piece.Type.DOSSIER`,
+   destiné au champ « Documents » du site) est lue comme un ensemble : l'IA **classe les pages**
+   en segments (CV, diplôme, attestation de travail, autre — pages consécutives), extrait les
+   données de chaque segment avec le schéma de son type et **cite la page source** dans chaque
+   extrait (« p. 3 : … »). Un segment « autre » (relevé de notes, copie de CIN…) n'est décrit que
+   par sa nature, sans aucune donnée. Le cas « une pièce = un document » (CV, diplôme, attestation)
+   reste inchangé. Les pièces « Lettre » et « Autre » ne sont pas lues (Q11).
 2. **Lecture à la demande.** Le contenu est lu via `SiteSource.read_piece` avec une taille
    maximale (`AI_PIECE_MAX_BYTES`, 10 Mo par défaut) et le délai `PIECE_SOURCE_TIMEOUT`. Il n'est
    jamais écrit sur disque ni en cache ; seul le **texte extrait** et les données structurées sont
@@ -86,7 +108,22 @@ Contrôle de rôle côté serveur sur chaque vue et chaque fragment HTMX.
      `AI_PSEUDONYMIZE`) ;
    - **PDF sans texte** (scan) → méthode `vision` : le PDF est envoyé comme bloc `document` ;
    - **image PNG ou JPEG** → méthode `vision` : bloc `image` ;
-   - tout autre contenu → lecture ignorée (`type_non_pris_en_charge`), aucun appel.
+   - tout autre contenu → voir la règle 4 bis (DOCX, TIFF lus ; archives et autres formats non lus).
+4 bis. **Formats** (le champ « Documents » accepte tout fichier ; type réel détecté sur les
+   octets, jamais sur l'extension ni le type déclaré) :
+   - **PDF** : texte (`pypdf`, un repère « === Page N === » par page) ou vision (règle 4) ; un PDF
+     qui **mêle** pages texte et pages numérisées part en vision si elle est permise ; sinon seules
+     les pages texte sont lues et les pages numérisées sont signalées « non lues » sur la fiche ;
+   - **PNG, JPEG** : vision ; **TIFF** (souvent multipage) : chaque page est convertie localement
+     en PNG (Pillow) puis envoyée en vision ;
+   - **DOCX** : texte extrait **localement** (`python-docx` : paragraphes et tableaux), sans appel
+     réseau, puis envoyé comme du texte (pseudonymisé) ; contrôle préalable des tailles
+     décompressées annoncées (20 Mo au plus, taux de compression ≤ 100) contre les bombes de
+     décompression ;
+   - **ZIP, RAR, 7z, GZIP, DOC (Word 97-2003), HEIC et tout format inconnu** : **jamais
+     décompressés ni convertis** dans cette story ; lecture « ignorée » avec le motif « Format non
+     lu automatiquement : à traiter par un humain (archive ZIP…) », visible sur la fiche. KAN-42
+     pourra en faire une anomalie à partir de ce statut (Q9, Q10).
 5. **Vision et pseudonymisation.** Une image ou un scan ne peut pas être pseudonymisé (le nom, la
    CIN, la photo y figurent). Quand `AI_PSEUDONYMIZE` est actif, la vision n'est permise que si
    `AI_VISION_NON_PSEUDONYMISEE=true` (désactivé par défaut, Q1) ; sinon la lecture est ignorée
@@ -109,7 +146,10 @@ Contrôle de rôle côté serveur sur chaque vue et chaque fragment HTMX.
      `etablissement`, `date_obtention`, `annee_obtention`, `extrait`, `confiance`, `remarques[]` ;
    - **Attestation de travail** (`LectureAttestation`) : `nom_titulaire`, `employeur`,
      `periodes[]` (poste, début, fin, en cours, extrait), `date_attestation`, `confiance`,
-     `remarques[]`.
+     `remarques[]` ;
+   - **Dossier combiné** (`LectureDossier`) : `segments[]` (`type_document`, `page_debut`,
+     `page_fin`, un seul bloc `cv` / `diplome` / `attestation` selon le type, `description` pour
+     « autre »), `confiance`, `remarques[]`. Prompt `lecture_dossier.v1.md`.
    Les dates sont des chaînes ISO (`AAAA-MM-JJ`) ou nulles ; leur interprétation est faite par le
    code (règle 20). `confiance` est un nombre entre 0 et 1.
 9. **Validation et rejet.** Toute sortie qui ne valide pas le schéma (type inattendu, champ
@@ -117,7 +157,11 @@ Contrôle de rôle côté serveur sur chaque vue et chaque fragment HTMX.
    passe en échec « Réponse de l'IA invalide », l'appel est journalisé en erreur, aucune donnée
    n'est enregistrée. Un refus du modèle (`stop_reason = refusal`) donne un échec « Lecture
    refusée par l'IA ».
-10. **Aucune donnée sensible extraite.** Les schémas ne contiennent ni sexe, ni âge, ni date de
+9 bis. **Contrôle du découpage** (déterministe, après validation du schéma) : pages comprises
+    entre 1 et le nombre de pages du document, segments sans chevauchement, bloc renseigné
+    conforme au type du segment. Sinon : échec « Réponse de l'IA invalide » (« Découpage du dossier
+    incohérent »), aucune donnée enregistrée.
+10. **Aucune donnée sensible extraite.** Les schémas ne contiennent ni civilité, ni sexe, ni âge, ni date de
     naissance, ni photo, ni situation familiale, ni nationalité, ni région ou adresse ; les
     prompts l'interdisent explicitement ; un tel champ dans la réponse la fait rejeter (règle 9).
     `nom_titulaire` est conservé (rapprochement de nom pour KAN-42) ; en mode pseudonymisé il est
@@ -181,6 +225,13 @@ Contrôle de rôle côté serveur sur chaque vue et chaque fragment HTMX.
       (« Écart entre le déclaré (Éligible) et les pièces (Non éligible) : … » ou « Confiance
       faible de la lecture de la pièce n° … »).
     Le critère « Autres critères » est inchangé.
+22 bis. **Déclaré muet sur un critère** (cas général pour l'expérience : le site ne stocke aucune
+    expérience datée ; aussi pour le niveau si aucun diplôme n'est déclaré) : les pièces sont la
+    **seule source**. Le critère est « éligible » si les pièces le montrent avec une confiance
+    suffisante (raison « Établi sur les pièces n° … (aucune donnée déclarée) ») ; tout autre
+    résultat (pièces insuffisantes, incomplètes ou confiance faible) donne **« à vérifier »**,
+    jamais « non éligible » (Q12). Le détail porte `source = pieces`. La tranche « niveau
+    d'expérience » du profil n'est pas utilisée ici (conversion en années : KAN-44).
 23. **Jamais de non-éligibilité sur la seule base de l'IA.** Un critère n'est « non éligible » que
     si le déclaré l'est **et** que les pièces le confirment avec une confiance suffisante, ou que
     le déclaré l'est et qu'aucune pièce n'alimente ce critère (comportement actuel). Une pièce lue
@@ -188,8 +239,10 @@ Contrôle de rôle côté serveur sur chaque vue et chaque fragment HTMX.
 24. **Sources enregistrées.** `VerificationEligibilite.sources` liste `{"type":
     "donnees_declarees"}` puis, pour chaque pièce utilisée, `{"type": "extraction", "piece_id",
     "extraction_id", "piece_type", "prompt_version", "confiance"}`. Le détail de chaque critère
-    porte en plus `source` (`declare` ou `declare_et_pieces`), `verdict_declare`,
-    `verdict_pieces`, `pieces` (identifiants) et `confiance` (minimum). La version enregistrée est
+    porte en plus `source` (`declare`, `declare_et_pieces` ou `pieces`), `verdict_declare`,
+    `verdict_pieces`, `pieces` (identifiants), `references` (« n° 12 », « n° 14 p. 3-4 ») et
+    `confiance` (minimum). Pour un dossier combiné, une source par segment utilisé, avec
+    `pages` et le type du segment. La version enregistrée est
     `1.1.0` (moteur inchangé + combinaison sur pièces) ; sans pièce lue, la vérification est
     identique à aujourd'hui (`sources` = déclaré seul, version `1.0.0`).
 25. **Relance automatique.** Quand la dernière lecture en attente d'une candidature se termine,
@@ -227,9 +280,13 @@ Contrôle de rôle côté serveur sur chaque vue et chaque fragment HTMX.
 30. Module `apps/documents/services.py`, fonctions sans effet de bord ni appel IA :
     - `extractions_de(candidature) -> list[Extraction]` : extractions **courantes** (règle 14),
       une par pièce lue ;
+    - `documents_lus(candidature)` / `documents_de(extraction) -> list[DocumentLu]` : documents
+      lus, pièce simple ou segment de dossier (`piece_id`, `extraction_id`, `type`, `pages`,
+      `donnees`, `confiance`, `reference`) ;
     - `profil_extrait(candidature) -> ProfilExtrait` : `profil` (`ProfilCandidat` du moteur),
       `diplomes_pieces` / `experience_pieces` (identifiants des pièces utilisées par critère),
-      `confiance_min` par critère, `noms_titulaires` (`{piece_id: nom}`), `extractions` ;
+      `confiance_*` par critère, `noms_titulaires` (`{piece_id: [noms]}`, plusieurs pour un
+      dossier), `documents`, `extractions` ;
     - `ecarts_declare_pieces(candidature) -> list[Ecart]` (règle 26).
     Les données d'une extraction sont lisibles avec le schéma de son type
     (`schema_pour(piece_type).model_validate(extraction.donnees)`).
@@ -240,7 +297,7 @@ Contrôle de rôle côté serveur sur chaque vue et chaque fragment HTMX.
   « terminée », méthode `pdf_texte`, contient le texte extrait, les données validées par
   `LectureCV`, la confiance, le modèle, la version de prompt et le lien vers l'`AppelIA` ; le texte
   envoyé à l'IA ne contient ni le nom, ni la CIN, ni l'email, ni le téléphone du candidat.
-- **CA2** — Diplôme et attestation PDF texte sont lus avec leur prompt (`lecture_diplome`,
+- **CA2** — Diplôme, attestation et dossier combiné PDF texte sont lus avec leur prompt (`lecture_diplome`,
   `lecture_attestation`) et leur schéma ; une lettre de motivation n'est jamais lue.
 - **CA3** — Une image PNG ou JPEG, ou un PDF sans texte, est lue par vision quand
   `AI_VISION_NON_PSEUDONYMISEE=true` : le transport reçoit un bloc `image` ou `document` ;
@@ -293,6 +350,23 @@ Contrôle de rôle côté serveur sur chaque vue et chaque fragment HTMX.
 - **CA25** — La section est traduisible (catalogue `ar` à jour) et n'utilise que des propriétés
   logiques (RTL).
 
+- **CA26** — Dossier combiné PDF (CV p. 1, diplôme p. 2, attestation p. 3, relevé p. 4) : le texte
+  envoyé porte un repère par page ; `documents_de` renvoie quatre segments avec leurs pages ; les
+  sources de la vérification citent les pages (le segment « autre » n'est pas utilisé) ; la fiche
+  affiche chaque segment (« Diplôme · page 2 ») et « Pièce n° N p. 2 (Diplôme) ».
+- **CA27** — Segment hors des pages du document ou bloc incohérent avec son type : échec
+  « Réponse de l'IA invalide », aucune donnée.
+- **CA28** — PDF mêlant pages texte et page numérisée : sans vision, lecture texte et pages
+  numérisées signalées non lues ; avec vision permise, tout le PDF part en vision.
+- **CA29** — Déclaré sans expérience (cas du site) : attestation lue montrant l'expérience
+  exigée → critère « éligible » (`source = pieces`) ; expérience insuffisante ou confiance faible
+  → « à vérifier » ; jamais « non éligible ».
+- **CA30** — Déclaré sans diplôme, diplôme lu de niveau insuffisant → « à vérifier ».
+- **CA31** — Formats : DOCX lu localement en texte (méthode « Word ») ; DOCX dont la taille
+  décompressée est excessive refusé ; TIFF multipage converti en PNG pour la vision ; ZIP, RAR,
+  7z, DOC, HEIC, inconnu → « Format non lu automatiquement » avec le format détecté, sans appel ni
+  décompression, visible sur la fiche, y compris avec une extension trompeuse.
+
 ## Cas limites et erreurs
 
 - Pièce sans `storage_key` valide pour la source → « introuvable ».
@@ -337,6 +411,9 @@ Contrôle de rôle côté serveur sur chaque vue et chaque fragment HTMX.
 - Score sur grille (cas d'usage n° 3).
 - Lecture des candidatures spontanées et recherche dans le vivier (vague 2).
 - Saisie manuelle ou correction des données extraites (méthode `manuelle` prévue dans le modèle).
+- Décompression des archives et lecture des formats DOC et HEIC (Q9, Q10).
+- Import du champ « Documents » et du CV du profil depuis le site réel (`DatabaseSource`,
+  `ApiSource`, Q11).
 - Lecture en lot depuis la liste des candidatures (possible ensuite via KAN-15).
 - OCR local (Tesseract) pour pseudonymiser les scans avant envoi (Q1, piste vague 2).
 
@@ -359,6 +436,23 @@ Contrôle de rôle côté serveur sur chaque vue et chaque fragment HTMX.
   oui, une fois par candidature quand ses lectures sont terminées (classement, pas décision).
 - [x] **Q7 — Limites** : *Proposition par défaut* : 10 Mo par pièce, 20 pages par PDF en vision,
   60 000 caractères de texte, 5 Mo par image (limite API) ; au-delà : vérification humaine.
+- [x] **Q9 — Archives (ZIP, RAR, 7z…) dans le champ « Documents »** : *Proposition par défaut* :
+  ne jamais décompresser dans cette story (bombes de décompression, fichiers imbriqués, formats
+  piégés) ; statut « Format non lu automatiquement », traitement humain ; anomalie par KAN-42.
+  Une décompression contrôlée (taille, profondeur, nombre de fichiers) pourra faire l'objet d'une
+  story dédiée.
+- [x] **Q10 — DOC (Word 97-2003) et HEIC** : *Proposition par défaut* : non lus (pas de
+  bibliothèque standard sûre sans dépendance système) ; DOCX lu localement avec `python-docx` ;
+  TIFF converti avec Pillow.
+- [x] **Q11 — Correspondance avec le site** : *Proposition par défaut* : le fichier « Documents »
+  d'une candidature est importé en `Piece` de type « Dossier combiné » ; le fichier « CV » du
+  profil, s'il est importé, en type « CV » (à câbler dans `DatabaseSource` / `ApiSource` quand
+  l'accès sera ouvert). Les pièces « Autre » ne sont pas lues.
+- [x] **Q12 — Éligible sur pièces seules** : quand le déclaré est muet (expérience datée absente
+  du site), *Proposition par défaut* : « éligible » permis si les pièces le montrent avec une
+  confiance suffisante ; « non éligible » jamais sans vérification humaine.
+- [x] **Q13 — Tranche « niveau d'expérience » du profil** : *Proposition par défaut* : non
+  utilisée par KAN-41 ; sa conversion en années et sa confrontation aux pièces relèvent de KAN-44.
 - [x] **Q8 — Modèle** : *Proposition par défaut* : `AI_MODEL` (défaut `claude-opus-5-5`), effort
   `AI_EFFORT` (défaut `medium`), repli serveur en cas de refus (`AI_FALLBACKS=true`) ; un
   changement de modèle ne relance pas les lectures (« Relire » si besoin).
