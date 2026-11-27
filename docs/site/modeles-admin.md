@@ -23,7 +23,8 @@ URL admin : `/mad1009/concours/concourapplication/add/`
 | Documents | **un seul** `FileField` | `Piece` | un fichier par candidature : PDF combiné ou archive ? à confirmer |
 | URL signée | texte (« URL signée pour le téléchargement du document ») | — | ⚠ une URL signée stockée en base est réutilisable tant qu'elle n'expire pas : durée de validité à vérifier |
 | Snapshot du profil | champ en lecture seule (probablement JSON), aide : « Snapshot du profil du candidat au moment de la candidature » | **source prioritaire** de `donnees_declarees` | confirmé par le PO (2026-11-27) : copie figée du profil au dépôt ; affiché « - » quand vide ; structure exacte à lire en base |
-| Date de création / mise à jour | dates auto | `date_candidature`, `SourceRef.synced_at` | |
+| Date de création | date auto | `date_candidature` | |
+| Date de mise à jour | date auto | champ distinct à prévoir (ex. `source_mise_a_jour_le`, comme `DetailsSpontanee.mise_a_jour_source_le` de KAN-39) | ne **pas** la mapper sur `source_synced_at`, qui est la date de notre dernière synchronisation et est réécrit à chaque import |
 
 **Absents de la candidature** : aucun **statut** (présélection, convocation, résultat), aucune
 **expérience détaillée** (employeur, dates). Les statuts et décisions vivent donc uniquement dans
