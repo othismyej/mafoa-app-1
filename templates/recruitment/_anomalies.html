@@ -1,0 +1,67 @@
+{% load i18n %}
+{# Bloc Anomalies (KAN-11 règle 11, KAN-42 règle 30) : fragment rafraîchi après relance, résolution ou réouverture. #}
+<section class="card" id="anomalies" aria-labelledby="titre-anomalies">
+  <div class="card-header flex flex-wrap items-center justify-between gap-3">
+    <h2 id="titre-anomalies" class="section-title flex items-center gap-2">{% include "components/icon.html" with name="alert" size="h-5 w-5 text-ink-500" %}{% translate "Anomalies" %}</h2>
+    <form method="post" action="{% url 'recruitment:anomalies_detecter' c.pk %}" hx-post="{% url 'recruitment:anomalies_detecter' c.pk %}" hx-target="#anomalies" hx-swap="outerHTML" data-relancer-detection>
+      {% csrf_token %}
+      <button type="submit" class="btn-secondary btn-sm min-h-10">{% translate "Relancer la détection" %}</button>
+    </form>
+  </div>
+  <div class="card-body">
+  <p class="meta mb-4" data-detection-date>{% if c.anomalies_verifiees_le %}{% blocktranslate with d=c.anomalies_verifiees_le|date:"d/m/Y H:i" %}Détection effectuée le {{ d }}{% endblocktranslate %}{% else %}{% translate "Détection non encore effectuée" %}{% endif %}</p>
+  {% with f=anomalie_form %}
+  {% if f.succes %}<p class="alert alert-success mb-4" role="status" data-anomalie-succes>{{ f.succes }}</p>{% endif %}
+  {% if f.erreur and not f.anomalie_id %}<p class="alert alert-warning mb-4" role="alert" data-anomalie-erreur>{{ f.erreur }}</p>{% endif %}
+  {% if anomalies_vues %}
+  <ul class="space-y-3 text-sm">
+    {% for v in anomalies_vues %}{% with a=v.a %}
+    <li class="rounded-control border p-4 {% if a.resolue %}border-ink-200 bg-ink-50{% elif a.gravite == 'haute' %}border-orange-200 border-s-4 border-s-orange-500{% elif a.gravite == 'moyenne' %}border-yellow-200 border-s-4 border-s-yellow-500{% else %}border-ink-200 border-s-4 border-s-ink-400{% endif %}" data-anomalie="{{ a.pk }}" data-resolue="{{ a.resolue|yesno:'oui,non' }}"{% if a.code %} data-code="{{ a.code }}"{% endif %}>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="font-semibold text-ink-900">{{ a.get_type_display }}</span>
+        <span class="badge badge-plain {% if a.resolue %}badge-info{% else %}badge-{{ a.gravite }}{% endif %}">{{ a.get_gravite_display }}</span>
+        {% if a.cause_disparue_le and not a.resolue %}<span class="badge badge-plain badge-a_verifier" data-cause-disparue>{% blocktranslate with d=a.cause_disparue_le|date:"d/m/Y" %}Cause disparue le {{ d }} — à confirmer{% endblocktranslate %}</span>{% endif %}
+        {% if a.resolue %}<span class="badge badge-en_vigueur">{% blocktranslate with qui=a.resolue_par|default:"—" quand=a.resolue_le|date:"d/m/Y H:i"|default:"—" %}Résolue par {{ qui }} le {{ quand }}{% endblocktranslate %}</span>{% endif %}
+      </div>
+      {% if v.libelle_code %}<p class="mt-1 font-medium text-ink-800" data-libelle-code>{{ v.libelle_code }}</p>{% endif %}
+      <p class="mt-2 whitespace-pre-line text-ink-800">{{ a.description }}</p>
+      {% if v.sources %}<p class="mt-2 text-ink-700" data-anomalie-source><span class="text-ink-600">{% translate "Source" %} :</span> {{ v.sources|join:" · " }}</p>{% endif %}
+      {% if v.extrait %}<blockquote class="mt-2 border-s-2 border-ink-300 ps-3 italic text-ink-700" data-extrait>{{ v.extrait }}</blockquote>{% endif %}
+      <p class="meta mt-2">
+        {% translate "Détectée le" %} {{ a.created_at|date:"d/m/Y H:i" }}
+        {% if a.piece and not v.sources %}· {% translate "Pièce" %} : {{ a.piece.get_type_display }} ({{ a.piece.nom_fichier }}){% endif %}
+        {% if v.lien %}·
+          {% if a.candidature_liee %}<a href="{% url 'recruitment:candidature_detail' a.candidature_liee_id %}" class="link" data-candidature-liee>{% translate "Voir la candidature liée" %} ({{ a.candidature_liee.candidat }})</a> — <span data-cible-liee>{{ a.candidature_liee.cible_libelle }}</span>
+          {% else %}{% translate "candidature liée indisponible" %}{% endif %}
+        {% endif %}
+      </p>
+      {% if v.etat_symetrique %}<p class="meta mt-1" data-etat-symetrique="{{ v.etat_symetrique }}">{% if v.etat_symetrique == "resolue" %}{% translate "Anomalie correspondante sur la candidature liée : résolue" %}{% else %}{% translate "Anomalie correspondante sur la candidature liée : non résolue" %}{% endif %}</p>{% endif %}
+      {% if a.resolue and a.issue_resolution %}
+      <div class="mt-3 rounded-control bg-white px-3 py-2" data-resolution>
+        <p class="font-medium text-ink-800">{{ a.get_issue_resolution_display }}</p>
+        <p class="mt-1 whitespace-pre-line text-ink-800" data-motif-resolution>{{ a.motif_resolution }}</p>
+      </div>
+      {% endif %}
+
+      {% if a.resolue %}{% with op="reouverture" %}
+      <details class="mt-3"{% if f.anomalie_id == a.pk %} open{% endif %} data-anomalie-rouvrir>
+        <summary class="link cursor-pointer text-sm">{% translate "Rouvrir l’anomalie" %}</summary>
+        {% include "recruitment/_anomalie_form.html" %}
+      </details>
+      {% endwith %}{% else %}{% with op="resolution" %}
+      <details class="mt-3"{% if f.anomalie_id == a.pk %} open{% endif %} data-anomalie-resoudre>
+        <summary class="link cursor-pointer text-sm">{% translate "Résoudre l’anomalie" %}</summary>
+        {% include "recruitment/_anomalie_form.html" %}
+      </details>
+      {% endwith %}{% endif %}
+    </li>
+    {% endwith %}{% endfor %}
+  </ul>
+  {% else %}
+  <p class="flex items-center gap-2 text-sm text-ink-600">{% include "components/icon.html" with name="check" size="h-4 w-4 text-emerald-700" %}{% translate "Aucune anomalie" %}</p>
+  {% endif %}
+  <p class="mt-4 flex items-start gap-2 text-xs text-ink-600">{% include "components/icon.html" with name="shield" size="mt-0.5 h-4 w-4 text-ink-500" %}<span>{% translate "Une anomalie est un signalement : elle ne change ni le statut, ni le verdict, ni les décisions. Toute résolution est humaine, motivée et inscrite au journal d’audit." %}</span></p>
+  {% endwith %}
+  </div>
+</section>
+{% if request.headers.hx_request == "true" %}<dd class="{% if nb_anomalies_non_resolues %}font-semibold text-amber-800{% else %}font-medium text-ink-900{% endif %}" id="nb-anomalies" data-nb-anomalies hx-swap-oob="true">{% blocktranslate count n=nb_anomalies_non_resolues %}{{ n }} anomalie non résolue{% plural %}{{ n }} anomalies non résolues{% endblocktranslate %}</dd>{% endif %}

@@ -49,6 +49,9 @@ class SyncReport:
     conflits_type: list[dict] = field(default_factory=list)
     souhaits_ignores: list[str] = field(default_factory=list)
     pieces_ignorees: list[str] = field(default_factory=list)
+    # KAN-42, règle 22 : état de la détection d'anomalies mise en file après validation
+    # (``programmee`` tant que la transaction n'est pas validée ; rapport joint en mode immédiat).
+    detection: dict = field(default_factory=dict)
 
     def count(self, model: str, created: bool) -> None:
         bucket = self.created if created else self.updated
@@ -135,6 +138,7 @@ def sync_from_source(source: SiteSource, *, actor=None, compute_hashes: bool = T
             values["taille"] = len(content)
         _upsert(Piece, report, f.source_id, now, **values)
 
+    _programmer_detection(source, report, [c.pk for c in candidatures.values()], actor)
     log(
         AuditAction.SYNC,
         actor=actor,
@@ -144,9 +148,41 @@ def sync_from_source(source: SiteSource, *, actor=None, compute_hashes: bool = T
             "created": report.created,
             "updated": report.updated,
             **report.audit_metadata(),
+            "detection": report.detection.get("detection", "aucune"),
+            "detection_run_id": report.detection.get("run_id"),
         },
     )
     return report
+
+
+def _programmer_detection(source, report: SyncReport, candidature_ids, actor) -> None:
+    """Détection des anomalies en tâche Celery à la validation de la synchronisation (KAN-42,
+    règle 22, Q14). Rien n'est mis en file si la synchronisation est annulée ; un échec de mise
+    en file ne fait jamais échouer la synchronisation : une entrée ``sync`` complémentaire porte
+    alors ``detection = "non_lancee"`` (le journal étant en ajout seul)."""
+    from apps.evaluation.anomalies.declencheurs import NON_LANCEE, planifier_detection
+
+    if not candidature_ids:
+        return
+
+    def rappel(etat: dict) -> None:
+        report.detection = etat
+        if etat["detection"] == NON_LANCEE:
+            log(
+                AuditAction.SYNC,
+                actor=actor,
+                actor_repr="" if actor else f"synchronisation ({source.name})",
+                metadata={
+                    "source": source.name,
+                    "detection": NON_LANCEE,
+                    "detection_run_id": etat["run_id"],
+                    "erreur": etat.get("erreur", ""),
+                    "candidatures": len(candidature_ids),
+                },
+            )
+
+    run_id = planifier_detection(candidature_ids, declencheur="sync", rappel=rappel)
+    report.detection = {"detection": "programmee", "run_id": run_id}
 
 
 def _sync_candidatures(source, report, now, candidats, postes, offres) -> dict[str, Candidature]:

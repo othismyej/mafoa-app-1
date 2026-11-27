@@ -195,6 +195,19 @@ PIECE_SOURCE_TIMEOUT = env.float("PIECE_SOURCE_TIMEOUT", default=10.0)
 # date de candidature (ou de la dernière mise à jour à la source). Purge effective : KAN-31.
 RETENTION_CANDIDATURE_SPONTANEE_MOIS = env.int("RETENTION_CANDIDATURE_SPONTANEE_MOIS", default=24)
 
+# Détection des anomalies (KAN-42) : seuils et périmètre, voir docs/specs/KAN-42-anomalies.md.
+DOUBLONS_SEUIL_GROUPE = env.int("DOUBLONS_SEUIL_GROUPE", default=5)
+CHEVAUCHEMENT_SEUIL_JOURS = env.int("CHEVAUCHEMENT_SEUIL_JOURS", default=180)
+EXTRACTION_CONFIANCE_MIN = env.float("EXTRACTION_CONFIANCE_MIN", default=0.7)
+DETECTION_LOT_TAILLE = env.int("DETECTION_LOT_TAILLE", default=500)
+# Pièces obligatoires par type de candidature quand ni le poste, ni le concours, ni l'offre
+# n'en précisent (règle 14, Q5).
+PIECES_OBLIGATOIRES_DEFAUT = {
+    "concours": ["cv", "diplome"],
+    "offre": ["cv"],
+    "spontanee": ["cv"],
+}
+
 # --- IA ---------------------------------------------------------------------
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
 AI_MODEL = env("AI_MODEL", default="claude-opus-5-5")

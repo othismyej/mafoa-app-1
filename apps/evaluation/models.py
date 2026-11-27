@@ -147,12 +147,25 @@ class Anomalie(models.Model):
         INCOHERENCE_DATES = "incoherence_dates", "Incohérence de dates"
         INCOHERENCE_NOM = "incoherence_nom", "Incohérence de nom"
         EMPREINTE_DIFFERENTE = "empreinte_differente", "Empreinte de pièce différente"
+        # KAN-42, Q1.
+        PLUSIEURS_POSTES_CONCOURS = (
+            "plusieurs_postes_concours",
+            "Plusieurs candidatures dans un même concours",
+        )
+        ECART_DECLARATION = "ecart_declaration", "Écart entre déclaration et pièce"
         AUTRE = "autre", "Autre"
 
     class Gravite(models.TextChoices):
         INFO = "info", "Information"
         MOYENNE = "moyenne", "Moyenne"
         HAUTE = "haute", "Haute"
+
+    class Issue(models.TextChoices):
+        """Issue d'une résolution humaine (KAN-42, règle 25)."""
+
+        CONFIRMEE = "confirmee", "Vérifiée : anomalie confirmée et traitée"
+        FAUX_POSITIF = "faux_positif", "Vérifiée : pas une anomalie"
+        CAUSE_DISPARUE = "cause_disparue", "Cause disparue, confirmée"
 
     candidature = models.ForeignKey(Candidature, on_delete=models.CASCADE, related_name="anomalies")
     piece = models.ForeignKey(
@@ -175,6 +188,27 @@ class Anomalie(models.Model):
     )
     resolue_le = models.DateTimeField("résolue le", null=True, blank=True)
     created_at = models.DateTimeField("détectée le", auto_now_add=True)
+    # Détection automatique (KAN-42, règles 3, 17 et 20) : vides pour les anomalies antérieures
+    # ou créées par un autre contrôle (KAN-12), que le détecteur ne touche jamais.
+    code = models.CharField("code", max_length=40, blank=True)
+    cle = models.CharField(
+        "clé d'idempotence",
+        max_length=200,
+        blank=True,
+        help_text="Clé stable et non nominative du constat (une anomalie par clé et candidature).",
+    )
+    details = models.JSONField("détails", default=dict, blank=True)
+    detecteur_version = models.CharField("version du détecteur", max_length=20, blank=True)
+    cause_disparue_le = models.DateTimeField(
+        "cause disparue le",
+        null=True,
+        blank=True,
+        help_text="Cause non constatée lors d'une détection : à confirmer par un humain.",
+    )
+    issue_resolution = models.CharField(
+        "issue de la résolution", max_length=20, choices=Issue.choices, blank=True
+    )
+    motif_resolution = models.TextField("motif de la résolution", blank=True)
 
     class Meta:
         verbose_name = "anomalie"
@@ -182,6 +216,14 @@ class Anomalie(models.Model):
         ordering = ["resolue", "-created_at"]
         indexes = [
             models.Index(fields=["candidature", "resolue"], name="anomalie_cand_resolue_idx"),
+        ]
+        constraints = [
+            # KAN-42, règle 17 : jamais deux anomalies de même clé sur une candidature.
+            models.UniqueConstraint(
+                fields=["candidature", "cle"],
+                condition=~Q(cle=""),
+                name="uniq_anomalie_candidature_cle",
+            ),
         ]
 
     def __str__(self) -> str:

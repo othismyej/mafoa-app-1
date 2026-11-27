@@ -39,7 +39,7 @@
       <div class="flex items-center justify-between gap-4"><dt class="text-ink-600">{% translate "Statut" %} :</dt> <dd class="font-semibold" data-statut><span id="statut-candidature" class="badge badge-{{ c.statut }}">{{ c.get_statut_display }}</span></dd></div>
       <div class="flex items-center justify-between gap-4"><dt class="text-ink-600">{% translate "Candidature du" %} :</dt> <dd class="font-medium tabular-nums text-ink-900">{{ c.date_candidature|date:"d/m/Y H:i" }}</dd></div>
       <div class="flex items-center justify-between gap-4"><dt class="text-ink-600">{% translate "Anomalies" %} :</dt>
-        <dd class="{% if nb_anomalies_non_resolues %}font-semibold text-amber-800{% else %}font-medium text-ink-900{% endif %}" data-nb-anomalies>
+        <dd class="{% if nb_anomalies_non_resolues %}font-semibold text-amber-800{% else %}font-medium text-ink-900{% endif %}" id="nb-anomalies" data-nb-anomalies>
           {% blocktranslate count n=nb_anomalies_non_resolues %}{{ n }} anomalie non résolue{% plural %}{{ n }} anomalies non résolues{% endblocktranslate %}
         </dd></div>
       {% if c.est_spontanee %}
@@ -169,38 +169,8 @@
 </section>
 {% endif %}
 
-{# Anomalies #}
-<section class="card" aria-labelledby="titre-anomalies">
-  <div class="card-header">
-    <h2 id="titre-anomalies" class="section-title flex items-center gap-2">{% include "components/icon.html" with name="alert" size="h-5 w-5 text-ink-500" %}{% translate "Anomalies" %}</h2>
-  </div>
-  <div class="card-body">
-  {% if anomalies %}
-  <ul class="space-y-3 text-sm">
-    {% for a in anomalies %}
-    <li class="rounded-control border p-4 {% if a.resolue %}border-ink-200 bg-ink-50{% elif a.gravite == 'haute' %}border-orange-200 border-s-4 border-s-orange-500{% elif a.gravite == 'moyenne' %}border-yellow-200 border-s-4 border-s-yellow-500{% else %}border-ink-200 border-s-4 border-s-ink-400{% endif %}" data-anomalie="{{ a.pk }}" data-resolue="{{ a.resolue|yesno:'oui,non' }}">
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="font-semibold text-ink-900">{{ a.get_type_display }}</span>
-        <span class="badge badge-plain {% if a.resolue %}badge-info{% else %}badge-{{ a.gravite }}{% endif %}">{{ a.get_gravite_display }}</span>
-        {% if a.resolue %}<span class="badge badge-en_vigueur">{% blocktranslate with qui=a.resolue_par|default:"—" quand=a.resolue_le|date:"d/m/Y H:i"|default:"—" %}Résolue par {{ qui }} le {{ quand }}{% endblocktranslate %}</span>{% endif %}
-      </div>
-      <p class="mt-2 whitespace-pre-line text-ink-800">{{ a.description }}</p>
-      <p class="meta mt-2">
-        {% translate "Détectée le" %} {{ a.created_at|date:"d/m/Y H:i" }}
-        {% if a.piece %}· {% translate "Pièce" %} : {{ a.piece.get_type_display }} ({{ a.piece.nom_fichier }}){% endif %}
-        {% if a.type == "doublon_candidat" %}·
-          {% if a.candidature_liee %}<a href="{% url 'recruitment:candidature_detail' a.candidature_liee_id %}" class="link" data-candidature-liee>{% translate "Voir la candidature liée" %} ({{ a.candidature_liee.candidat }})</a>
-          {% else %}{% translate "candidature liée indisponible" %}{% endif %}
-        {% endif %}
-      </p>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="flex items-center gap-2 text-sm text-ink-600">{% include "components/icon.html" with name="check" size="h-4 w-4 text-emerald-700" %}{% translate "Aucune anomalie" %}</p>
-  {% endif %}
-  </div>
-</section>
+{# Anomalies (fragment rafraîchi après relance, résolution ou réouverture, KAN-42) #}
+{% include "recruitment/_anomalies.html" %}
 </div>
 
 <div class="space-y-6">

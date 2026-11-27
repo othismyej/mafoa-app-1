@@ -1,10 +1,17 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from apps.evaluation.eligibility.levels import NiveauEtudes
 
-from .normalization import identity_key, normalize_email, normalize_name, normalize_phone
+from .normalization import (
+    identity_key,
+    normalize_cin,
+    normalize_email,
+    normalize_name,
+    normalize_phone,
+)
 
 
 class TimeStampedModel(models.Model):
@@ -49,6 +56,49 @@ class ModeTravail(models.TextChoices):
     TELETRAVAIL = "teletravail", "Télétravail"
 
 
+def valider_pieces_obligatoires(value) -> None:
+    """Pièces obligatoires (KAN-42, règle 14) : liste de types de ``Piece.Type`` hors « autre »."""
+    if value is None:
+        return
+    if not isinstance(value, list):
+        raise ValidationError(
+            'Liste de types de pièce attendue (ex. ["cv", "diplome"]).', code="invalid"
+        )
+    permis = set(Piece.TYPES_OBLIGATOIRES)
+    refuses = [v for v in value if not isinstance(v, str) or v not in permis]
+    if refuses:
+        raise ValidationError(
+            "Type de pièce non permis : %(v)s. Valeurs possibles : %(p)s.",
+            code="invalid",
+            params={"v": ", ".join(map(str, refuses)), "p": ", ".join(Piece.TYPES_OBLIGATOIRES)},
+        )
+    if len(set(value)) != len(value):
+        raise ValidationError("Un type de pièce est répété.", code="invalid")
+
+
+class PiecesObligatoiresMixin(models.Model):
+    """Pièces obligatoires d'un concours, d'un poste ou d'une offre (KAN-42, règle 14).
+
+    ``None`` = valeur par défaut (héritée du concours pour un poste, puis paramètre
+    ``PIECES_OBLIGATOIRES_DEFAUT``) ; ``[]`` = aucune pièce obligatoire.
+    """
+
+    pieces_obligatoires = models.JSONField(
+        "pièces obligatoires",
+        null=True,
+        blank=True,
+        default=None,
+        validators=[valider_pieces_obligatoires],
+        help_text=(
+            'Liste de types de pièce, ex. ["cv", "diplome", "attestation_travail"]. '
+            "Vide : valeur par défaut. [] : aucune pièce obligatoire."
+        ),
+    )
+
+    class Meta:
+        abstract = True
+
+
 class Organisation(SourceRefMixin, TimeStampedModel):
     class Type(models.TextChoices):
         PUBLIC = "public", "Entité publique"
@@ -68,7 +118,7 @@ class Organisation(SourceRefMixin, TimeStampedModel):
         return self.nom
 
 
-class Concours(SourceRefMixin, TimeStampedModel):
+class Concours(SourceRefMixin, PiecesObligatoiresMixin, TimeStampedModel):
     class Statut(models.TextChoices):
         BROUILLON = "brouillon", "Brouillon"
         OUVERT = "ouvert", "Postulation ouverte"
@@ -128,7 +178,9 @@ class CriteresEligibiliteMixin(models.Model):
         abstract = True
 
 
-class PosteConcours(SourceRefMixin, CriteresEligibiliteMixin, TimeStampedModel):
+class PosteConcours(
+    SourceRefMixin, CriteresEligibiliteMixin, PiecesObligatoiresMixin, TimeStampedModel
+):
     concours = models.ForeignKey(
         Concours, verbose_name="concours", on_delete=models.CASCADE, related_name="postes"
     )
@@ -165,7 +217,9 @@ class PosteConcours(SourceRefMixin, CriteresEligibiliteMixin, TimeStampedModel):
         return self.date_limite or self.concours.date_limite
 
 
-class OffreEmploi(SourceRefMixin, CriteresEligibiliteMixin, TimeStampedModel):
+class OffreEmploi(
+    SourceRefMixin, CriteresEligibiliteMixin, PiecesObligatoiresMixin, TimeStampedModel
+):
     class Statut(models.TextChoices):
         OUVERTE = "ouverte", "Ouverte"
         FERMEE = "fermee", "Fermée"
@@ -245,6 +299,9 @@ class Candidat(SourceRefMixin, TimeStampedModel):
     telephone_normalise = models.CharField(max_length=30, blank=True, db_index=True, editable=False)
     nom_normalise = models.CharField(max_length=300, blank=True, db_index=True, editable=False)
     cle_identite = models.CharField(max_length=320, blank=True, db_index=True, editable=False)
+    # KAN-42, Q3 bis révisée : la CIN est une clé de rapprochement (jamais affichée ni
+    # journalisée par la détection).
+    cin_normalise = models.CharField(max_length=20, blank=True, db_index=True, editable=False)
 
     class Meta:
         verbose_name = "candidat"
@@ -260,6 +317,7 @@ class Candidat(SourceRefMixin, TimeStampedModel):
         self.telephone_normalise = normalize_phone(self.telephone)
         self.nom_normalise = normalize_name(self.nom, self.prenom)
         self.cle_identite = identity_key(self.nom, self.prenom, self.date_naissance)
+        self.cin_normalise = normalize_cin(self.cin)
         update_fields = kwargs.get("update_fields")
         if update_fields is not None:
             kwargs["update_fields"] = set(update_fields) | {
@@ -267,6 +325,7 @@ class Candidat(SourceRefMixin, TimeStampedModel):
                 "telephone_normalise",
                 "nom_normalise",
                 "cle_identite",
+                "cin_normalise",
             }
         super().save(*args, **kwargs)
 
@@ -344,6 +403,10 @@ class Candidature(SourceRefMixin, TimeStampedModel):
         default=dict,
         blank=True,
         help_text="Formation et expériences saisies par le candidat sur le site.",
+    )
+    # Dernière exécution complète du détecteur d'anomalies pour ce dossier (KAN-42, règle 20).
+    anomalies_verifiees_le = models.DateTimeField(
+        "anomalies vérifiées le", null=True, blank=True, editable=False
     )
 
     objects = CandidatureQuerySet.as_manager()
@@ -515,6 +578,9 @@ class Piece(SourceRefMixin, TimeStampedModel):
         ATTESTATION_TRAVAIL = "attestation_travail", "Attestation de travail"
         LETTRE = "lettre", "Lettre de motivation"
         AUTRE = "autre", "Autre"
+
+    #: Types pouvant être exigés (KAN-42, règle 14) : « autre » ne remplace jamais une pièce.
+    TYPES_OBLIGATOIRES = ("cv", "diplome", "attestation_travail", "lettre")
 
     candidature = models.ForeignKey(
         Candidature, verbose_name="candidature", on_delete=models.CASCADE, related_name="pieces"

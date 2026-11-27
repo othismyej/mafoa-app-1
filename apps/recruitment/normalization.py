@@ -39,3 +39,12 @@ def identity_key(last_name: str | None, first_name: str | None, birth_date: date
     if not birth_date:
         return ""
     return f"{normalize_name(last_name, first_name)}|{birth_date.isoformat()}"
+
+
+def normalize_cin(cin: str | None) -> str:
+    """CIN en majuscules, sans espaces ni ponctuation (KAN-42, Q3 bis révisée).
+
+    Une valeur de moins de 4 caractères est ignorée (vide) : trop courte pour rapprocher.
+    """
+    value = re.sub(r"[^0-9A-Z]", "", (cin or "").upper())
+    return value if len(value) >= 4 else ""

@@ -1,6 +1,8 @@
 from django.contrib import admin
 
 from apps.audit.admin_mixins import ConsultationLoggingAdminMixin
+from apps.audit.models import AuditAction
+from apps.audit.services import log
 
 from .models import (
     Candidat,
@@ -14,6 +16,32 @@ from .models import (
 )
 
 SOURCE_FIELDS = ("source_id", "source_synced_at")
+
+
+class PiecesObligatoiresAuditMixin:
+    """Journalise toute modification des pièces obligatoires (KAN-42, règle 14) : ``update``
+    avec la valeur avant et après. La détection n'est pas relancée (règle 16)."""
+
+    def save_model(self, request, obj, form, change):
+        avant = None
+        if change and obj.pk:
+            avant = (
+                type(obj)
+                .objects.filter(pk=obj.pk)
+                .values_list("pieces_obligatoires", flat=True)
+                .first()
+            )
+        super().save_model(request, obj, form, change)
+        apres = obj.pieces_obligatoires
+        if (change and avant != apres) or (not change and apres is not None):
+            log(
+                AuditAction.UPDATE,
+                obj=obj,
+                request=request,
+                before={"pieces_obligatoires": avant},
+                after={"pieces_obligatoires": apres},
+                metadata={"operation": "pieces_obligatoires"},
+            )
 
 
 @admin.register(Organisation)
@@ -31,7 +59,7 @@ class PosteConcoursInline(admin.TabularInline):
 
 
 @admin.register(Concours)
-class ConcoursAdmin(admin.ModelAdmin):
+class ConcoursAdmin(PiecesObligatoiresAuditMixin, admin.ModelAdmin):
     list_display = ("intitule", "organisation", "date_publication", "date_limite", "statut")
     list_filter = ("statut", "organisation")
     search_fields = ("intitule",)
@@ -40,7 +68,7 @@ class ConcoursAdmin(admin.ModelAdmin):
 
 
 @admin.register(PosteConcours)
-class PosteConcoursAdmin(admin.ModelAdmin):
+class PosteConcoursAdmin(PiecesObligatoiresAuditMixin, admin.ModelAdmin):
     list_display = (
         "reference",
         "intitule",
@@ -85,12 +113,13 @@ class PosteConcoursAdmin(admin.ModelAdmin):
                 )
             },
         ),
+        ("Pièces obligatoires (KAN-42)", {"fields": ("pieces_obligatoires",)}),
         ("Synchronisation", {"fields": SOURCE_FIELDS}),
     )
 
 
 @admin.register(OffreEmploi)
-class OffreEmploiAdmin(admin.ModelAdmin):
+class OffreEmploiAdmin(PiecesObligatoiresAuditMixin, admin.ModelAdmin):
     list_display = ("intitule", "organisation", "ville", "type_contrat", "statut")
     list_filter = ("statut", "type_contrat", "fonction")
     search_fields = ("intitule",)

@@ -339,6 +339,9 @@ def test_ca1_migration_sans_perte(dir1):
     with connection.cursor() as cursor:
         cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
     _migrer(APRES)
+    # Puis jusqu'au dernier état (migrations postérieures, ex. KAN-42) : les modèles courants
+    # servent à la comparaison.
+    _migrer(MigrationExecutor(connection).loader.graph.leaf_nodes())
     apres = {
         "candidatures": dict(Candidature.objects.values_list("id", "statut")),
         "decisions": Decision.objects.count(),
@@ -404,6 +407,9 @@ def test_ca4_vivier_interdit_pour_concours_et_offre(ref):
 
 def test_ca5_migration_inverse_refusee_avec_spontanees(ref):
     n = Candidature.objects.count()
+    with connection.cursor() as cursor:
+        # Les migrations postérieures (KAN-42) modifient des tables déjà écrites par le test.
+        cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
     with pytest.raises(RuntimeError, match="candidature\\(s\\) spontanée\\(s\\)"):
         _migrer(AVANT)
     assert Candidature.objects.count() == n

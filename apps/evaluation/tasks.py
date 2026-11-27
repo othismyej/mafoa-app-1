@@ -28,3 +28,15 @@ def relancer_eligibilite_lot(
         user_agent=user_agent,
     )
     return rapport.as_metadata()
+
+
+@shared_task(name="evaluation.detecter_anomalies", ignore_result=True)
+def detecter_anomalies_task(*, candidature_ids, declencheur, run_id=None) -> dict:
+    """Détection des anomalies (KAN-42, règle 22), au nom du système.
+
+    Idempotente : une tâche relivrée (``acks_late``) ne crée rien de plus ; seule l'entrée
+    ``detection`` est répétée avec le même ``run_id``.
+    """
+    from .anomalies.service import detecter_anomalies
+
+    return detecter_anomalies(candidature_ids, declencheur=declencheur, run_id=run_id).as_metadata()

@@ -56,10 +56,21 @@ class ScoreAdmin(ConsultationLoggingAdminMixin, admin.ModelAdmin):
 
 @admin.register(Anomalie)
 class AnomalieAdmin(ConsultationLoggingAdminMixin, admin.ModelAdmin):
-    list_display = ("candidature", "type", "gravite", "resolue", "created_at")
+    """Consultation seule (KAN-42, règle 32) : la fiche candidature est le seul point de
+    résolution, motivée et journalisée."""
+
+    list_display = ("candidature", "type", "code", "gravite", "resolue", "created_at")
     list_filter = ("type", "gravite", "resolue")
     raw_id_fields = ("candidature", "candidature_liee", "piece")
-    readonly_fields = ("resolue_par", "resolue_le")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Decision)

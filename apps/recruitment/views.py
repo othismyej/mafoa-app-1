@@ -18,6 +18,7 @@ from apps.accounts.permissions import DIRECTION_ROLES, role_required
 from apps.audit.models import AuditAction
 from apps.audit.services import log, log_access_denied, log_consultation, role_required_logged
 from apps.evaluation import decisions as decision_rules
+from apps.evaluation.anomalies import presentation as presentation_anomalies
 from apps.evaluation.decisions import ConfirmationRequise, DecisionError
 from apps.evaluation.models import Anomalie, Decision, VerificationEligibilite
 from apps.evaluation.services import record_decision
@@ -134,7 +135,11 @@ def _fiche_queryset():
         Prefetch(
             "anomalies",
             queryset=Anomalie.objects.select_related(
-                "piece", "resolue_par", "candidature_liee__candidat"
+                "piece",
+                "resolue_par",
+                "candidature_liee__candidat",
+                "candidature_liee__poste_concours",
+                "candidature_liee__offre",
             ).order_by("resolue", "-created_at", "-id"),
         ),
         Prefetch(
@@ -175,7 +180,9 @@ def _spontanee_context(candidature: Candidature) -> dict:
     }
 
 
-def _fiche_context(candidature: Candidature, form: dict | None = None) -> dict:
+def _fiche_context(
+    candidature: Candidature, form: dict | None = None, anomalie_form: dict | None = None
+) -> dict:
     # Historique borné : la dernière vérification + les 20 précédentes (la page ne grossit pas
     # indéfiniment avec les réévaluations), et le nombre total pour information.
     # Candidature spontanée : aucune vérification d'éligibilité (KAN-39, règle 26).
@@ -205,6 +212,10 @@ def _fiche_context(candidature: Candidature, form: dict | None = None) -> dict:
         },
         "pieces_en_anomalie": {a.piece_id for a in anomalies if a.piece_id and not a.resolue},
         "anomalies": anomalies,
+        # KAN-42, règle 30 : libellé du code, source, état de l'anomalie symétrique, issues.
+        "anomalies_vues": presentation_anomalies.presenter(candidature, anomalies),
+        "anomalie_form": anomalie_form or {},
+        "motif_max": decision_rules.MOTIF_MAX,
         "nb_anomalies_non_resolues": sum(1 for a in anomalies if not a.resolue),
         "derniere_verification": derniere,
         "verifications_precedentes": verifications[1:],

@@ -119,7 +119,8 @@ réponse partielle HTMX. L'admin Django des anomalies passe en **lecture seule**
    |---|---|---|---|
    | `plusieurs_postes_concours` | `autre_compte` | Un **autre compte** rapproché (règle 7) a une candidature dans le **même concours** (même poste ou autre poste) | haute |
    | `doublon_candidat` | `meme_offre` | Un autre compte rapproché a une candidature à la **même offre** | haute |
-   | `doublon_candidat` | `autre_compte` | Autre compte rapproché par email ou par identité (nom + date de naissance), autre cible ou candidature spontanée | moyenne |
+   | `doublon_candidat` | `meme_cin` | Autre compte rapproché par la CIN (Q3 bis révisée), autre cible ou candidature spontanée | haute |
+| `doublon_candidat` | `autre_compte` | Autre compte rapproché par email ou par identité (nom + date de naissance), autre cible ou candidature spontanée | moyenne |
    | `doublon_candidat` | `telephone_seul` | Autre compte rapproché **uniquement** par le téléphone, autre cible ou spontanée | info |
    | `doublon_candidat` | `valeur_partagee` | Une clé de la candidature est partagée par plus de `DOUBLONS_SEUIL_GROUPE` comptes (règle 8) | info |
    | `doublon_piece` | `autre_candidat` | Même empreinte SHA-256 qu'une pièce d'un **autre compte** : diplôme ou attestation de travail | haute |
@@ -145,8 +146,9 @@ réponse partielle HTMX. L'admin Django des anomalies passe en **lecture seule**
 ### C. Doublons
 
 7. **Rapprochement de comptes.** Deux `Candidat` **distincts** sont rapprochés s'ils partagent au
-   moins une clé non vide : `email_normalise`, `telephone_normalise` (au moins 9 chiffres) ou
-   `cle_identite`. Le nom seul (homonymes) ne suffit jamais. Les clés sont celles calculées par
+   moins une clé non vide : `email_normalise`, `telephone_normalise` (au moins 9 chiffres),
+   `cle_identite` ou `cin_normalise` (CIN en majuscules, sans espaces ni ponctuation, au moins 4
+   caractères ; Q3 bis révisée). Le nom seul (homonymes) ne suffit jamais. Les clés sont celles calculées par
    `Candidat.save()` (aucune nouvelle normalisation dans cette story). Un même `Candidat` ayant
    plusieurs candidatures n'est **pas** un doublon (comportement normal ; KAN-39 l'affiche déjà
    comme « Autres candidatures »). Les **candidatures spontanées** sont incluses comme les autres
@@ -735,7 +737,7 @@ sauf mention contraire ; l'interface d'extraction (KAN-41) est simulée.
 - Fusion de comptes candidats ou rattachement automatique de deux dossiers.
 - Rapprochement approché (distance d'édition, phonétique, translittération arabe / latin) et
   recherche sémantique des doublons dans le vivier : vague 2.
-- Clé de rapprochement sur le CIN (Q3 bis) ; contrôles de cohérence de la date de naissance ou de
+- Contrôles de cohérence de la date de naissance ou de
   l'âge (exclus par principe).
 - Nouveaux appels IA, extraction des pièces, schémas d'extraction (KAN-41).
 - Écran d'édition des pièces obligatoires hors admin Django.
@@ -765,7 +767,12 @@ revenir sur chacune. **[HDB]** = touche l'humain dans la boucle.
   seul. **Q3 bis — CIN comme clé** : *proposition par défaut* : non dans cette story (le brief
   retient email, téléphone, nom + date de naissance) ; ticket à créer si le site fournit des CIN
   fiables. *Conséquence* : un doublon de même CIN mais d'email, téléphone et date de naissance
-  différents n'est pas détecté.
+  différents n'est pas détecté. **Révisée le 2026-11-27** : CIN présente sur le site, cf.
+  docs/site/modeles-admin.md (profil candidat : CIN, email, téléphone, nom complet, date de
+  naissance). La CIN normalisée devient une clé de rapprochement (`doublon_candidat` / `meme_cin`,
+  gravité haute ; même concours ou même offre : règle 6 inchangée) ; elle n'apparaît ni dans les
+  descriptions, ni dans les détails, ni dans les clés, ni dans le journal (seul le critère `cin`
+  est cité).
 - [x] **Q4 — Seuil de valeur partagée** : 5 comptes (`DOUBLONS_SEUIL_GROUPE`). *Conséquence* :
   évite l'explosion de paires sur un numéro de standard ; un vrai groupe de plus de 5 comptes
   n'est signalé qu'en information.

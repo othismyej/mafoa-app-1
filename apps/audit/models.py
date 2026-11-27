@@ -23,6 +23,7 @@ class AuditAction(models.TextChoices):
     AI_CALL = "ai_call", "Appel IA"
     ACCESS_DENIED = "access_denied", "Accès refusé"
     LOT = "lot", "Action en lot"
+    DETECTION = "detection", "Détection d'anomalies"
 
 
 class AppendOnlyError(Exception):

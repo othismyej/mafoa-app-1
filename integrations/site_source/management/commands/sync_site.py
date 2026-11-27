@@ -41,6 +41,22 @@ class Command(BaseCommand):
                     f"{len(report.souhaits_ignores)}"
                 )
             )
+        detection = report.detection or {}
+        if detection.get("rapport"):
+            r = detection["rapport"]
+            self.stdout.write(
+                f"  Anomalies — créées : {r['creees_total']} · marquées « cause disparue » : "
+                f"{r['cause_disparue']} · marques retirées : {r['marques_retirees']}"
+            )
+        elif detection.get("detection") == "non_lancee":
+            self.stdout.write(
+                self.style.WARNING(
+                    "  Détection des anomalies non lancée (file de tâches indisponible) : "
+                    "lancer « detecter_anomalies --tout »."
+                )
+            )
+        elif detection.get("detection") == "lancee":
+            self.stdout.write("  Détection des anomalies mise en file.")
         if options["evaluate"]:
             # KAN-39, règle 20 : seules les candidatures de concours et d'offre sont évaluées.
             qs = Candidature.objects.exclude(type=Candidature.Type.SPONTANEE).select_related(

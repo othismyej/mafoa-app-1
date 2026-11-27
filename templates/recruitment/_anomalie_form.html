@@ -1,0 +1,26 @@
+{% load i18n %}
+{# Formulaire de résolution ou de réouverture d'une anomalie (KAN-42, règles 25 et 26). « op » : resolution | reouverture. #}
+{% if op == "resolution" %}{% url 'recruitment:anomalie_resoudre' c.pk a.pk as action %}{% else %}{% url 'recruitment:anomalie_rouvrir' c.pk a.pk as action %}{% endif %}
+<form method="post" action="{{ action }}" hx-post="{{ action }}" hx-target="#anomalies" hx-swap="outerHTML" class="mt-3 space-y-4" data-anomalie-form="{{ op }}">
+  {% csrf_token %}
+  {% if f.anomalie_id == a.pk and f.erreur %}<p class="alert alert-warning" role="alert" data-anomalie-erreur>{{ f.erreur }}</p>{% endif %}
+  {% if op == "resolution" %}
+  <fieldset>
+    <legend class="field-legend">{% translate "Issue de la vérification" %}</legend>
+    <div class="flex flex-col gap-2">
+      {% for value, label in v.issues %}
+      <label class="chip"><input type="radio" name="issue" value="{{ value }}" required{% if f.anomalie_id == a.pk and f.issue == value %} checked{% endif %}> <span>{{ label }}</span></label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  {% endif %}
+  <div>
+    <label class="field-label" for="motif-{{ op }}-{{ a.pk }}">{% translate "Motif (obligatoire, 10 caractères minimum)" %}</label>
+    <textarea id="motif-{{ op }}-{{ a.pk }}" name="motif" rows="3" maxlength="{{ motif_max }}" required aria-describedby="motif-{{ op }}-{{ a.pk }}-aide" data-compteur-cible="motif-{{ op }}-{{ a.pk }}-compteur" class="field-input">{% if f.anomalie_id == a.pk %}{{ f.motif }}{% endif %}</textarea>
+    <p id="motif-{{ op }}-{{ a.pk }}-aide" class="mt-1.5 flex justify-between gap-3 text-xs text-ink-600">
+      <span>{% translate "Indiquez des faits liés au dossier, sans donnée sensible." %}</span>
+      <span class="shrink-0 tabular-nums"><span id="motif-{{ op }}-{{ a.pk }}-compteur" data-compteur>{% if f.anomalie_id == a.pk %}{{ f.motif|length }}{% else %}0{% endif %}</span> / {{ motif_max }}</span>
+    </p>
+  </div>
+  <button type="submit" class="btn-primary">{% if op == "resolution" %}{% translate "Enregistrer la résolution" %}{% else %}{% translate "Rouvrir l’anomalie" %}{% endif %}</button>
+</form>
