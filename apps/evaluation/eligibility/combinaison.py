@@ -4,7 +4,10 @@ Le moteur déterministe est exécuté deux fois (profil déclaré, profil extrai
 Pour chaque critère alimenté par des pièces lues :
 
 - déclaré et pièces concordent, avec une confiance suffisante → verdict conservé ;
-- sinon (écart de verdict ou confiance faible) → « à vérifier ».
+- sinon (écart de verdict ou confiance faible) → « à vérifier » ;
+- le déclaré ne dit rien sur le critère (le site ne stocke aucune expérience datée) : les pièces
+  sont la seule source ; « éligible » sur pièces avec une confiance suffisante est retenu,
+  tout autre résultat donne « à vérifier » (règle 22 bis).
 
 Conséquence : un critère n'est jamais « non éligible » sur la seule base des pièces lues par
 l'IA ; il ne l'est que si le déclaré l'est aussi.
@@ -31,6 +34,14 @@ class Alimentation:
 
     pieces: tuple[int, ...] = ()
     confiance: float | None = None
+    #: Références lisibles des documents (« n° 12 », « n° 14 p. 3-4 ») ; à défaut, ``pieces``.
+    references: tuple[str, ...] = ()
+    #: Le déclaré ne renseigne pas ce critère : les pièces sont la seule source.
+    declare_absent: bool = False
+
+    def texte(self) -> str:
+        refs = self.references or tuple(f"n° {i}" for i in self.pieces)
+        return ", ".join(dict.fromkeys(refs))
 
 
 @dataclass
@@ -43,10 +54,6 @@ class ResultatCombine:
     @property
     def justification(self) -> str:
         return " ".join(f"[{c.libelle}] {c.raison}" for c in self.criteres)
-
-
-def _pieces_txt(ids: tuple[int, ...]) -> str:
-    return ", ".join(f"n° {i}" for i in ids)
 
 
 def _fmt_conf(value: float | None) -> str:
@@ -84,23 +91,45 @@ def combiner(
             )
             continue
         ids = alim.pieces
+        refs = alim.texte()
         confiant = alim.confiance is not None and alim.confiance >= confiance_min
-        if p.verdict == d.verdict and confiant:
+        source = "declare_et_pieces"
+        if alim.declare_absent:
+            source = "pieces"
+            constate = p.constate
+            if p.verdict == Verdict.ELIGIBLE and confiant:
+                verdict = Verdict.ELIGIBLE
+                raison = f"Établi sur les pièces {refs} (aucune donnée déclarée) : {p.raison}"
+            elif not confiant:
+                verdict = Verdict.A_VERIFIER
+                raison = (
+                    f"Aucune donnée déclarée ; confiance faible de la lecture des pièces {refs} "
+                    f"({_fmt_conf(alim.confiance)}) : vérification humaine requise. "
+                    f"Pièces : {p.raison}"
+                )
+            else:
+                verdict = Verdict.A_VERIFIER
+                raison = (
+                    f"Aucune donnée déclarée ; les pièces {refs} indiquent "
+                    f"« {LIBELLES_VERDICT[p.verdict]} », ce qui n'est jamais conclu sur la seule "
+                    f"lecture par l'IA : vérification humaine requise. Pièces : {p.raison}"
+                )
+        elif p.verdict == d.verdict and confiant:
             verdict = d.verdict
-            raison = f"{d.raison} Confirmé par les pièces {_pieces_txt(ids)}."
+            raison = f"{d.raison} Confirmé par les pièces {refs}."
             constate = d.constate
         elif p.verdict != d.verdict:
             verdict = Verdict.A_VERIFIER
             raison = (
                 f"Écart entre le déclaré ({LIBELLES_VERDICT[d.verdict]}) et les pièces "
-                f"{_pieces_txt(ids)} ({LIBELLES_VERDICT[p.verdict]}) : vérification humaine "
+                f"{refs} ({LIBELLES_VERDICT[p.verdict]}) : vérification humaine "
                 f"requise. Déclaré : {d.raison} Pièces : {p.raison}"
             )
             constate = f"Déclaré : {d.constate or '—'} ; pièces : {p.constate or '—'}"
         else:
             verdict = Verdict.A_VERIFIER
             raison = (
-                f"Confiance faible de la lecture des pièces {_pieces_txt(ids)} "
+                f"Confiance faible de la lecture des pièces {refs} "
                 f"({_fmt_conf(alim.confiance)}) : vérification humaine requise. "
                 f"Déclaré : {d.raison}"
             )
@@ -112,9 +141,10 @@ def combiner(
                 "verdict": verdict.value,
                 "raison": raison,
                 "constate": constate,
-                "source": "declare_et_pieces",
+                "source": source,
                 "verdict_pieces": p.verdict.value,
                 "pieces": list(ids),
+                "references": list(dict.fromkeys(alim.references)),
                 "confiance": alim.confiance,
             }
         )

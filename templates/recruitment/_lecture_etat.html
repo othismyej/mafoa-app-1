@@ -37,6 +37,6 @@ Rafraîchi toutes les 5 s tant qu'une lecture est en cours.
   <p class="text-sm" data-lecture-terminee><a href="{% url 'recruitment:candidature_detail' c.pk %}" class="link">{% translate "Actualiser la fiche pour voir les données extraites" %}</a></p>
   {% endif %}
   {% else %}
-  <p class="text-sm text-ink-600">{% translate "Aucune pièce lisible par l’IA (CV, diplôme, attestation de travail)." %}</p>
+  <p class="text-sm text-ink-600">{% translate "Aucune pièce lisible par l’IA (CV, diplôme, attestation de travail, dossier combiné)." %}</p>
   {% endif %}
 </div>

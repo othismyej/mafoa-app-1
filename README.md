@@ -18,7 +18,8 @@ Le brief complet du projet est dans [`CLAUDE.md`](CLAUDE.md).
 | `SiteSource` + `FixtureSource` (2 concours, 10 postes, 2 offres, 52 candidats, 200 pièces PDF fictives) | ✅ |
 | Moteur d'éligibilité déterministe (niveau d'études, spécialité, expérience) + tests | ✅ |
 | Journal d'audit en ajout seul (modèle + admin + trigger PostgreSQL) | ✅ |
-| Wrapper IA (sortie Pydantic, pseudonymisation, traçabilité), simulé dans les tests | ✅ squelette |
+| Wrapper IA (sortie Pydantic, pseudonymisation, traçabilité), simulé dans les tests | ✅ |
+| Lecture des pièces par l'IA (CV, diplômes, attestations, dossiers combinés) et éligibilité sur pièces (KAN-41) | ✅ |
 | Écrans métier (concours, fiche candidature, grilles, exports) | ⏳ prochaines étapes |
 | `DatabaseSource`, `ApiSource`, webhooks | ⏳ en attente des accès au site |
 
@@ -230,10 +231,45 @@ ni offre doit désormais fournir `type="spontanee"` explicitement.
 
 ### IA
 
-Aucun appel réel n'est fait pour l'instant. Les tests utilisent un transport simulé.
-Avec `AI_PSEUDONYMIZE=true` (valeur par défaut), nom, CIN, téléphone et email sont remplacés par
-des jetons avant l'envoi. Chaque appel est enregistré dans `AppelIA` : modèle, version du prompt,
-entrée pseudonymisée, sortie et durée.
+Avec `AI_PSEUDONYMIZE=true` (valeur par défaut), nom, CIN, téléphone, email et date de naissance
+sont remplacés par des jetons avant l'envoi. Chaque appel est enregistré dans `AppelIA` : modèle,
+version du prompt, entrée pseudonymisée, sortie, durée et jetons. Les tests n'appellent **jamais**
+l'API : transport simulé, et un garde-fou (`tests/conftest.py`) fait échouer tout appel réel.
+
+#### Configurer la clé de l'API Claude (poste local du PO)
+
+1. Créer une clé sur la console Claude (https://platform.claude.com, menu *API keys*).
+2. Dans le fichier `.env` à la racine (copié depuis `.env.example`, **jamais commité** : il est
+   dans `.gitignore`), renseigner :
+
+   ```
+   ANTHROPIC_API_KEY=sk-ant-...      # la clé, sans guillemets
+   AI_MODEL=claude-opus-5-5          # modèle (configurable)
+   AI_PSEUDONYMIZE=true
+   ```
+
+3. Redémarrer l'app **et** le worker Celery (`docker compose up -d --force-recreate web worker`,
+   ou relancer `runserver` et `celery worker`). La fiche candidature n'affiche plus « IA non
+   configurée » et le bouton « Lire les pièces » devient actif.
+
+Sans clé, rien ne part : la lecture est désactivée et la fiche l'indique. N'utiliser que des
+**données fictives** tant que le transfert de données hors du Maroc n'a pas été validé (CNDP,
+`CLAUDE.md` §6).
+
+#### Lecture des pièces (KAN-41)
+
+`apps/documents/` : une tâche Celery par pièce (`documents.lire_piece`) lit la pièce via
+`SiteSource`, choisit PDF texte (`pypdf`, un repère par page) ou vision (scans, images, PDF
+mêlant pages texte et numérisées), appelle Claude avec le prompt versionné du type de pièce
+(`ai/prompts/lecture_*.v1.md`) et un schéma Pydantic strict, puis relance le moteur
+d'éligibilité. Le champ « Documents » unique d'une candidature du site est un **dossier combiné**
+(`Piece.Type.DOSSIER`) : l'IA classe ses pages (CV, diplôme, attestation, autre) et chaque
+donnée cite sa page. Idempotence par empreinte SHA-256 + version de prompt ; « Relire » force.
+La vision n'est pas pseudonymisable : désactivée tant que `AI_PSEUDONYMIZE=true`, sauf
+`AI_VISION_NON_PSEUDONYMISEE=true`. Réglages : voir `.env.example`.
+
+API pour les autres stories (`apps/documents/services.py`) : `extractions_de`, `documents_lus`,
+`profil_extrait`, `ecarts_declare_pieces`.
 
 ## Interface et CSS
 

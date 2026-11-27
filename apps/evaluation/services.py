@@ -95,33 +95,46 @@ def evaluer_candidature(candidature: Candidature):
     from apps.documents.services import profil_extrait
 
     criteres = criteres_from_cible(candidature.cible)
-    declare = evaluate(profil_from_declared(candidature.donnees_declarees or {}), criteres)
+    profil_declare = profil_from_declared(candidature.donnees_declarees or {})
+    declare = evaluate(profil_declare, criteres)
     sources: list[dict] = [{"type": "donnees_declarees"}]
     extrait = profil_extrait(candidature)
     if extrait.vide:
         return declare, declare.details(), sources
     pieces = evaluate(extrait.profil, criteres)
-    niveau = Alimentation(tuple(extrait.pieces_niveau), extrait.confiance_niveau)
-    experience = Alimentation(tuple(extrait.pieces_experience), extrait.confiance_experience)
+    # Le site ne stocke aucune expérience datée : les pièces sont alors la seule source.
+    niveau = Alimentation(
+        tuple(extrait.pieces_niveau),
+        extrait.confiance_niveau,
+        tuple(extrait.references_niveau),
+        declare_absent=not profil_declare.diplomes,
+    )
+    experience = Alimentation(
+        tuple(extrait.pieces_experience),
+        extrait.confiance_experience,
+        tuple(extrait.references_experience),
+        declare_absent=profil_declare.experiences is None,
+    )
     combine = combiner(
         declare,
         pieces,
         {"niveau_etudes": niveau, "specialite": niveau, "experience": experience},
         settings.AI_CONFIANCE_MIN,
     )
-    utilisees = set(extrait.pieces_niveau) | set(extrait.pieces_experience)
-    sources += [
-        {
+    for doc in extrait.documents:
+        source = {
             "type": "extraction",
-            "piece_id": e.piece_id,
-            "extraction_id": e.pk,
-            "piece_type": e.type_piece or e.piece.type,
-            "prompt_version": e.prompt_version,
-            "confiance": e.confiance,
+            "piece_id": doc.piece_id,
+            "extraction_id": doc.extraction_id,
+            "piece_type": doc.type,
+            "prompt_version": next(
+                (e.prompt_version for e in extrait.extractions if e.pk == doc.extraction_id), ""
+            ),
+            "confiance": doc.confiance,
         }
-        for e in extrait.extractions
-        if e.piece_id in utilisees
-    ]
+        if doc.pages:
+            source["pages"] = list(doc.pages)  # segment d'un dossier combiné
+        sources.append(source)
     return combine, combine.details, sources
 
 

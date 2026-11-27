@@ -16,37 +16,22 @@
     {% if not l.donnees.lisibles %}
     <p class="mt-2 text-ink-600">{% translate "Données extraites illisibles : relancer la lecture." %}</p>
     {% else %}
-    {% if l.donnees.formations %}
-    <h4 class="meta mt-3 font-medium uppercase tracking-wide">{% translate "Formation lue" %}</h4>
-    <ol class="timeline mt-2">
-      {% for f in l.donnees.formations %}
-      <li data-formation-lue>
-        <div class="font-semibold text-ink-900">{{ f.intitule|default:_("Non renseigné") }}</div>
-        <div class="mt-1 text-ink-700">{% translate "Niveau" %} : {{ f.niveau|default:_("Non renseigné") }} · {% translate "Spécialité" %} : {{ f.specialite|default:_("Non renseigné") }}</div>
-        <div class="meta">{% translate "Établissement" %} : {{ f.etablissement|default:_("Non renseigné") }} · {% translate "Année" %} : {{ f.annee|default:_("Non renseigné") }}</div>
-        {% if f.extrait %}<blockquote class="mt-1 border-s-2 border-ink-200 ps-3 text-xs italic text-ink-600" data-extrait>« {{ f.extrait }} »</blockquote>{% endif %}
-      </li>
-      {% endfor %}
-    </ol>
+    {% if l.donnees.dossier %}
+    {% for seg in l.donnees.segments %}
+    <section class="mt-3 rounded-control bg-ink-50 p-3" data-segment="{{ seg.type }}" data-pages="{{ seg.pages.0 }}-{{ seg.pages.1 }}">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h4 class="font-semibold text-ink-900">{{ seg.type_label }} <span class="meta">· {% if seg.pages.0 == seg.pages.1 %}{% blocktranslate with p=seg.pages.0 %}page {{ p }}{% endblocktranslate %}{% else %}{% blocktranslate with a=seg.pages.0 b=seg.pages.1 %}pages {{ a }} à {{ b }}{% endblocktranslate %}{% endif %}</span></h4>
+        {% if seg.type != "autre" %}<span class="badge badge-plain badge-confiance_{{ seg.confiance_niveau }}">{{ seg.confiance_label }}</span>{% endif %}
+      </div>
+      {% if seg.type == "autre" %}<p class="meta mt-1">{{ seg.description|default:_("Document non utilisé pour l’éligibilité") }}</p>
+      {% else %}{% include "recruitment/_lecture_donnees.html" with d=seg %}{% endif %}
+    </section>
+    {% endfor %}
+    {% if l.donnees.remarques %}<ul class="mt-3 list-disc space-y-1 ps-5 text-xs text-ink-700" data-remarques>{% for r in l.donnees.remarques %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+    {% else %}
+    {% include "recruitment/_lecture_donnees.html" with d=l.donnees %}
     {% endif %}
-    {% if l.donnees.experiences %}
-    <h4 class="meta mt-3 font-medium uppercase tracking-wide">{% translate "Expériences lues" %}</h4>
-    <ol class="timeline mt-2">
-      {% for e in l.donnees.experiences %}
-      <li data-experience-lue>
-        <div class="font-semibold text-ink-900">{{ e.poste|default:_("Non renseigné") }} — {{ e.employeur|default:_("Non renseigné") }}</div>
-        <div class="mt-1 tabular-nums text-ink-700">{% include "recruitment/_date_affichee.html" with d=e.debut %} <span class="flip-rtl text-ink-500">→</span> {% include "recruitment/_date_affichee.html" with d=e.fin %}</div>
-        {% if e.extrait %}<blockquote class="mt-1 border-s-2 border-ink-200 ps-3 text-xs italic text-ink-600" data-extrait>« {{ e.extrait }} »</blockquote>{% endif %}
-      </li>
-      {% endfor %}
-    </ol>
-    {% endif %}
-    {% if not l.donnees.formations and not l.donnees.experiences %}<p class="mt-2 text-ink-600">{% translate "Aucune formation ni expérience trouvée dans la pièce." %}</p>{% endif %}
-    {% if l.donnees.remarques %}
-    <ul class="mt-3 list-disc space-y-1 ps-5 text-xs text-ink-700" aria-label="{% translate 'Remarques de l’IA' %}" data-remarques>
-      {% for r in l.donnees.remarques %}<li>{{ r }}</li>{% endfor %}
-    </ul>
-    {% endif %}
+    {% if l.donnees.pages_non_lues %}<p class="mt-3 text-xs text-amber-800" data-pages-non-lues>{% blocktranslate with pages=l.donnees.pages_non_lues|join:", " %}Pages numérisées non lues par l’IA : {{ pages }} — vérification humaine.{% endblocktranslate %}</p>{% endif %}
     {% endif %}
   </article>
   {% endif %}{% endfor %}

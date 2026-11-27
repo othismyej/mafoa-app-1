@@ -32,7 +32,9 @@ from ai.schemas import (
     LectureAttestation,
     LectureCV,
     LectureDiplome,
+    LectureDossier,
     PeriodeAttestee,
+    SegmentDossier,
 )
 from apps.accounts.models import Role
 from apps.audit.models import AuditAction, JournalAudit
@@ -600,7 +602,8 @@ def test_ca8_transport_reel_sans_cle(settings):
         ("texte_trop_long", "texte_trop_long"),
         ("trop_de_pages", "trop_de_pages"),
         ("image_trop_grosse", "image_trop_volumineuse"),
-        ("format", "type_non_pris_en_charge"),
+        ("format", "format_non_lu"),
+        ("archive", "format_non_lu"),
     ],
 )
 def test_ca9_limites(ia, src, cand, settings, cas, code, django_capture_on_commit_callbacks):
@@ -618,8 +621,10 @@ def test_ca9_limites(ia, src, cand, settings, cas, code, django_capture_on_commi
         content = pdf_scan(pages=3)
     elif cas == "image_trop_grosse":
         content = image("PNG") + b"\x00" * (lecture.IMAGE_MAX_BYTES + 1)
-    else:
+    elif cas == "archive":
         content = b"PK\x03\x04" + b"\x00" * 200
+    else:
+        content = b"GIF89a" + b"\x00" * 200
     p = add_piece(src, cand, Piece.Type.CV, content, **kw)
     lire([p], capture=django_capture_on_commit_callbacks)
     e = Extraction.objects.get(piece=p)
@@ -964,19 +969,39 @@ def test_ca22_fragment_etat(ia, dossier, client, direction_user):
     assert "data-lecture-polling" not in html and "data-lecture-terminee" in html
 
 
-SENSIBLES = ("sexe", "age", "naissance", "photo", "familial", "nationalite", "region", "adresse")
+SENSIBLES = (
+    "civilite",
+    "sexe",
+    "age",
+    "naissance",
+    "photo",
+    "familiale",
+    "nationalite",
+    "region",
+    "adresse",
+)
 
 
 def test_ca23_aucune_donnee_sensible():
-    for schema in (LectureCV, LectureDiplome, LectureAttestation):
+    for schema in (LectureCV, LectureDiplome, LectureAttestation, LectureDossier):
         champs = set(schema.model_json_schema()["properties"])
         for sous in schema.model_json_schema().get("$defs", {}).values():
             champs |= set(sous["properties"])
-        assert not [c for c in champs if any(s in c for s in SENSIBLES)], schema
+        mots = {m for c in champs for m in c.split("_")}
+        assert not mots & set(SENSIBLES), schema
         assert schema.model_config.get("extra") == "forbid"
-    for name in ("lecture_cv", "lecture_diplome", "lecture_attestation"):
+    for name in ("lecture_cv", "lecture_diplome", "lecture_attestation", "lecture_dossier"):
         texte = (ROOT / "ai" / "prompts" / f"{name}.v1.md").read_text(encoding="utf-8")
-        for mot in ("sexe", "âge", "date ou lieu de naissance", "photo", "situation familiale"):
+        texte = re.sub(r"\s+", " ", texte)
+        for mot in (
+            "civilité",
+            "sexe",
+            "âge",
+            "date ou lieu de naissance",
+            "photo",
+            "situation familiale",
+            "adresse",
+        ):
             assert mot in texte
         assert "N'invente rien" in texte
 
@@ -990,7 +1015,7 @@ def test_ca24_api_kan42(src, dossier):
     profil = profil_extrait(dossier["cand"])
     assert sorted(profil.pieces_niveau) == sorted([dossier["cv"].pk, dossier["diplome"].pk])
     assert profil.pieces_experience == [dossier["cv"].pk]
-    assert profil.noms_titulaires[dossier["cv"].pk] == "[NOM_2] [NOM_1]"
+    assert profil.noms_titulaires[dossier["cv"].pk] == ["[NOM_2] [NOM_1]"]
     assert len(profil.profil.diplomes) == 1 and len(profil.profil.experiences) == 1
     assert profil.confiance_niveau == pytest.approx(0.95)
     ecarts = ecarts_declare_pieces(dossier["cand"])
@@ -1007,3 +1032,274 @@ def test_ca25_i18n_et_rtl():
         assert "{% translate" in texte
     catalogue = (ROOT / "locale" / "ar" / "LC_MESSAGES" / "django.po").read_text(encoding="utf-8")
     assert 'msgid "Lecture des pièces (IA)"' in catalogue
+
+
+# --------------------------------------------------------------------------------------
+# Dossier combiné (champ « Documents » unique du site) et déclaré partiel — règles 1 bis,
+# 9 bis, 22 bis ; CA26 à CA30
+# --------------------------------------------------------------------------------------
+
+
+def pdf_pages(*pages) -> bytes:
+    """PDF multi-pages : une liste de lignes par page, ou ``None`` pour une page numérisée."""
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=A4, invariant=1)
+    for lignes in pages:
+        if lignes is None:
+            c.rect(50, 50, 400, 600, fill=1)
+        else:
+            c.setFont("Helvetica", 11)
+            y = 800
+            for ligne in ("DOCUMENT FICTIF — GÉNÉRÉ POUR LES TESTS", *lignes):
+                c.drawString(60, y, ligne)
+                y -= 18
+        c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
+PAGE_CV = ["CURRICULUM VITAE", "Salma ALAOUI — salma.alaoui@example.com", "2018 : Ingénieure"]
+PAGE_DIPLOME = ["DIPLÔME", "Décerné à Salma ALAOUI", "Master en Informatique — Bac+5 — 2015"]
+PAGE_ATTESTATION = ["ATTESTATION DE TRAVAIL", "Salma ALAOUI, CIN ZZ100037", "depuis 2018-01-01"]
+
+
+def dossier_lu(segments=None, confiance=0.9) -> LectureDossier:
+    if segments is None:
+        segments = [
+            SegmentDossier(type_document="cv", page_debut=1, page_fin=1, cv=cv_conforme()),
+            SegmentDossier(type_document="diplome", page_debut=2, page_fin=2, diplome=diplome_lu()),
+            SegmentDossier(
+                type_document="attestation_travail",
+                page_debut=3,
+                page_fin=3,
+                attestation=attestation_lue(),
+            ),
+            SegmentDossier(
+                type_document="autre", page_debut=4, page_fin=4, description="relevé de notes"
+            ),
+        ]
+    return LectureDossier(segments=segments, confiance=confiance)
+
+
+@pytest.fixture
+def dossier_combine(src, cand):
+    content = pdf_pages(PAGE_CV, PAGE_DIPLOME, PAGE_ATTESTATION, ["RELEVÉ DE NOTES", "S1 : 14"])
+    return add_piece(src, cand, Piece.Type.DOSSIER, content)
+
+
+def test_ca26_dossier_combine_classe_les_pages(
+    ia, dossier_combine, client, direction_user, django_capture_on_commit_callbacks
+):
+    ia.reponses[LectureDossier] = dossier_lu()
+    lire([dossier_combine], capture=django_capture_on_commit_callbacks)
+    e = Extraction.objects.get(piece=dossier_combine)
+    assert e.statut == Extraction.Statut.TERMINEE and e.prompt_nom == "lecture_dossier"
+    envoye = ia.calls[0]["user_text"]
+    assert "=== Page 2 ===" in envoye and "=== Page 4 ===" in envoye
+    assert not any(s in envoye for s in SECRETS)
+    from apps.documents.services import documents_de, documents_lus
+
+    docs = documents_de(e)
+    assert [(d.type, d.pages) for d in docs] == [
+        ("cv", (1, 1)),
+        ("diplome", (2, 2)),
+        ("attestation_travail", (3, 3)),
+        ("autre", (4, 4)),
+    ]
+    assert docs[1].reference == f"n° {dossier_combine.pk} p. 2"
+    assert len(documents_lus(dossier_combine.candidature)) == 4
+    # Éligibilité : sources par segment, avec les pages.
+    v = VerificationEligibilite.objects.get(candidature=dossier_combine.candidature)
+    assert v.resultat == "eligible" and v.moteur_version == "1.1.0"
+    pages = {tuple(s["pages"]) for s in v.sources if s["type"] == "extraction"}
+    assert pages == {(1, 1), (2, 2), (3, 3)}  # le segment « autre » n'est pas utilisé
+    assert f"n° {dossier_combine.pk} p. 3" in critere(v, "experience")["raison"]
+    client.force_login(direction_user)
+    html = client.get(fiche_url(dossier_combine.candidature)).content.decode()
+    assert 'data-segment="diplome" data-pages="2-2"' in html
+    assert f"Pièce n° {dossier_combine.pk} p. 2 (Diplôme)" in html
+    assert "relevé de notes" in html
+
+
+@pytest.mark.parametrize(
+    "segment",
+    [
+        SegmentDossier(type_document="cv", page_debut=1, page_fin=9, cv=cv_conforme()),
+        SegmentDossier(type_document="diplome", page_debut=1, page_fin=1, cv=cv_conforme()),
+    ],
+)
+def test_ca27_decoupage_incoherent_rejete(
+    ia, dossier_combine, segment, django_capture_on_commit_callbacks
+):
+    ia.reponses[LectureDossier] = dossier_lu([segment])
+    lire([dossier_combine], capture=django_capture_on_commit_callbacks)
+    e = Extraction.objects.get(piece=dossier_combine)
+    assert (e.statut, e.code) == (Extraction.Statut.ECHEC, "sortie_invalide")
+    assert "Découpage du dossier incohérent" in e.erreur and e.donnees == {}
+
+
+def test_ca28_dossier_pages_numerisees(
+    ia, src, cand, settings, client, admin_user, django_capture_on_commit_callbacks
+):
+    content = pdf_pages(PAGE_CV, None, PAGE_ATTESTATION)  # diplôme numérisé en page 2
+    p = add_piece(src, cand, Piece.Type.DOSSIER, content)
+    ia.reponses[LectureDossier] = dossier_lu(
+        [
+            SegmentDossier(type_document="cv", page_debut=1, page_fin=1, cv=cv_conforme()),
+            SegmentDossier(
+                type_document="attestation_travail",
+                page_debut=3,
+                page_fin=3,
+                attestation=attestation_lue(),
+            ),
+        ]
+    )
+    lire([p], capture=django_capture_on_commit_callbacks)  # vision non permise
+    e = Extraction.objects.get(piece=p)
+    assert e.methode == Extraction.Methode.PDF_TEXTE and e.pages_non_lues == [2]
+    client.force_login(admin_user)
+    assert "data-pages-non-lues" in client.get(fiche_url(cand)).content.decode()
+    # Vision permise : tout le dossier part en vision (bloc document).
+    settings.AI_VISION_NON_PSEUDONYMISEE = True
+    lire([p], force=True, capture=django_capture_on_commit_callbacks)
+    e = Extraction.objects.filter(piece=p).latest("id")
+    assert e.methode == Extraction.Methode.VISION and e.pages_non_lues == []
+    assert ia.calls[-1]["attachments"][0]["media_type"] == "application/pdf"
+
+
+SANS_EXPERIENCE = {"formation": DECLARE["formation"]}  # le site ne stocke aucune expérience datée
+
+
+@pytest.mark.parametrize(
+    "lue,confiance,attendu",
+    [
+        (attestation_lue(debut="2018-01-01"), 0.95, "eligible"),
+        (attestation_lue(debut="2025-01-01", fin="2025-12-31"), 0.95, "a_verifier"),
+        (attestation_lue(debut="2018-01-01"), 0.4, "a_verifier"),
+    ],
+)
+def test_ca29_experience_sur_pieces_seules(src, poste, lue, confiance, attendu):
+    c = new_cand(poste, SANS_EXPERIENCE)
+    assert run_eligibility(c).resultat == "a_verifier"  # déclaré seul : expérience inconnue
+    a = add_piece(src, c, Piece.Type.ATTESTATION_TRAVAIL, ATTESTATION_PDF)
+    terminee(a, lue, confiance=confiance)
+    v = run_eligibility(c)
+    exp = critere(v, "experience")
+    assert exp["source"] == "pieces" and exp["verdict"] == attendu
+    assert v.resultat == attendu
+    if attendu == "eligible":
+        assert "Établi sur les pièces" in exp["raison"]
+    assert v.resultat != "non_eligible"  # jamais sur la seule lecture IA
+
+
+def test_ca30_diplome_sur_pieces_seules(src, poste):
+    c = new_cand(poste, {"experiences": DECLARE["experiences"]})
+    d = add_piece(src, c, Piece.Type.DIPLOME, DIPLOME_PDF)
+    terminee(d, diplome_lu(niveau="Bac+3"))
+    v = run_eligibility(c)
+    niveau = critere(v, "niveau_etudes")
+    assert niveau["source"] == "pieces" and niveau["verdict_pieces"] == "non_eligible"
+    assert niveau["verdict"] == "a_verifier" and v.resultat == "a_verifier"
+
+
+# --------------------------------------------------------------------------------------
+# Formats du champ « Documents » (tout type de fichier accepté par le site) — règle 4 bis,
+# CA31 : type réel détecté sur les octets, jamais sur l'extension.
+# --------------------------------------------------------------------------------------
+
+
+def docx_bytes(*paragraphes: str) -> bytes:
+    import docx
+
+    document = docx.Document()
+    for texte in paragraphes:
+        document.add_paragraph(texte)
+    table = document.add_table(rows=1, cols=2)
+    table.rows[0].cells[0].text = "2018-01-01 → aujourd'hui"
+    table.rows[0].cells[1].text = "Ingénieure — Société Fictive des Eaux"
+    buf = io.BytesIO()
+    document.save(buf)
+    return buf.getvalue()
+
+
+def zip_bytes(nom: str, contenu: bytes) -> bytes:
+    import zipfile
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr(nom, contenu)
+    return buf.getvalue()
+
+
+def tiff_bytes(pages: int = 2) -> bytes:
+    buf = io.BytesIO()
+    frames = [Image.new("RGB", (60, 40), "white") for _ in range(pages)]
+    frames[0].save(buf, format="TIFF", save_all=True, append_images=frames[1:])
+    return buf.getvalue()
+
+
+def test_ca31_docx_texte_local(ia, src, cand, django_capture_on_commit_callbacks):
+    content = docx_bytes(
+        "CURRICULUM VITAE",
+        "Salma ALAOUI — salma.alaoui@example.com — 06 11 22 33 44",
+        "2015 : Master en Informatique — École Fictive d'Ingénieurs (Bac+5)",
+    )
+    p = add_piece(src, cand, Piece.Type.CV, content, content_type="application/octet-stream")
+    lire([p], capture=django_capture_on_commit_callbacks)
+    e = Extraction.objects.get(piece=p)
+    assert e.statut == Extraction.Statut.TERMINEE and e.methode == Extraction.Methode.DOCX_TEXTE
+    assert "Master en Informatique" in e.texte and "Société Fictive des Eaux" in e.texte
+    envoye = ia.calls[0]["user_text"]
+    assert ia.calls[0]["attachments"] is None and not any(s in envoye for s in SECRETS)
+
+
+def test_ca31_docx_bombe_refusee(ia, src, cand, django_capture_on_commit_callbacks):
+    bombe = zip_bytes("word/document.xml", b"0" * (lecture.DOCX_MAX_DECOMPRESSE + 1))
+    p = add_piece(src, cand, Piece.Type.CV, bombe)
+    lire([p], capture=django_capture_on_commit_callbacks)
+    e = Extraction.objects.get(piece=p)
+    assert (e.statut, e.code) == (Extraction.Statut.ECHEC, "docx_illisible") and ia.calls == []
+
+
+def test_ca31_tiff_multipage_vision(ia, src, cand, settings, django_capture_on_commit_callbacks):
+    settings.AI_VISION_NON_PSEUDONYMISEE = True
+    p = add_piece(src, cand, Piece.Type.DIPLOME, tiff_bytes(2), content_type="image/tiff")
+    lire([p], capture=django_capture_on_commit_callbacks)
+    e = Extraction.objects.get(piece=p)
+    assert e.statut == Extraction.Statut.TERMINEE and e.methode == Extraction.Methode.VISION
+    jointes = ia.calls[0]["attachments"]
+    assert [j["media_type"] for j in jointes] == ["image/png", "image/png"]
+    assert all(j["data"].startswith(b"\x89PNG") for j in jointes)
+
+
+@pytest.mark.parametrize(
+    "content,detail",
+    [
+        (lambda: zip_bytes("cv.pdf", CV_PDF), "archive ZIP"),
+        (lambda: b"Rar!\x1a\x07\x01\x00" + b"\x00" * 64, "archive RAR"),
+        (lambda: b"7z\xbc\xaf\x27\x1c" + b"\x00" * 64, "archive 7z"),
+        (lambda: b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 64, "Word 97-2003 (.doc)"),
+        (lambda: b"\x00\x00\x00\x18ftypheic" + b"\x00" * 64, "image HEIC"),
+        (lambda: b"GIF89a" + b"\x00" * 64, "format inconnu"),
+    ],
+)
+def test_ca31_formats_non_lus(
+    ia, src, cand, client, admin_user, content, detail, django_capture_on_commit_callbacks
+):
+    # Extension trompeuse : seul le contenu compte.
+    p = add_piece(src, cand, Piece.Type.DOSSIER, content(), content_type="application/pdf")
+    lire([p], capture=django_capture_on_commit_callbacks)
+    e = Extraction.objects.get(piece=p)
+    assert (e.statut, e.code, e.erreur) == (Extraction.Statut.IGNOREE, "format_non_lu", detail)
+    assert ia.calls == [] and e.texte == ""
+    client.force_login(admin_user)
+    html = client.get(fiche_url(cand)).content.decode()
+    assert "Format non lu automatiquement" in html and detail.split()[0] in html
+
+
+def test_ca31_detection_sur_les_octets():
+    assert lecture.detecter_format(docx_bytes("x")) == "docx"
+    assert lecture.detecter_format(zip_bytes("word/autre.xml", b"x")) == "zip"
+    assert lecture.detecter_format(CV_PDF) == "pdf"
+    assert lecture.detecter_format(image("JPEG")) == "jpeg"
+    assert lecture.detecter_format(tiff_bytes(1)) == "tiff"

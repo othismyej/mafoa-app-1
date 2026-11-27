@@ -71,6 +71,12 @@ Statuts de concours : `badge-brouillon` (pointillé), `badge-ouvert` (émeraude)
 Statuts d'offre d'emploi (KAN-38) : `badge-ouverte` (émeraude), `badge-fermee` (neutre),
 `badge-pourvue` (pierre).
 
+Lecture des pièces par l'IA (KAN-41) : état `badge-lecture_<etat>` — `non_lue` (pointillé
+neutre), `en_cours` (ciel), `lue` (émeraude), `obsolete` (pierre), `echec` (ambre), `ignoree`
+(pointillé ambre) ; confiance `badge-confiance_elevee` (émeraude), `_moyenne` (ciel),
+`_faible` (ambre), toujours avec `.badge-plain` et un libellé explicite (jamais la couleur seule).
+Extraits cités : `blockquote` à liseré logique `border-s-2` + `ps-3`.
+
 ### 2.4 Gravité des anomalies
 
 | Gravité | Classe | Couleurs | Liseré de carte |

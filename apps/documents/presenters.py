@@ -6,11 +6,16 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 from ai.client import ia_configuree
-from ai.schemas import LectureAttestation, LectureCV, LectureDiplome
+from ai.schemas import LectureAttestation, LectureCV, LectureDiplome, LectureDossier
 from apps.recruitment.presenters import DateAffichee, format_date
 
 from .lecture import EtatLecture, etats_lecture
-from .services import donnees_validees, ecarts_declare_pieces, profil_depuis_extractions
+from .services import (
+    documents_de,
+    donnees_validees,
+    ecarts_declare_pieces,
+    profil_depuis_extractions,
+)
 
 ETATS = {
     "non_lue": _("Non lue"),
@@ -63,12 +68,8 @@ def _periode(poste, employeur, debut, fin, en_cours, extrait) -> dict:
     }
 
 
-def donnees_affichees(extraction) -> dict:
-    """Formations, expériences et remarques d'une extraction, robustes aux données mal formées."""
-    data = donnees_validees(extraction)
-    if data is None:
-        return {"lisibles": False}
-    out = {"lisibles": True, "formations": [], "experiences": [], "remarques": data.remarques}
+def _donnees(data) -> dict:
+    out = {"formations": [], "experiences": [], "remarques": list(data.remarques)}
     if isinstance(data, LectureCV):
         out["formations"] = [_formation(f) for f in data.formations]
         out["experiences"] = [
@@ -93,6 +94,46 @@ def donnees_affichees(extraction) -> dict:
             for x in data.periodes
         ]
     return out
+
+
+TYPES_SEGMENT = {
+    "cv": _("CV"),
+    "diplome": _("Diplôme"),
+    "attestation_travail": _("Attestation de travail"),
+    "autre": _("Autre document"),
+}
+
+
+def donnees_affichees(extraction) -> dict:
+    """Formations, expériences et remarques d'une extraction, robustes aux données mal formées.
+
+    Dossier combiné : un bloc par segment (type, pages, données, confiance)."""
+    data = donnees_validees(extraction)
+    if data is None:
+        return {"lisibles": False}
+    if isinstance(data, LectureDossier):
+        segments = []
+        for doc in documents_de(extraction):
+            niveau = niveau_confiance(doc.confiance)
+            segments.append(
+                {
+                    "type": doc.type,
+                    "type_label": TYPES_SEGMENT.get(doc.type, doc.type),
+                    "pages": doc.pages,
+                    "description": doc.description,
+                    "confiance_niveau": niveau,
+                    "confiance_label": NIVEAUX_CONFIANCE[niveau],
+                    **(_donnees(doc.donnees) if doc.donnees is not None else {}),
+                }
+            )
+        return {
+            "lisibles": True,
+            "dossier": True,
+            "segments": segments,
+            "remarques": list(data.remarques),
+            "pages_non_lues": extraction.pages_non_lues,
+        }
+    return {"lisibles": True, **_donnees(data), "pages_non_lues": extraction.pages_non_lues}
 
 
 def _ligne(e: EtatLecture, avec_donnees: bool) -> dict:

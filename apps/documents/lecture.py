@@ -26,6 +26,7 @@ from django.utils.translation import gettext_lazy as _
 
 from ai.client import AIClient, AIError, PieceJointe, ia_configuree
 from ai.prompts import Prompt, load_prompt
+from ai.schemas import LectureDossier
 from apps.audit.models import AuditAction
 from apps.audit.services import log
 from apps.recruitment import pieces as pieces_service
@@ -41,7 +42,10 @@ PROMPTS: dict[str, tuple[str, str]] = {
     Piece.Type.CV: ("lecture_cv", "1"),
     Piece.Type.DIPLOME: ("lecture_diplome", "1"),
     Piece.Type.ATTESTATION_TRAVAIL: ("lecture_attestation", "1"),
+    Piece.Type.DOSSIER: ("lecture_dossier", "1"),
 }
+#: En dessous, une page d'un PDF est considérée sans couche texte (page numérisée).
+PAGE_TEXTE_MIN_CARACTERES = 20
 #: Limite de l'API pour une image (règle 6).
 IMAGE_MAX_BYTES = 5 * 1024 * 1024
 
@@ -62,7 +66,11 @@ MOTIFS = {
     "image_trop_volumineuse": _("Image de plus de 5 Mo : vérification humaine"),
     "trop_de_pages": _("PDF trop long pour la lecture IA : vérification humaine"),
     "texte_trop_long": _("Texte trop long pour la lecture IA : vérification humaine"),
-    "type_non_pris_en_charge": _("Format non pris en charge (PDF, PNG ou JPEG attendu)"),
+    "format_non_lu": _("Format non lu automatiquement : à traiter par un humain"),
+    "docx_illisible": _(
+        "Document Word illisible (endommagé ou trop volumineux une fois décompressé)"
+    ),
+    "image_illisible": _("Image illisible"),
     "pdf_illisible": _("PDF illisible (protégé ou endommagé)"),
     "vision_non_autorisee": _(
         "Scan : lecture IA désactivée (pseudonymisation impossible) — vérification humaine"
@@ -240,8 +248,8 @@ class _Arret(Exception):
         self.erreur = erreur
 
 
-def _ignoree(code: str) -> _Arret:
-    return _Arret(Extraction.Statut.IGNOREE, code)
+def _ignoree(code: str, detail: str = "") -> _Arret:
+    return _Arret(Extraction.Statut.IGNOREE, code, detail)
 
 
 def _echec(code: str, erreur: str = "") -> _Arret:
@@ -251,8 +259,34 @@ def _echec(code: str, erreur: str = "") -> _Arret:
 _BLANCS = re.compile(r"\s+")
 
 
-def texte_pdf(content: bytes) -> tuple[str, int]:
-    """Texte extrait d'un PDF (``pypdf``) et nombre de pages."""
+@dataclass
+class TextePdf:
+    pages: list[str]
+
+    @property
+    def nb_pages(self) -> int:
+        return len(self.pages)
+
+    @property
+    def brut(self) -> str:
+        return "\n".join(self.pages).strip()
+
+    @property
+    def balise(self) -> str:
+        """Texte avec un repère par page, pour que l'IA cite la page source."""
+        return "\n".join(f"=== Page {i} ===\n{t.strip()}" for i, t in enumerate(self.pages, 1))
+
+    @property
+    def pages_sans_texte(self) -> list[int]:
+        return [
+            i
+            for i, t in enumerate(self.pages, 1)
+            if len(_BLANCS.sub("", t)) < PAGE_TEXTE_MIN_CARACTERES
+        ]
+
+
+def texte_pdf(content: bytes) -> TextePdf:
+    """Texte extrait de chaque page d'un PDF (``pypdf``)."""
     from pypdf import PdfReader
     from pypdf.errors import PdfReadError
 
@@ -260,13 +294,12 @@ def texte_pdf(content: bytes) -> tuple[str, int]:
         reader = PdfReader(io.BytesIO(content))
         if reader.is_encrypted and not reader.decrypt(""):
             raise _echec("pdf_illisible")
-        pages = len(reader.pages)
-        texte = "\n".join((page.extract_text() or "") for page in reader.pages)
+        pages = [(page.extract_text() or "") for page in reader.pages]
     except _Arret:
         raise
     except (PdfReadError, ValueError, KeyError, TypeError, OSError) as exc:
         raise _echec("pdf_illisible", type(exc).__name__) from exc
-    return texte.strip(), pages
+    return TextePdf(pages)
 
 
 def _noms_connus(piece: Piece) -> tuple[list[str], dict[str, list[str]]]:
@@ -316,35 +349,200 @@ CONSIGNE_TEXTE = (
     "<document>\n{texte}\n</document>"
 )
 CONSIGNE_VISION = (
-    "La pièce jointe (type : {type}) est un document numérisé ou une image. "
+    "La pièce jointe (type : {type}) est un document numérisé ou une image. Si plusieurs images "
+    "sont jointes, ce sont les pages du document, dans l'ordre (page 1, page 2…). "
     "Extrais les informations demandées."
 )
 
 
-def _preparer(piece: Piece, content: bytes, extraction: Extraction):
-    """Méthode, texte à envoyer et pièces jointes (règles 4 à 6)."""
+# --------------------------------------------------------------------------------------
+# Formats (règle 4 bis) : type réel détecté sur les octets, jamais sur l'extension
+# --------------------------------------------------------------------------------------
+
+DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+TIFF = "image/tiff"
+#: Libellés des formats non lus automatiquement (archives, anciens formats, HEIC…).
+FORMATS_NON_LUS = {
+    "zip": "archive ZIP",
+    "rar": "archive RAR",
+    "7z": "archive 7z",
+    "gzip": "archive GZIP",
+    "doc": "Word 97-2003 (.doc)",
+    "heic": "image HEIC",
+    "inconnu": "format inconnu",
+}
+#: Taille décompressée maximale lue d'un DOCX (protection contre les bombes de décompression).
+DOCX_MAX_DECOMPRESSE = 20 * 1024 * 1024
+DOCX_RATIO_MAX = 100
+
+
+def detecter_format(content: bytes) -> str:
+    """``pdf``, ``png``, ``jpeg``, ``tiff``, ``docx`` ou une clé de :data:`FORMATS_NON_LUS`.
+
+    Un ZIP n'est jamais décompressé ici : seul son répertoire central est lu pour reconnaître un
+    document Word (``word/document.xml``)."""
     type_detecte = pieces_service.detect_type(content)
-    libelle = piece.get_type_display()
     if type_detecte == pieces_service.PDF:
-        texte, pages = texte_pdf(content)
-        if len(_BLANCS.sub("", texte)) >= settings.AI_TEXTE_MIN_CARACTERES:
-            if len(texte) > settings.AI_TEXTE_MAX_CARACTERES:
+        return "pdf"
+    if type_detecte == pieces_service.PNG:
+        return "png"
+    if type_detecte == pieces_service.JPEG:
+        return "jpeg"
+    if content[:4] in (b"II*\x00", b"MM\x00*"):
+        return "tiff"
+    if content[4:8] == b"ftyp" and content[8:12] in (b"heic", b"heix", b"mif1", b"msf1", b"heif"):
+        return "heic"
+    if content.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
+        return "doc"
+    if content.startswith(b"Rar!\x1a\x07"):
+        return "rar"
+    if content.startswith(b"7z\xbc\xaf\x27\x1c"):
+        return "7z"
+    if content.startswith(b"\x1f\x8b"):
+        return "gzip"
+    if content.startswith(b"PK\x03\x04"):
+        import zipfile
+
+        try:
+            noms = zipfile.ZipFile(io.BytesIO(content)).namelist()
+        except zipfile.BadZipFile:
+            return "zip"
+        return "docx" if "word/document.xml" in noms else "zip"
+    return "inconnu"
+
+
+def texte_docx(content: bytes) -> str:
+    """Texte d'un DOCX (paragraphes et tableaux), lu localement par ``python-docx``, après
+    contrôle des tailles décompressées annoncées."""
+    import zipfile
+
+    import docx
+
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(content))
+        total = sum(i.file_size for i in archive.infolist())
+        compresse = sum(i.compress_size for i in archive.infolist()) or 1
+        if total > DOCX_MAX_DECOMPRESSE or total / compresse > DOCX_RATIO_MAX:
+            raise _echec("docx_illisible", "taille décompressée excessive")
+        document = docx.Document(io.BytesIO(content))
+    except _Arret:
+        raise
+    except Exception as exc:  # noqa: BLE001 — fichier Word endommagé
+        raise _echec("docx_illisible", type(exc).__name__) from exc
+    lignes = [p.text for p in document.paragraphs]
+    for table in document.tables:
+        for row in table.rows:
+            lignes.append(" | ".join(cell.text for cell in row.cells))
+    return "\n".join(ligne for ligne in lignes if ligne.strip())
+
+
+def pages_tiff(content: bytes) -> list[bytes]:
+    """Pages d'un TIFF converties en PNG (Pillow, local), pour la vision."""
+    from PIL import Image, UnidentifiedImageError
+
+    pages = []
+    try:
+        with Image.open(io.BytesIO(content)) as img:
+            for i in range(getattr(img, "n_frames", 1)):
+                if i >= settings.AI_PDF_MAX_PAGES:
+                    raise _ignoree("trop_de_pages")
+                img.seek(i)
+                buf = io.BytesIO()
+                img.convert("RGB").save(buf, format="PNG")
+                pages.append(buf.getvalue())
+    except _Arret:
+        raise
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError) as exc:
+        raise _echec("image_illisible", type(exc).__name__) from exc
+    return pages
+
+
+def _texte_a_envoyer(texte: str, libelle: str, extraction: Extraction):
+    if len(_BLANCS.sub("", texte)) < settings.AI_TEXTE_MIN_CARACTERES:
+        return None
+    if len(texte) > settings.AI_TEXTE_MAX_CARACTERES:
+        raise _ignoree("texte_trop_long")
+    extraction.methode = Extraction.Methode.PDF_TEXTE
+    extraction.texte = texte
+    return CONSIGNE_TEXTE.format(type=libelle, texte=texte)
+
+
+def _preparer(piece: Piece, content: bytes, extraction: Extraction):
+    """Méthode, texte à envoyer et pièces jointes (règles 4 à 6) ; renvoie aussi le nombre de
+    pages du document (contrôle des segments d'un dossier combiné)."""
+    fmt = detecter_format(content)
+    libelle = piece.get_type_display()
+    jointes: list[PieceJointe]
+    if fmt == "pdf":
+        pdf = texte_pdf(content)
+        nb_pages = pdf.nb_pages
+        sans_texte = pdf.pages_sans_texte
+        assez = len(_BLANCS.sub("", pdf.brut)) >= settings.AI_TEXTE_MIN_CARACTERES
+        # Dossier combiné mêlant pages texte et pages numérisées : la vision lit tout, si elle
+        # est permise ; sinon seules les pages texte sont lues et les autres signalées.
+        vision_possible = (
+            bool(sans_texte) and _vision_autorisee() and nb_pages <= settings.AI_PDF_MAX_PAGES
+        )
+        if assez and not vision_possible:
+            if len(pdf.brut) > settings.AI_TEXTE_MAX_CARACTERES:
                 raise _ignoree("texte_trop_long")
             extraction.methode = Extraction.Methode.PDF_TEXTE
-            extraction.texte = texte
-            return CONSIGNE_TEXTE.format(type=libelle, texte=texte), None
-        if pages > settings.AI_PDF_MAX_PAGES:
+            extraction.texte = pdf.balise
+            extraction.pages_non_lues = sans_texte
+            return CONSIGNE_TEXTE.format(type=libelle, texte=pdf.balise), None, nb_pages
+        if nb_pages > settings.AI_PDF_MAX_PAGES:
             raise _ignoree("trop_de_pages")
-    elif type_detecte in (pieces_service.PNG, pieces_service.JPEG):
+        jointes = [{"media_type": pieces_service.PDF, "data": content}]
+    elif fmt == "docx":
+        # Word : texte extrait localement (aucun appel réseau), une seule « page » logique.
+        texte = _texte_a_envoyer(texte_docx(content), libelle, extraction)
+        if texte is None:
+            raise _ignoree("format_non_lu", "document Word sans texte (images seules)")
+        extraction.methode = Extraction.Methode.DOCX_TEXTE
+        return texte, None, 1
+    elif fmt in ("png", "jpeg"):
+        nb_pages = 1
         if len(content) > IMAGE_MAX_BYTES:
             raise _ignoree("image_trop_volumineuse")
+        jointes = [{"media_type": f"image/{fmt}", "data": content}]
+    elif fmt == "tiff":
+        pages = pages_tiff(content)
+        nb_pages = len(pages)
+        if any(len(p) > IMAGE_MAX_BYTES for p in pages):
+            raise _ignoree("image_trop_volumineuse")
+        jointes = [{"media_type": pieces_service.PNG, "data": p} for p in pages]
     else:
-        raise _ignoree("type_non_pris_en_charge")
+        # Archives, .doc, HEIC, inconnu : jamais décompressés ni convertis ici (règle 4 bis).
+        raise _ignoree("format_non_lu", FORMATS_NON_LUS.get(fmt, fmt))
     extraction.methode = Extraction.Methode.VISION
     if not _vision_autorisee():
         raise _ignoree("vision_non_autorisee")
-    jointe: PieceJointe = {"media_type": type_detecte, "data": content}
-    return CONSIGNE_VISION.format(type=libelle), [jointe]
+    return CONSIGNE_VISION.format(type=libelle), jointes, nb_pages
+
+
+def controler_segments(data, nb_pages: int) -> list[str]:
+    """Contrôle déterministe du découpage d'un dossier combiné (règle 9 bis)."""
+    if not isinstance(data, LectureDossier):
+        return []
+    erreurs = []
+    blocs = {"cv": "cv", "diplome": "diplome", "attestation_travail": "attestation"}
+    fin_precedente = 0
+    for seg in sorted(data.segments, key=lambda x: x.page_debut):
+        if not 1 <= seg.page_debut <= seg.page_fin <= nb_pages:
+            erreurs.append(
+                f"pages {seg.page_debut}-{seg.page_fin} hors du document ({nb_pages} p.)"
+            )
+        if seg.page_debut <= fin_precedente:
+            erreurs.append(f"segments qui se chevauchent (page {seg.page_debut})")
+        fin_precedente = max(fin_precedente, seg.page_fin)
+        attendu = blocs.get(seg.type_document)
+        for bloc in blocs.values():
+            rempli = getattr(seg, bloc) is not None
+            if rempli != (bloc == attendu):
+                erreurs.append(
+                    f"bloc « {bloc} » incohérent avec un segment « {seg.type_document} »"
+                )
+    return erreurs
 
 
 def _journaliser(extraction: Extraction, piece: Piece) -> None:
@@ -396,7 +594,7 @@ def executer_lecture(extraction_id: int, *, client: AIClient | None = None) -> E
     resultat: Extraction | None = extraction
     try:
         if piece.type not in SCHEMAS:
-            raise _ignoree("type_non_pris_en_charge")
+            raise _ignoree("format_non_lu", "type de pièce non lu")
         prompt = prompt_pour(piece.type)
         extraction.type_piece = piece.type
         extraction.prompt_nom, extraction.prompt_version = prompt.name, prompt.version
@@ -424,7 +622,7 @@ def executer_lecture(extraction_id: int, *, client: AIClient | None = None) -> E
                 extraction.delete()
                 resultat = existante
                 raise _Arret("", "deja_lue")
-        user_text, jointes = _preparer(piece, content, extraction)
+        user_text, jointes, nb_pages = _preparer(piece, content, extraction)
         del content
         client = client or get_client()
         noms, valeurs = _noms_connus(piece)
@@ -443,6 +641,11 @@ def executer_lecture(extraction_id: int, *, client: AIClient | None = None) -> E
             extraction.appel_ia = exc.appel
             raise _echec(exc.code, str(exc)[:500]) from exc
         extraction.appel_ia = appel
+        erreurs = controler_segments(data, nb_pages)
+        if erreurs:
+            raise _echec(
+                "sortie_invalide", "Découpage du dossier incohérent : " + " ; ".join(erreurs)
+            )
         extraction.donnees = data.model_dump(mode="json")
         extraction.confiance = data.confiance
         extraction.statut = Extraction.Statut.TERMINEE
@@ -548,5 +751,7 @@ def etats_lecture(pieces: list[Piece]) -> list[EtatLecture]:
         ):
             derniere = None
         motif = str(MOTIFS.get(derniere.code, derniere.code)) if derniere and derniere.code else ""
+        if motif and derniere.code == "format_non_lu" and derniere.erreur:
+            motif = f"{motif} ({derniere.erreur})"
         out.append(EtatLecture(piece, etat, courante, derniere, motif))
     return out

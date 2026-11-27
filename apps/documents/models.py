@@ -13,6 +13,7 @@ class Extraction(models.Model):
 
     class Methode(models.TextChoices):
         PDF_TEXTE = "pdf_texte", "PDF texte"
+        DOCX_TEXTE = "docx_texte", "Word (texte extrait localement)"
         VISION = "vision", "Vision IA (scan/image)"
         MANUELLE = "manuelle", "Saisie manuelle"
 
@@ -43,6 +44,8 @@ class Extraction(models.Model):
     prompt_version = models.CharField("version du prompt", max_length=20, blank=True)
     empreinte = models.CharField("empreinte du contenu lu", max_length=64, blank=True)
     confiance = models.FloatField("confiance", null=True, blank=True)
+    #: Pages sans couche texte non lues (PDF mêlant texte et scans, vision non permise).
+    pages_non_lues = models.JSONField("pages non lues", default=list, blank=True)
     erreur = models.TextField("erreur", blank=True)
     appel_ia = models.ForeignKey(
         "ai.AppelIA", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"

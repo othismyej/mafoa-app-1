@@ -22,7 +22,7 @@ from django.db.models import Prefetch
 from django.utils import timezone
 from pydantic import BaseModel, ValidationError
 
-from ai.schemas import LectureAttestation, LectureCV, LectureDiplome
+from ai.schemas import LectureAttestation, LectureCV, LectureDiplome, LectureDossier
 from apps.evaluation.eligibility.engine import Diplome, ProfilCandidat
 from apps.evaluation.eligibility.experience import Periode, compute_experience
 from apps.evaluation.eligibility.levels import NiveauEtudes
@@ -36,6 +36,8 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     Piece.Type.CV: LectureCV,
     Piece.Type.DIPLOME: LectureDiplome,
     Piece.Type.ATTESTATION_TRAVAIL: LectureAttestation,
+    # Champ « Documents » unique du site : PDF combiné découpé en segments (règle 1 bis).
+    Piece.Type.DOSSIER: LectureDossier,
 }
 TYPES_LUS = tuple(SCHEMAS)
 #: Pièces qui alimentent chaque critère du moteur (règle 21).
@@ -139,7 +141,13 @@ class ProfilExtrait:
     pieces_experience: list[int] = field(default_factory=list)
     confiance_niveau: float | None = None
     confiance_experience: float | None = None
-    noms_titulaires: dict[int, str] = field(default_factory=dict)
+    #: Noms des titulaires lus, par pièce (plusieurs pour un dossier combiné) — pour KAN-42.
+    noms_titulaires: dict[int, list[str]] = field(default_factory=dict)
+    #: Documents utilisés (pièces simples et segments de dossiers).
+    documents: list[DocumentLu] = field(default_factory=list)
+    #: Références citées dans les raisons (« n° 12 », « n° 14 p. 3-4 »).
+    references_niveau: list[str] = field(default_factory=list)
+    references_experience: list[str] = field(default_factory=list)
 
     @property
     def vide(self) -> bool:
@@ -159,21 +167,95 @@ def _min(a: float | None, b: float | None) -> float | None:
     return min(values) if values else None
 
 
+@dataclass(frozen=True)
+class DocumentLu:
+    """Un document lu : une pièce simple, ou un segment d'un dossier combiné (règle 1 bis).
+
+    ``type`` : ``cv``, ``diplome``, ``attestation_travail`` ou ``autre`` ; ``pages`` : pages du
+    segment dans le dossier (``None`` pour une pièce simple) ; ``donnees`` : ``LectureCV``,
+    ``LectureDiplome``, ``LectureAttestation`` ou ``None`` (document « autre »).
+    """
+
+    piece_id: int
+    extraction_id: int
+    type: str
+    pages: tuple[int, int] | None
+    donnees: BaseModel | None
+    confiance: float | None
+    description: str = ""
+
+    @property
+    def reference(self) -> str:
+        """« n° 12 » ou « n° 12 p. 3-4 » (raisons et sources)."""
+        if not self.pages:
+            return f"n° {self.piece_id}"
+        a, b = self.pages
+        return f"n° {self.piece_id} p. {a}" if a == b else f"n° {self.piece_id} p. {a}-{b}"
+
+
+def documents_de(extraction: Extraction) -> list[DocumentLu]:
+    """Documents d'une extraction terminée : un seul pour une pièce simple, un par segment pour
+    un dossier combiné (dans l'ordre des pages)."""
+    data = donnees_validees(extraction)
+    if data is None:
+        return []
+    if not isinstance(data, LectureDossier):
+        type_ = extraction.type_piece or extraction.piece.type
+        return [
+            DocumentLu(extraction.piece_id, extraction.pk, type_, None, data, extraction.confiance)
+        ]
+    docs = []
+    for seg in sorted(data.segments, key=lambda x: x.page_debut):
+        donnees = {
+            "cv": seg.cv,
+            "diplome": seg.diplome,
+            "attestation_travail": seg.attestation,
+        }.get(seg.type_document)
+        # Confiance du segment (bornée par celle du dossier : un découpage douteux compte).
+        conf = _min(getattr(donnees, "confiance", None), extraction.confiance)
+        docs.append(
+            DocumentLu(
+                extraction.piece_id,
+                extraction.pk,
+                seg.type_document,
+                (seg.page_debut, seg.page_fin),
+                donnees,
+                conf,
+                seg.description,
+            )
+        )
+    return docs
+
+
+def documents_lus(candidature: Candidature) -> list[DocumentLu]:
+    """Tous les documents lus de la candidature (pièces simples et segments de dossiers)."""
+    return [d for e in extractions_de(candidature) for d in documents_de(e)]
+
+
+def _ajouter(liste: list[int], piece_id: int) -> None:
+    if piece_id not in liste:
+        liste.append(piece_id)
+
+
 def profil_depuis_extractions(extractions: list[Extraction]) -> ProfilExtrait:
     out = ProfilExtrait(extractions=list(extractions))
-    for e in extractions:
-        data = donnees_validees(e)
-        if data is None:
+    for doc in (d for e in extractions for d in documents_de(e)):
+        data = doc.donnees
+        if data is None:  # document « autre » d'un dossier
             continue
-        piece_type = e.type_piece or e.piece.type
+        out.documents.append(doc)
         if getattr(data, "nom_titulaire", None):
-            out.noms_titulaires[e.piece_id] = data.nom_titulaire
-        if piece_type in TYPES_NIVEAU:
-            out.pieces_niveau.append(e.piece_id)
-            out.confiance_niveau = _min(out.confiance_niveau, e.confiance)
-        if piece_type in TYPES_EXPERIENCE:
-            out.pieces_experience.append(e.piece_id)
-            out.confiance_experience = _min(out.confiance_experience, e.confiance)
+            noms = out.noms_titulaires.setdefault(doc.piece_id, [])
+            if data.nom_titulaire not in noms:
+                noms.append(data.nom_titulaire)
+        if doc.type in TYPES_NIVEAU:
+            _ajouter(out.pieces_niveau, doc.piece_id)
+            out.references_niveau.append(doc.reference)
+            out.confiance_niveau = _min(out.confiance_niveau, doc.confiance)
+        if doc.type in TYPES_EXPERIENCE:
+            _ajouter(out.pieces_experience, doc.piece_id)
+            out.references_experience.append(doc.reference)
+            out.confiance_experience = _min(out.confiance_experience, doc.confiance)
         if isinstance(data, LectureDiplome):
             if data.intitule or data.niveau:
                 out.diplomes.append(
