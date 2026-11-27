@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import lot_views, offre_views, spontanee_views, views
+from . import lecture_views, lot_views, offre_views, spontanee_views, views
 
 app_name = "recruitment"
 
@@ -39,6 +39,16 @@ urlpatterns = [
         "candidatures/<int:pk>/pieces/<int:piece_pk>/contenu/",
         views.piece_contenu,
         name="piece_contenu",
+    ),
+    path(
+        "candidatures/<int:pk>/pieces/lecture/",
+        lecture_views.lecture_lancer,
+        name="lecture_pieces_lancer",
+    ),
+    path(
+        "candidatures/<int:pk>/pieces/lecture/etat/",
+        lecture_views.lecture_etat,
+        name="lecture_pieces_etat",
     ),
     path(
         "candidatures/<int:pk>/decision/",

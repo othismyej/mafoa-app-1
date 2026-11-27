@@ -3,6 +3,8 @@
 Règles :
 - une période sans date de début est ignorée et rend le calcul « incertain » ;
 - une période sans date de fin (poste en cours) s'arrête à la date de référence ;
+- une période dont la fin est inconnue (``fin_inconnue``, ni date ni « en cours » sur une pièce
+  lue, KAN-41) est ignorée et rend le calcul « incertain » ;
 - une période est tronquée à la date de référence ; une période qui commence après est ignorée ;
 - une période dont la fin précède le début est une incohérence : ignorée et signalée ;
 - les périodes qui se chevauchent ou se touchent sont fusionnées (aucun double comptage) ;
@@ -24,6 +26,8 @@ class Periode:
     fin: date | None = None
     employeur: str = ""
     intitule: str = ""
+    #: Fin ni datée ni indiquée « en cours » (pièce lue) : la période ne peut pas être comptée.
+    fin_inconnue: bool = False
 
 
 @dataclass
@@ -51,6 +55,10 @@ def compute_experience(periodes: list[Periode], date_reference: date) -> Resulta
         if p.debut is None:
             incertain = True
             avertissements.append(f"Date de début manquante : {_label(p)} (non comptée).")
+            continue
+        if p.fin is None and p.fin_inconnue:
+            incertain = True
+            avertissements.append(f"Date de fin manquante : {_label(p)} (non comptée).")
             continue
         fin = p.fin or date_reference
         if p.fin is not None and p.fin < p.debut:

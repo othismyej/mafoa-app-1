@@ -15,6 +15,7 @@ from apps.recruitment.models import Candidature
 
 from . import decisions
 from .decisions import DecisionError
+from .eligibility.combinaison import Alimentation, combiner
 from .eligibility.engine import CriteresPoste, Diplome, ProfilCandidat, evaluate
 from .eligibility.experience import Periode
 from .eligibility.levels import NiveauEtudes
@@ -83,6 +84,47 @@ def criteres_from_cible(cible) -> CriteresPoste:
     )
 
 
+def evaluer_candidature(candidature: Candidature):
+    """Verdict sur le déclaré, combiné aux pièces lues par l'IA s'il y en a (KAN-41).
+
+    Renvoie ``(résultat, détails, sources)``. Sans extraction courante, le résultat est celui du
+    seul déclaré (comportement antérieur, version du moteur inchangée).
+    """
+    from django.conf import settings
+
+    from apps.documents.services import profil_extrait
+
+    criteres = criteres_from_cible(candidature.cible)
+    declare = evaluate(profil_from_declared(candidature.donnees_declarees or {}), criteres)
+    sources: list[dict] = [{"type": "donnees_declarees"}]
+    extrait = profil_extrait(candidature)
+    if extrait.vide:
+        return declare, declare.details(), sources
+    pieces = evaluate(extrait.profil, criteres)
+    niveau = Alimentation(tuple(extrait.pieces_niveau), extrait.confiance_niveau)
+    experience = Alimentation(tuple(extrait.pieces_experience), extrait.confiance_experience)
+    combine = combiner(
+        declare,
+        pieces,
+        {"niveau_etudes": niveau, "specialite": niveau, "experience": experience},
+        settings.AI_CONFIANCE_MIN,
+    )
+    utilisees = set(extrait.pieces_niveau) | set(extrait.pieces_experience)
+    sources += [
+        {
+            "type": "extraction",
+            "piece_id": e.piece_id,
+            "extraction_id": e.pk,
+            "piece_type": e.type_piece or e.piece.type,
+            "prompt_version": e.prompt_version,
+            "confiance": e.confiance,
+        }
+        for e in extrait.extractions
+        if e.piece_id in utilisees
+    ]
+    return combine, combine.details, sources
+
+
 class CandidatureSpontaneeError(ValueError):
     """Le moteur d'éligibilité ne s'applique pas à une candidature spontanée (KAN-39, règle 20)."""
 
@@ -116,16 +158,13 @@ def run_eligibility(
             f"Candidature #{candidature.pk} : candidature spontanée, sans critères "
             "d'éligibilité (aucune vérification possible)."
         )
-    resultat = evaluate(
-        profil_from_declared(candidature.donnees_declarees or {}),
-        criteres_from_cible(candidature.cible),
-    )
+    resultat, details, sources = evaluer_candidature(candidature)
     verification = VerificationEligibilite.objects.create(
         candidature=candidature,
         resultat=resultat.verdict.value,
-        details=resultat.details(),
+        details=details,
         justification=resultat.justification,
-        sources=[{"type": "donnees_declarees"}],
+        sources=sources,
         moteur_version=resultat.version,
     )
     # Verrou sur la ligne puis relecture : une décision humaine concurrente est soit déjà validée

@@ -199,6 +199,23 @@ RETENTION_CANDIDATURE_SPONTANEE_MOIS = env.int("RETENTION_CANDIDATURE_SPONTANEE_
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
 AI_MODEL = env("AI_MODEL", default="claude-opus-5-5")
 AI_PSEUDONYMIZE = env.bool("AI_PSEUDONYMIZE", default=True)
+# Effort (low | medium | high | xhigh | max) et repli serveur en cas de refus (KAN-41, Q8).
+AI_EFFORT = env("AI_EFFORT", default="medium")
+AI_FALLBACKS = env.bool("AI_FALLBACKS", default=True)
+AI_TIMEOUT = env.float("AI_TIMEOUT", default=120.0)
+
+# Lecture des pièces par l'IA (KAN-41).
+# Un scan ou une image ne peut pas être pseudonymisé : la vision n'est permise, quand
+# AI_PSEUDONYMIZE est actif, que si ce réglage l'autorise explicitement (règle 5, Q1).
+AI_VISION_NON_PSEUDONYMISEE = env.bool("AI_VISION_NON_PSEUDONYMISEE", default=False)
+AI_PIECE_MAX_BYTES = env.int("AI_PIECE_MAX_BYTES", default=10 * 1024 * 1024)
+AI_PDF_MAX_PAGES = env.int("AI_PDF_MAX_PAGES", default=20)
+AI_TEXTE_MIN_CARACTERES = env.int("AI_TEXTE_MIN_CARACTERES", default=80)
+AI_TEXTE_MAX_CARACTERES = env.int("AI_TEXTE_MAX_CARACTERES", default=60_000)
+AI_CONFIANCE_MIN = env.float("AI_CONFIANCE_MIN", default=0.7)
+AI_LECTURE_APRES_SYNC = env.bool("AI_LECTURE_APRES_SYNC", default=True)
+# Au-delà, une lecture « en attente » est considérée comme perdue (worker arrêté).
+AI_LECTURE_ATTENTE_MAX_MINUTES = env.int("AI_LECTURE_ATTENTE_MAX_MINUTES", default=30)
 
 LOGGING = {
     "version": 1,

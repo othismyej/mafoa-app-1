@@ -35,3 +35,13 @@ def synced(db):
     source = FixtureSource(seed=1234)
     sync_from_source(source, compute_hashes=False)
     return source
+
+
+@pytest.fixture(autouse=True)
+def _aucun_appel_ia_reel(monkeypatch):
+    """Garde-fou (KAN-41) : aucun test n'appelle l'API Claude réelle."""
+
+    def interdit(*args, **kwargs):
+        raise AssertionError("Appel réseau à l'API Claude interdit dans les tests.")
+
+    monkeypatch.setattr("ai.client.anthropic_transport", interdit)
